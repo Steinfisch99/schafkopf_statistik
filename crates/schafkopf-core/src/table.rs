@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{Cents, GameInput, Seat};
+use crate::model::{Cents, GameInput, GameKind, Seat};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Ein abgerechnetes Spiel. Beträge werden beim Eintragen festgeschrieben,
@@ -31,6 +31,15 @@ pub struct Table {
     /// Wer gibt im ersten Spiel? Danach wandert der Geber jeweils einen Platz weiter.
     pub first_dealer: Seat,
     pub tariff: Tariff,
+    /// Name des Tarifs in der Bibliothek, falls er von dort stammt. Nur zur Anzeige.
+    #[serde(default)]
+    pub tariff_name: Option<String>,
+    /// Die Spielarten, die in diesem Abend gespielt werden. Alte Dateien ohne Angabe: alle.
+    #[serde(default = "all_kinds")]
+    pub enabled_kinds: Vec<GameKind>,
+    /// Name des Regelwerks in der Bibliothek, falls es von dort stammt. Nur zur Anzeige.
+    #[serde(default)]
+    pub rule_set_name: Option<String>,
     #[serde(default)]
     pub created_at: Option<i64>,
     games: Vec<Game>,
@@ -66,6 +75,9 @@ impl Table {
             players,
             first_dealer,
             tariff,
+            tariff_name: None,
+            enabled_kinds: GameKind::ALL.to_vec(),
+            rule_set_name: None,
             created_at: None,
             games: Vec::new(),
         })
@@ -94,9 +106,38 @@ impl Table {
         seats
     }
 
-    /// Ändert den Tarif für alle künftigen Spiele. Bereits eingetragene Spiele behalten ihre Beträge.
+    /// Ändert den Tarif für alle künftigen Spiele (ohne Namen aus der Bibliothek). Bereits
+    /// eingetragene Spiele behalten ihre Beträge.
     pub fn set_tariff(&mut self, tariff: Tariff) {
         self.tariff = tariff;
+        self.tariff_name = None;
+    }
+
+    /// Wie [`Table::set_tariff`], mit dem Namen des Tarifs aus der Bibliothek.
+    pub fn use_tariff(&mut self, name: Option<String>, tariff: Tariff) {
+        self.tariff = tariff;
+        self.tariff_name = name;
+    }
+
+    /// Legt fest, welche Spielarten gespielt werden. Bereits eingetragene Spiele bleiben, auch mit
+    /// einer Spielart, die danach nicht mehr aktiv ist. `name` ist der Name des Regelwerks aus der
+    /// Bibliothek (nur zur Anzeige).
+    pub fn use_rules(&mut self, name: Option<String>, kinds: &[GameKind]) -> Result<()> {
+        let kinds: Vec<GameKind> = GameKind::ALL
+            .into_iter()
+            .filter(|k| kinds.contains(k))
+            .collect();
+        if kinds.is_empty() {
+            return Err(Error::NoKinds);
+        }
+        self.enabled_kinds = kinds;
+        self.rule_set_name = name;
+        Ok(())
+    }
+
+    /// Ob diese Spielart in diesem Abend gespielt wird.
+    pub fn is_enabled(&self, kind: GameKind) -> bool {
+        self.enabled_kinds.contains(&kind)
     }
 
     /// Geber des nächsten Spiels.
@@ -190,4 +231,8 @@ impl Table {
         }
         Ok(table)
     }
+}
+
+fn all_kinds() -> Vec<GameKind> {
+    GameKind::ALL.to_vec()
 }

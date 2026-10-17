@@ -13,20 +13,26 @@ Wir sitzen meist zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. E
 
 1. **Neuer Abend:** Die Mitspieler werden mit Namen in **Sitzreihenfolge** (Spielrichtung, im
    Uhrzeigersinn) eingetragen.
-2. **Tarif festlegen** (Sauspiel, Solo, Schneider, Schwarz, Laufende). Der Tarif ist **jederzeit
-   änderbar**. Neue Spiele rechnen mit dem neuen Tarif, bereits eingetragene Spiele behalten ihre
-   Beträge.
+2. **Regelwerk und Tarif wählen.** Ein **Regelwerk** legt fest, welche Spielarten ihr spielt (zum
+   Beispiel nur Sauspiel, Wenz, Geier, Farbsolo und Ramsch). Ein **Tarif** legt fest, was es kostet
+   (Sauspiel, Solo, Schneider, Schwarz, Laufende). Beide legst du **mit Namen** in der Verwaltung an,
+   es gibt jeweils einen **Standard**, und beim neuen Abend wählst du aus den gespeicherten oder
+   passt den Tarif nur für diesen Abend an. Der Tarif ist während des Abends **jederzeit änderbar**.
+   Neue Spiele rechnen mit dem neuen Tarif, bereits eingetragene Spiele behalten ihre Beträge.
 3. **Spiel beginnt:** Der **Geber** wird angegeben. Es spielen mit: der Geber, der Spieler vor ihm
    (entgegen der Spielrichtung, er hebt ab) und die zwei Spieler nach ihm. Bei 2 oder 3 Spielern
    spielen alle mit; sitzen mehr als vier Leute am Tisch, setzen die übrigen aus. Die Auswahl lässt
    sich pro Spiel ändern.
 4. **Nach dem Spiel eintragen:**
-   - Spielart aus einer Auswahlbox (Sauspiel, Wenz, Solo, ...).
-   - Eine Übersicht der vier Spieler: wer **gedoppelt** (geklopft) hat, wer **gewonnen** hat,
+   - Spielart aus einer Auswahlbox, mit den Spielarten des Regelwerks.
+   - Eine Übersicht der vier Spieler: wer **gedoppelt** (geklopft) hat, wer **gewonnen** hat (beim
+     Ramsch: wer verloren hat, oder mit "Durchmarsch" wer ihn gemacht hat),
      **Schneider**, **Schwarz** und wie viele **Laufende**.
    - Der **Preis wird berechnet**. Wurde am Tisch etwas anderes verlangt, kann der **verlangte Preis
      von Hand** eingetragen werden. Er ersetzt dann die Rechnung, und die App merkt sich beide Werte.
-5. **Speichern:** Das Spiel wird abgespeichert und **sofort in eine CSV-Datei geschrieben**.
+5. **Speichern:** Das Spiel wird abgespeichert und **sofort in eine CSV-Datei geschrieben**. Ein
+   früheres Spiel lässt sich später **bearbeiten oder löschen**, es wird dann mit dem Tarif von damals
+   neu gerechnet.
 6. **Graphen aktualisieren:** Im Vordergrund steht der **Kontoverlauf aller Spieler**. Er beginnt bei
    0 und kann ins Negative gehen.
 7. **Der Geber rückt um einen Platz weiter**, und es geht mit dem nächsten Spiel weiter.
@@ -52,7 +58,8 @@ lässt sich mit `cargo test` auf jedem Rechner testen:
 | --- | --- |
 | `model` | Spielarten, Farben, `GameInput` (alles, was man pro Spiel einträgt) |
 | `scoring` | `Tariff`, Plausibilitätsprüfung, Spielwert und Gewinn/Verlust pro Spieler |
-| `table` | `Table` mit Spielern, Geber-Rotation, Spielen, Tarifänderung, Rückgängig und JSON-Speicherformat |
+| `table` | `Table` mit Spielern, Geber-Rotation, Spielen, Tarif und Spielarten, Bearbeiten, Rückgängig und JSON-Speicherformat |
+| `library` | `Library` mit benannten Regelwerken und Tarifen, je ein Standard |
 | `csv` | CSV-Kopfzeile und eine Zeile pro Spiel (zum Anhängen an die Datei), Kontostände pro Spieler |
 | `stats` | Auswertung pro Spieler und pro Tisch, Kontoverlauf für Graphen |
 
@@ -62,11 +69,17 @@ Entscheidungen:
 - **Eingetragen wird, was am Tisch passiert ist.** Der Betrag wird berechnet (ein anderer verlangter
   Preis lässt sich von Hand eintragen) und
   beim Eintragen im Spiel festgeschrieben, damit eine spätere Tarifänderung die Historie nicht ändert.
-- **Zwei Dateien:** `Table::to_json` / `from_json` (mit Versionsfeld) speichert den ganzen Tisch samt
-  Tarif. Dazu schreibt die App nach jedem Spiel `Table::csv_row` an eine **CSV-Datei**, die sich in
-  Tabellenkalkulationen öffnen lässt (Beträge in Cent, pro Spieler Gewinn und Kontostand). Die CSV ist
-  das Journal, das JSON der vollständige Stand mit Tarif. Wo die App die Dateien
-  ablegt, entscheidet später die UI-Schicht.
+- **Drei Dateien** im privaten App-Ordner:
+  - `schafkopf-tisch.json` ist der vollständige Stand des laufenden Abends mit Tarif und Spielarten
+    (`Table::to_json` / `from_json`, mit Versionsfeld).
+  - `schafkopf-spiele.csv` ist das Journal, das die App nach jedem Spiel fortschreibt (`Table::csv_row`),
+    Beträge in Cent, pro Spieler Gewinn und Kontostand.
+  - `schafkopf-bibliothek.json` enthält die benannten Regelwerke und Tarife mit ihren Standards.
+  Ein Abend **kopiert** Spielarten und Tarif beim Anlegen. Spätere Änderungen in der Bibliothek
+  verändern deshalb nie einen laufenden oder schon gespielten Abend. Wird ein neuer Abend begonnen,
+  kommen Tisch und CSV des alten ins Unterverzeichnis `archiv`.
+- **Jedes Spiel merkt sich seinen Tarif.** Beim Bearbeiten wird mit dem Tarif von damals neu
+  gerechnet, nicht mit dem heutigen.
 
 ## Status
 
@@ -78,6 +91,10 @@ Entscheidungen:
       klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-app.md`](docs/android-app.md)
 - [x] CSV-Export in den Ordner Downloads (Excel mit Semikolon oder allgemein mit Komma), am Desktop
       getestet, auf dem Handy noch zu prüfen
+- [x] Spiele nachträglich bearbeiten und löschen
+- [x] Regelwerke (aktive Spielarten) und benannte Tarife mit Standard und Auswahl, Verwaltung in der App
+- [x] Korrekturen aus dem ersten Handytest: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
+      Durchmarsch-Knopf, Umlaute in beiden CSV-Formaten
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
       Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am

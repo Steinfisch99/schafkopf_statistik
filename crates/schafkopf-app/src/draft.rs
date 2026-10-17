@@ -35,7 +35,15 @@ impl GameDraft {
         GameDraft {
             dealer,
             participants: table.default_participants(dealer),
-            kind: GameKind::Sauspiel,
+            kind: if table.is_enabled(GameKind::Sauspiel) {
+                GameKind::Sauspiel
+            } else {
+                table
+                    .enabled_kinds
+                    .first()
+                    .copied()
+                    .unwrap_or(GameKind::Sauspiel)
+            },
             suit: None,
             declarer: None,
             partner: None,
@@ -521,6 +529,22 @@ mod tests {
         let preview = edited.preview_edit(&t, 0).unwrap();
         // (20 + 10 Schneider + 3 * 10 Laufende) * 2^3 für Klopfen, Kontra und Re; Preis von Hand entfernt.
         assert_eq!((preview.value, preview.calculated_value), (480, 480));
+    }
+
+    #[test]
+    fn new_game_starts_with_the_first_enabled_kind() {
+        let mut t = table(4);
+        assert_eq!(GameDraft::new(&t).kind, GameKind::Sauspiel);
+        t.use_rules(None, &[GameKind::Geier, GameKind::Wenz])
+            .unwrap();
+        assert_eq!(
+            GameDraft::new(&t).kind,
+            GameKind::Wenz,
+            "Wenz steht vor Geier"
+        );
+        t.use_rules(None, &[GameKind::Sauspiel, GameKind::Geier])
+            .unwrap();
+        assert_eq!(GameDraft::new(&t).kind, GameKind::Sauspiel);
     }
 
     #[test]

@@ -48,6 +48,18 @@ pub fn GameForm(
         None => d.preview(t),
     });
     let problem = d.problem();
+    // Nur die Spielarten des Regelwerks, dazu die des bearbeiteten Spiels, falls sie danach
+    // deaktiviert wurde.
+    let shown_kinds: Vec<GameKind> = table
+        .read()
+        .as_ref()
+        .map(|t| {
+            GameKind::ALL
+                .into_iter()
+                .filter(|&k| t.is_enabled(k) || k == kind)
+                .collect()
+        })
+        .unwrap_or_else(|| GameKind::ALL.to_vec());
     let declarer_label = match (kind, d.won) {
         (GameKind::Ramsch, true) => "Durchmarsch",
         (GameKind::Ramsch, false) => "Verlierer",
@@ -164,7 +176,7 @@ pub fn GameForm(
                             }
                         }
                     },
-                    for (i, k) in GameKind::ALL.iter().enumerate() {
+                    for (i, k) in GameKind::ALL.iter().enumerate().filter(|(_, k)| shown_kinds.contains(k)) {
                         option { key: "{i}", value: "{i}", selected: *k == kind, "{k.label()}" }
                     }
                 }

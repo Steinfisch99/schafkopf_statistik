@@ -132,3 +132,10 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
         }
     }
 }
+
+/// Speichert die Bibliothek und liefert bei einem Fehler einen anzeigbaren Text.
+pub fn persist_library(library: &schafkopf_core::Library) -> Result<(), String> {
+    crate::storage::save_library(library)
+        .map(|_| ())
+        .map_err(|e| format!("Die Bibliothek konnte nicht gespeichert werden: {e}"))
+}

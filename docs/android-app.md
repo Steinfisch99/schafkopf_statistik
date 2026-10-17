@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (81). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (101). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -111,7 +111,8 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
 - [ ] "+ Spieler" und "−" gehen von 2 bis 10 Spielern. Bei 2 ist "−" ausgegraut, bei 10 "+ Spieler".
 - [ ] Ein leerer Name ergibt einen roten Hinweis oben, kein Absturz. Ein doppelter Name auch.
 - [ ] Der erste Geber ist wählbar.
-- [ ] Der Tarif lässt sich mit Komma eingeben (`0,20`). "abc" ergibt einen Hinweis.
+- [ ] **Regelwerk** und **Tarif** sind vorgewählt (die Standards) und lassen sich per Auswahl wechseln. Unter dem Regelwerk steht, was gespielt wird.
+- [ ] "Für diesen Abend anpassen" öffnet die Tarif-Felder. Komma geht (`0,20`), "abc" ergibt einen Hinweis. Die Felder "Laufende zählen ab" heißen Sauspiel, **Wenz, Geier** und Solo.
 - [ ] "Abend starten" zeigt die Tischansicht mit dem gewählten Geber und `0,00 €` für alle.
 
 ### 2. Spiel eintragen (der Hauptablauf)
@@ -125,7 +126,10 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
 - [ ] Die Auszahlung darunter ergibt zusammen null. Beim Solo (Wenz, Farbsolo) bekommt der Spieler das
       Dreifache.
 - [ ] Ein verlangter Preis (`0,80`) ersetzt die Rechnung. "abc" ergibt einen Hinweis.
-- [ ] Wenz, Farbsolo, Ramsch und Bettel zeigen nur passende Felder (Farbe, Tout, kein Mitspieler).
+- [ ] Die Spielart-Auswahl zeigt nur die Spielarten des gewählten Regelwerks.
+- [ ] **Geier:** Laufende zählen schon ab 2 (wie beim Wenz) und gehen in den Preis ein. Beim Farbsolo erst ab 3.
+- [ ] **Ramsch:** Ohne Haken wählst du den **Verlierer**. Mit "Durchmarsch" wählst du, wer ihn gemacht hat. "Gewonnen/Verloren" gibt es beim Ramsch nicht.
+- [ ] Wenz, Farbsolo und Bettel zeigen nur passende Felder (Farbe, Tout, kein Mitspieler).
 - [ ] Nach "Spiel speichern" siehst du die Tischansicht, das Diagramm hat sich bewegt, und der
       Geber ist um einen Platz weiter.
 
@@ -196,7 +200,39 @@ Beispiel ergeben die Siege nach Rolle die Siegquote in der Rangliste).
       Querformat und bei großer Schrift).
 - [ ] Ohne Spiele steht ein Hinweis statt leerer Tabellen.
 
-### 8. Darstellung
+### 8. Spiele bearbeiten
+Am Desktop durchgeklickt: Ein Spiel von "gewonnen" auf "verloren" geändert, danach stimmten
+Kontostände, Diagramm und die CSV-Zeile.
+
+- [ ] In der Tischansicht unter "Spiele" hat jedes Spiel einen Link "Bearbeiten".
+- [ ] Das Formular ist mit dem Spiel vorbelegt (Spielart, Rollen, Ansagen, Laufende, Preis).
+- [ ] Eine Änderung (zum Beispiel Verloren statt Gewonnen) ändert die Vorschau sofort, "Änderungen
+      speichern" übernimmt sie, Diagramm, Legende und Statistik passen sich an.
+- [ ] Wurde der Tarif zwischendurch geändert, rechnet das bearbeitete Spiel **mit dem Tarif von damals**.
+- [ ] "Spiel löschen" fragt nach ("Ja, löschen"). Danach ist das Spiel weg, alle übrigen bleiben.
+- [ ] Die Spielart des bearbeiteten Spiels steht in der Auswahl, auch wenn sie im Regelwerk fehlt.
+
+### 9. Regelwerke und Tarife
+Am Desktop durchgeklickt: Regelwerk angelegt, zum Standard gemacht, mit ihm einen Abend begonnen,
+Tarif unter einem Namen gespeichert und übernommen. Die Dateien habe ich nachgesehen.
+
+- [ ] "Regelwerke und Tarife verwalten" (bei der Einrichtung und unter "Regeln und Tarif") zeigt
+      "Alle Spielarten" und "Unsere Runde" (Standard) sowie den Tarif "20/50" (Standard).
+- [ ] Ein **neues Regelwerk** lässt sich anlegen (Name, Spielarten antippen, "Anlegen") und erscheint
+      in der Liste. Ein leerer oder doppelter Name und ein Regelwerk ohne Spielart ergeben einen roten Hinweis.
+- [ ] Ein bestehendes lässt sich ändern und umbenennen, "Als Standard" macht es zum Standard, "Löschen"
+      fragt nach. Der letzte Eintrag lässt sich nicht löschen.
+- [ ] Das gilt genauso für **Tarife**.
+- [ ] Bei der Einrichtung ist das Standard-Regelwerk vorgewählt. Die Namen, die du schon getippt hast,
+      sind noch da, wenn du aus der Verwaltung zurückkommst.
+- [ ] In der Tischansicht steht "Regelwerk: … · Tarif: …".
+- [ ] "Regeln und Tarif": Ein anderes Regelwerk gilt ab dem nächsten Spiel. Einen gespeicherten Tarif als
+      Vorlage laden, anpassen und "Für diesen Abend übernehmen". "Als Tarif speichern" legt ihn unter
+      einem Namen in der Bibliothek ab.
+- [ ] Ein laufender Abend ändert sich nicht, wenn du in der Verwaltung etwas änderst.
+- [ ] Nach dem Schließen und Öffnen der App sind Regelwerke, Tarife und die Standards noch da.
+
+### 10. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

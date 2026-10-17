@@ -162,3 +162,6 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .ranking th:nth-child(2) { text-align: left; }
 .history li { position: relative; }
 .history .edit { margin-top: 0.2rem; min-height: 2.4rem; padding-inline: 0; }
+
+.badge { font-size: 0.75rem; border: 1px solid var(--line); border-radius: 1rem; padding: 0.1rem 0.55rem; opacity: 0.85; }
+.rules { margin: 0.2rem 0 0; }

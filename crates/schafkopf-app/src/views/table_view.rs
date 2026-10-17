@@ -46,6 +46,9 @@ pub fn TableView(
             span { "Nächster Geber: " }
             b { "{t.players[t.next_dealer()]}" }
             span { class: "muted", " · {games.len()} Spiele" }
+            p { class: "muted small rules",
+                "Regelwerk: {t.rule_set_name.as_deref().unwrap_or(\"eigene Auswahl\")} · Tarif: {t.tariff_name.as_deref().unwrap_or(\"Eigener Tarif\")}"
+            }
         }
         button {
             class: "primary big",
@@ -80,7 +83,7 @@ pub fn TableView(
         }
         div { class: "actions stack",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats), "Statistik" }
-            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Tariff), "Tarif ändern" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Settings), "Regeln und Tarif" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Export), "CSV exportieren" }
             if !games.is_empty() {
                 ConfirmButton {

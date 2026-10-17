@@ -48,6 +48,16 @@ pub enum Error {
     InvalidPoints(u8),
     #[error("Laufende müssen zwischen 0 und 8 liegen, nicht {0}")]
     InvalidLaufende(u8),
+    #[error("Der Name darf nicht leer sein")]
+    NameEmpty,
+    #[error("Es gibt schon einen Eintrag namens \"{0}\"")]
+    NameTaken(String),
+    #[error("Es gibt keinen Eintrag namens \"{0}\"")]
+    UnknownEntry(String),
+    #[error("Der letzte Eintrag lässt sich nicht löschen")]
+    LastEntry,
+    #[error("Mindestens eine Spielart muss aktiv sein")]
+    NoKinds,
     #[error("JSON-Fehler: {0}")]
     Json(String),
     #[error("Nicht unterstützte Dateiversion {0}")]

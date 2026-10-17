@@ -705,3 +705,215 @@ fn games_saved_without_a_tariff_are_repriced_with_the_current_one_when_edited() 
     assert_eq!(old.replace_game(0, input).unwrap().value, 40);
     assert!(old.games()[0].tariff.is_some());
 }
+
+fn kinds_of(library: &Library, name: &str) -> Vec<GameKind> {
+    library.rule_set(name).unwrap().kinds.clone()
+}
+
+#[test]
+fn library_starts_with_usable_defaults() {
+    let lib = Library::with_defaults();
+    assert_eq!(lib.default_rule_set().name, "Unsere Runde");
+    assert_eq!(
+        kinds_of(&lib, "Unsere Runde"),
+        [
+            GameKind::Sauspiel,
+            GameKind::Wenz,
+            GameKind::Geier,
+            GameKind::Farbsolo,
+            GameKind::Ramsch
+        ]
+    );
+    assert_eq!(kinds_of(&lib, "Alle Spielarten").len(), GameKind::ALL.len());
+    assert_eq!(lib.default_tariff().name, "20/50");
+    assert_eq!(lib.default_tariff().tariff, Tariff::default());
+    assert!(lib.is_default_rule_set("Unsere Runde") && !lib.is_default_rule_set("Alle Spielarten"));
+}
+
+#[test]
+fn rule_sets_can_be_created_edited_and_renamed() {
+    let mut lib = Library::with_defaults();
+    let name = lib
+        .save_rule_set(
+            None,
+            "  Kneipe  ",
+            &[GameKind::Wenz, GameKind::Sauspiel, GameKind::Wenz],
+        )
+        .unwrap();
+    assert_eq!(name, "Kneipe");
+    assert_eq!(
+        kinds_of(&lib, "Kneipe"),
+        [GameKind::Sauspiel, GameKind::Wenz],
+        "ohne Doppelte, in üblicher Reihenfolge"
+    );
+    lib.save_rule_set(Some("Kneipe"), "Kneipe 2", &[GameKind::Bettel])
+        .unwrap();
+    assert!(lib.rule_set("Kneipe").is_none());
+    assert_eq!(kinds_of(&lib, "Kneipe 2"), [GameKind::Bettel]);
+    // Umbenennen auf den eigenen Namen in anderer Schreibweise ist erlaubt.
+    lib.save_rule_set(Some("Kneipe 2"), "KNEIPE 2", &[GameKind::Bettel])
+        .unwrap();
+    assert_eq!(lib.rule_sets().len(), 3);
+}
+
+#[test]
+fn names_must_be_filled_unique_and_kinds_not_empty() {
+    let mut lib = Library::with_defaults();
+    assert_eq!(
+        lib.save_rule_set(None, "  ", &[GameKind::Wenz])
+            .unwrap_err(),
+        Error::NameEmpty
+    );
+    assert_eq!(
+        lib.save_rule_set(None, "unsere runde", &[GameKind::Wenz])
+            .unwrap_err(),
+        Error::NameTaken("unsere runde".into())
+    );
+    assert_eq!(
+        lib.save_rule_set(None, "Neu", &[]).unwrap_err(),
+        Error::NoKinds
+    );
+    assert_eq!(
+        lib.save_rule_set(Some("Gibt es nicht"), "X", &[GameKind::Wenz])
+            .unwrap_err(),
+        Error::UnknownEntry("Gibt es nicht".into())
+    );
+    assert_eq!(
+        lib.save_rule_set(Some("Alle Spielarten"), "Unsere Runde", &[GameKind::Wenz])
+            .unwrap_err(),
+        Error::NameTaken("Unsere Runde".into())
+    );
+    assert_eq!(
+        lib.save_tariff(None, "20/50", Tariff::default())
+            .unwrap_err(),
+        Error::NameTaken("20/50".into())
+    );
+    assert_eq!(lib.rule_sets().len(), 2, "nichts davon hat etwas verändert");
+}
+
+#[test]
+fn default_follows_renames_and_deletes() {
+    let mut lib = Library::with_defaults();
+    lib.save_rule_set(Some("Unsere Runde"), "Stammtisch", &[GameKind::Wenz])
+        .unwrap();
+    assert_eq!(lib.default_rule_set().name, "Stammtisch");
+    lib.set_default_rule_set("Alle Spielarten").unwrap();
+    assert!(lib.is_default_rule_set("Alle Spielarten"));
+    lib.delete_rule_set("Alle Spielarten").unwrap();
+    assert_eq!(
+        lib.default_rule_set().name,
+        "Stammtisch",
+        "das erste übrige wird Standard"
+    );
+    assert_eq!(
+        lib.delete_rule_set("Stammtisch").unwrap_err(),
+        Error::LastEntry
+    );
+    assert_eq!(
+        lib.delete_rule_set("Nope").unwrap_err(),
+        Error::UnknownEntry("Nope".into())
+    );
+    assert_eq!(
+        lib.set_default_rule_set("Nope").unwrap_err(),
+        Error::UnknownEntry("Nope".into())
+    );
+}
+
+#[test]
+fn tariffs_work_like_rule_sets() {
+    let mut lib = Library::with_defaults();
+    let cheap = Tariff {
+        sauspiel: 10,
+        solo: 20,
+        ..Tariff::default()
+    };
+    lib.save_tariff(None, "Günstig", cheap.clone()).unwrap();
+    assert_eq!(lib.tariff("Günstig").unwrap().tariff, cheap);
+    lib.set_default_tariff("Günstig").unwrap();
+    assert_eq!(lib.default_tariff().tariff, cheap);
+    lib.save_tariff(Some("Günstig"), "Billig", cheap.clone())
+        .unwrap();
+    assert!(
+        lib.is_default_tariff("Billig"),
+        "der Standard zieht beim Umbenennen mit"
+    );
+    lib.delete_tariff("Billig").unwrap();
+    assert_eq!(lib.default_tariff().name, "20/50");
+    assert_eq!(lib.delete_tariff("20/50").unwrap_err(), Error::LastEntry);
+}
+
+#[test]
+fn library_json_roundtrip_and_validation() {
+    let mut lib = Library::with_defaults();
+    lib.save_tariff(
+        None,
+        "Zweiter",
+        Tariff {
+            sauspiel: 30,
+            ..Tariff::default()
+        },
+    )
+    .unwrap();
+    assert_eq!(Library::from_json(&lib.to_json().unwrap()).unwrap(), lib);
+    assert!(matches!(Library::from_json("{"), Err(Error::Json(_))));
+    let mut broken = serde_json::to_value(&lib).unwrap();
+    broken["tariffs"] = serde_json::json!([]);
+    assert!(matches!(
+        Library::from_json(&broken.to_string()),
+        Err(Error::Json(_))
+    ));
+    let mut future = serde_json::to_value(&lib).unwrap();
+    future["version"] = serde_json::json!(99);
+    assert_eq!(
+        Library::from_json(&future.to_string()).unwrap_err(),
+        Error::UnsupportedVersion(99)
+    );
+    // Ein Standard, den es nicht mehr gibt, fällt auf den ersten Eintrag zurück.
+    let mut dangling = serde_json::to_value(&lib).unwrap();
+    dangling["default_tariff"] = serde_json::json!("weg");
+    let repaired = Library::from_json(&dangling.to_string()).unwrap();
+    assert_eq!(repaired.default_tariff().name, "20/50");
+}
+
+#[test]
+fn table_remembers_enabled_kinds_and_names() {
+    let mut t = table();
+    assert!(
+        GameKind::ALL.iter().all(|&k| t.is_enabled(k)),
+        "neue Abende: alle Spielarten"
+    );
+    t.use_rules(Some("Kneipe".into()), &[GameKind::Wenz, GameKind::Sauspiel])
+        .unwrap();
+    assert!(t.is_enabled(GameKind::Wenz) && !t.is_enabled(GameKind::Geier));
+    assert_eq!(t.rule_set_name.as_deref(), Some("Kneipe"));
+    assert_eq!(t.use_rules(None, &[]).unwrap_err(), Error::NoKinds);
+    assert!(t.is_enabled(GameKind::Wenz), "der Fehler ändert nichts");
+    t.use_tariff(
+        Some("Günstig".into()),
+        Tariff {
+            sauspiel: 10,
+            ..Tariff::default()
+        },
+    );
+    assert_eq!(t.tariff_name.as_deref(), Some("Günstig"));
+    t.set_tariff(Tariff::default());
+    assert_eq!(t.tariff_name, None);
+    // Ein bereits gespieltes Spiel bleibt, auch wenn seine Spielart danach nicht mehr aktiv ist.
+    t.add_game(GameInput::new(0, GameKind::Wenz, 1)).unwrap();
+    t.use_rules(None, &[GameKind::Sauspiel]).unwrap();
+    assert_eq!(t.games().len(), 1);
+    assert_eq!(Table::from_json(&t.to_json().unwrap()).unwrap(), t);
+}
+
+#[test]
+fn old_table_files_without_rules_load_with_all_kinds() {
+    let t = table();
+    let mut json = serde_json::to_value(&t).unwrap();
+    let object = json.as_object_mut().unwrap();
+    for key in ["enabled_kinds", "rule_set_name", "tariff_name"] {
+        object.remove(key);
+    }
+    let old = Table::from_json(&json.to_string()).unwrap();
+    assert_eq!(old.enabled_kinds, GameKind::ALL.to_vec());
+    assert_eq!((old.rule_set_name, old.tariff_name), (None, None));
+}

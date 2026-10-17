@@ -5,6 +5,7 @@
 
 mod csv;
 mod error;
+mod library;
 mod model;
 mod money;
 mod scoring;
@@ -12,6 +13,7 @@ mod stats;
 mod table;
 
 pub use error::{Error, Result};
+pub use library::{Library, NamedTariff, RuleSet};
 pub use model::{outcome_from_points, Cents, GameInput, GameKind, Outcome, Seat, Suit};
 pub use money::parse_euro;
 pub use scoring::{calculated_value, game_value, payouts, validate, Tariff};

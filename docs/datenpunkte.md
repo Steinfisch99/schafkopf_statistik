@@ -12,7 +12,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Verlangter Preis | Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif ergibt | nein |
 | Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Bettel, Ramsch | ja |
 | Farbe | beim Sauspiel die gerufene Sau (nicht Herz), beim Farbsolo die Trumpffarbe | je nach Spielart |
-| Spieler | Ben (beim Ramsch: der Verlierer) | ja |
+| Spieler | Ben. Beim Ramsch: der Verlierer, oder bei "Durchmarsch" der, der alle Stiche gemacht hat | ja |
 | Mitspieler | Dora (Sauspiel, Hochzeit) | je nach Spielart |
 | Klopfer | Cem, Dora (jeder Klopfer verdoppelt) | nein |
 | Kontra von | Cem (verdoppelt) | nein |
@@ -21,7 +21,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Gewonnen | Spielerpartei ja/nein | ja |
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
-| Laufende | Anzahl, gezählt ab 3 (Wenz ab 2) | nein |
+| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar) | nein |
 | Augen | Augen der Spielerpartei, daraus lassen sich Sieg und Schneider ableiten | nein |
 | Zeitpunkt, Notiz | frei | nein |
 
@@ -86,3 +86,18 @@ richtig erscheinen:
 
 Der Dateiname enthält das Datum des Abends (`schafkopf-2026-10-17.csv`). Eine bestehende Datei wird
 nie überschrieben, es kommt eine Nummer dazu.
+
+## Regelwerke und Tarife
+
+- Ein **Regelwerk** ist eine benannte Liste von Spielarten. Im Eingabeformular stehen nur diese zur
+  Wahl. Mitgeliefert sind "Alle Spielarten" und "Unsere Runde" (Sauspiel, Wenz, Geier, Farbsolo, Ramsch),
+  Letzteres als Standard.
+- Ein **Tarif** ist eine benannte Liste von Beträgen. Mitgeliefert ist "20/50".
+- Von beiden gibt es jeweils einen **Standard**, der beim neuen Abend vorgewählt ist. Namen sind
+  eindeutig (Groß- und Kleinschreibung zählt nicht), es bleibt immer mindestens ein Eintrag, und beim
+  Löschen des Standards rückt der erste übrige nach.
+- Ein Abend kopiert Spielarten und Tarif beim Anlegen. Änderungen in der Bibliothek berühren weder
+  laufende noch vergangene Abende. Während des Abends lassen sich Regelwerk und Tarif unter "Regeln
+  und Tarif" wechseln; das gilt ab dem nächsten Spiel.
+- Jedes Spiel speichert den Tarif, mit dem es abgerechnet wurde, damit das Bearbeiten alter Spiele
+  nicht von einer späteren Tarifänderung abhängt.

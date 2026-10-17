@@ -4,11 +4,12 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-use schafkopf_core::Table;
+use schafkopf_core::{Library, Table};
 
 const JSON_FILE: &str = "schafkopf-tisch.json";
 const CSV_FILE: &str = "schafkopf-spiele.csv";
 const ARCHIVE_DIR: &str = "archiv";
+const LIBRARY_FILE: &str = "schafkopf-bibliothek.json";
 
 /// Android-App-Kennung aus `Dioxus.toml`; bestimmt das private Datenverzeichnis der App.
 #[cfg(target_os = "android")]
@@ -50,6 +51,34 @@ pub fn save(table: &Table, new_game: Option<usize>) -> io::Result<PathBuf> {
 /// Legt den laufenden Abend ins Archiv, bevor ein neuer beginnt. `stamp` macht die Namen eindeutig.
 pub fn archive_current(stamp: u64) -> io::Result<bool> {
     archive_in(&data_dir(), stamp)
+}
+
+/// Lädt die Bibliothek mit Regelwerken und Tarifen. Gibt es noch keine oder ist die Datei nicht
+/// lesbar, beginnt die App mit den Voreinstellungen.
+pub fn load_library() -> Library {
+    load_library_from(&data_dir())
+}
+
+/// Speichert die Bibliothek und gibt den Ordner zurück.
+pub fn save_library(library: &Library) -> io::Result<PathBuf> {
+    let dir = data_dir();
+    save_library_in(&dir, library)?;
+    Ok(dir)
+}
+
+fn load_library_from(dir: &Path) -> Library {
+    fs::read_to_string(dir.join(LIBRARY_FILE))
+        .ok()
+        .and_then(|json| Library::from_json(&json).ok())
+        .unwrap_or_else(Library::with_defaults)
+}
+
+fn save_library_in(dir: &Path, library: &Library) -> io::Result<()> {
+    fs::create_dir_all(dir)?;
+    let json = library
+        .to_json()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    fs::write(dir.join(LIBRARY_FILE), json)
 }
 
 fn load_from(dir: &Path) -> Option<Table> {
@@ -136,6 +165,38 @@ mod tests {
         table.undo_last();
         save_in(&dir, &table, None).unwrap();
         assert_eq!(csv(), table.to_csv());
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn library_roundtrips_and_falls_back_to_defaults() {
+        let dir = temp_dir("library");
+        assert_eq!(
+            load_library_from(&dir),
+            Library::with_defaults(),
+            "noch keine Datei"
+        );
+        let mut library = Library::with_defaults();
+        library
+            .save_tariff(
+                None,
+                "Zweiter",
+                Tariff {
+                    sauspiel: 30,
+                    ..Tariff::default()
+                },
+            )
+            .unwrap();
+        save_library_in(&dir, &library).unwrap();
+        assert_eq!(load_library_from(&dir), library);
+        // Eine kaputte Datei lässt die App nicht abstürzen.
+        fs::write(dir.join(LIBRARY_FILE), "{ kaputt").unwrap();
+        assert_eq!(load_library_from(&dir), Library::with_defaults());
+        // Der Abend wird beim Archivieren nicht von der Bibliothek berührt.
+        save_library_in(&dir, &library).unwrap();
+        save_in(&dir, &table(), None).unwrap();
+        archive_in(&dir, 5).unwrap();
+        assert_eq!(load_library_from(&dir), library);
         fs::remove_dir_all(&dir).unwrap();
     }
 

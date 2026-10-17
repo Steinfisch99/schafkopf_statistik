@@ -14,7 +14,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
 use views::{
-    ExportScreen, GameForm, Notice, NoticeBar, Setup, StatsScreen, TableView, TariffScreen,
+    use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, SettingsScreen,
+    Setup, StatsScreen, TableView,
 };
 
 const CSS: &str = include_str!("style.css");
@@ -27,7 +28,12 @@ pub enum Screen {
     Game,
     /// Ein früheres Spiel bearbeiten, gezählt ab 0.
     EditGame(usize),
-    Tariff,
+    /// Regeln und Tarif des laufenden Abends.
+    Settings,
+    /// Verwaltung der gespeicherten Regelwerke und Tarife. `from_setup` sagt, wohin "Zurück" führt.
+    Library {
+        from_setup: bool,
+    },
     Export,
     Stats,
 }
@@ -45,6 +51,8 @@ fn main() {
 #[component]
 fn App() -> Element {
     let table = use_signal(storage::load);
+    let library = use_signal(storage::load_library);
+    let setup = use_setup_state(library);
     let screen = use_signal(|| {
         if table.peek().is_some() {
             Screen::Table
@@ -53,8 +61,10 @@ fn App() -> Element {
         }
     });
     let notice = use_signal(|| None::<Notice>);
-    // Ohne Tisch gibt es nur die Einrichtung.
     let current = match (table.read().as_ref(), screen()) {
+        // Die Verwaltung braucht keinen Abend, sie ist auch aus der Einrichtung erreichbar.
+        (None, library_screen @ Screen::Library { from_setup: true }) => library_screen,
+        // Ohne Abend gibt es nur die Einrichtung.
         (None, _) => Screen::Setup,
         // Ein Spiel, das es nicht mehr gibt, kann nicht bearbeitet werden.
         (Some(t), Screen::EditGame(index)) if index >= t.games().len() => Screen::Table,
@@ -67,11 +77,12 @@ fn App() -> Element {
             h1 { "Schafkopf" }
             NoticeBar { notice }
             match current {
-                Screen::Setup => rsx! { Setup { table, screen, notice } },
+                Screen::Setup => rsx! { Setup { table, screen, notice, library, state: setup } },
                 Screen::Table => rsx! { TableView { table, screen, notice } },
                 Screen::Game => rsx! { GameForm { table, screen, notice, editing: None } },
                 Screen::EditGame(index) => rsx! { GameForm { key: "{index}", table, screen, notice, editing: Some(index) } },
-                Screen::Tariff => rsx! { TariffScreen { table, screen, notice } },
+                Screen::Settings => rsx! { SettingsScreen { table, screen, notice, library } },
+                Screen::Library { from_setup } => rsx! { LibraryScreen { screen, notice, library, from_setup } },
                 Screen::Export => rsx! { ExportScreen { table, screen, notice } },
                 Screen::Stats => rsx! { StatsScreen { table, screen } },
             }
