@@ -73,12 +73,22 @@ Auf dem Host bauen und die APK suchen:
 cd ~/git-repos/sandbox/schafkopf
 nix develop .#android
 cd crates/schafkopf-app
-dx build --platform android
+dx build --platform android --target aarch64-linux-android
 find ../../target -name '*.apk'
 ```
 
+**Wichtig ist `--target aarch64-linux-android`.** Ohne angeschlossenes Gerät baut `dx` für die
+Architektur des PCs (meist `x86_64`, die von Emulatoren). Handys sind `aarch64`; eine x86-APK lässt
+sich dort nicht installieren, Android meldet nur "App nicht installiert".
+
 Der genaue Ordner hängt von der `dx`-Version ab, deshalb die Suche. Laut Issues auf GitHub liegt sie
 unter `target/dx/schafkopf-app/debug/android/app/` in `build/outputs/apk/debug/app-debug.apk`.
+
+Vor dem Übertragen prüfen, ob die APK für das Handy gebaut ist. Dort muss `lib/arm64-v8a/` stehen:
+
+```sh
+unzip -l PFAD/app-debug.apk | grep "lib/"
+```
 
 Aufs Handy bringen: Die APK in einen Cloud-Ordner legen, per E-Mail oder Messenger an dich selbst
 schicken, oder auf einen USB-Stick kopieren (am Handy mit OTG-Adapter). Der Upload verträgt auch
