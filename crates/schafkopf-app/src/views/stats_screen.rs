@@ -135,6 +135,17 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>, open: bool) -> 
                     Kv { key: "{mistake.label()}", label: mistake.label(), value: format!("{count}×") }
                 }
             }
+            DemandNumbers {
+                over_demands: p.over_demands,
+                under_demands: p.under_demands,
+                reclaims: p.reclaims,
+                overcharge_gain: p.overcharge_gain,
+                reclaim_returned: p.reclaim_returned,
+                undercharge_missed: p.undercharge_missed,
+                overcharge_loss: p.overcharge_loss,
+                reclaim_saved: p.reclaim_saved,
+                undercharge_benefit: p.undercharge_benefit,
+            }
 
             h4 { "Serien" }
             p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt." }
@@ -301,6 +312,14 @@ pub fn StatsScreen(
         .collect();
     wrong_by_player.sort_by_key(|(p, count)| (std::cmp::Reverse(*count), p.seat));
     let wrong_scale = wrong_by_player.iter().map(|(_, c)| *c).max().unwrap_or(0);
+    let mut reclaimers: Vec<(&schafkopf_core::PlayerStats, u32)> = stats
+        .players
+        .iter()
+        .filter(|p| p.reclaims > 0)
+        .map(|p| (p, p.reclaims))
+        .collect();
+    reclaimers.sort_by_key(|(p, count)| (std::cmp::Reverse(*count), p.seat));
+    let reclaim_scale = reclaimers.iter().map(|(_, c)| *c).max().unwrap_or(0);
     let mut mistakes_sorted: Vec<(schafkopf_core::PriceMistake, u32)> =
         stats.mistake_counts.iter().map(|(m, c)| (*m, *c)).collect();
     mistakes_sorted.sort_by_key(|(m, c)| (std::cmp::Reverse(*c), *m));
@@ -446,6 +465,27 @@ pub fn StatsScreen(
                             }
                         }
                     }
+                    h4 { "Zu viel oder zu wenig?" }
+                    Kv { label: "Zu viel verlangt", value: count_share(stats.overcharged_games, stats.corrected_games) }
+                    Kv { label: "Davon zurückverlangt", value: count_share(stats.reclaimed_games, stats.overcharged_games) }
+                    Kv { label: "Zu wenig verlangt", value: count_share(stats.undercharged_games, stats.corrected_games) }
+                    if stats.overcharge_cents > 0 {
+                        Kv { label: "Zu viel verlangtes Geld", value: format_euro(stats.overcharge_cents) }
+                        Kv { label: "Davon zurückgeholt", value: format_euro(stats.reclaimed_cents) }
+                        Kv { label: "Davon geblieben", value: format_euro(stats.overcharge_cents - stats.reclaimed_cents) }
+                    }
+                    if stats.reclaimed_games > 0 {
+                        h4 { "Wer hat zurückverlangt?" }
+                        for (p, count) in reclaimers.iter() {
+                            ShareBar {
+                                key: "{p.seat}",
+                                label: p.name.clone(),
+                                part: *count,
+                                total: reclaim_scale,
+                                value: format!("{count}×"),
+                            }
+                        }
+                    }
                 }
             }
 
@@ -556,6 +596,48 @@ pub fn StatsScreen(
 
         div { class: "actions",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
+        }
+    }
+}
+
+/// Zahlen eines Spielers zu falsch verlangten Preisen: wie oft zu viel oder zu wenig verlangt, wie oft
+/// zurückverlangt, und das Geld, das dadurch zu viel oder zu wenig floss. Nur, was vorkam.
+#[component]
+pub(super) fn DemandNumbers(
+    over_demands: u32,
+    under_demands: u32,
+    reclaims: u32,
+    overcharge_gain: Cents,
+    reclaim_returned: Cents,
+    undercharge_missed: Cents,
+    overcharge_loss: Cents,
+    reclaim_saved: Cents,
+    undercharge_benefit: Cents,
+) -> Element {
+    let money = [
+        ("Zu viel bekommen (nicht aufgefallen)", overcharge_gain),
+        ("Zurückgeben müssen (zurückverlangt)", reclaim_returned),
+        ("Zu wenig bekommen", undercharge_missed),
+        ("Zu viel gezahlt (nicht zurückverlangt)", overcharge_loss),
+        ("Durch Zurückverlangen gespart", reclaim_saved),
+        ("Weniger gezahlt als nötig", undercharge_benefit),
+    ];
+    if over_demands + under_demands + reclaims == 0 && money.iter().all(|(_, c)| *c == 0) {
+        return rsx! {};
+    }
+    rsx! {
+        h4 { "Zu viel oder zu wenig verlangt" }
+        if over_demands > 0 {
+            Kv { label: "Zu viel verlangt", value: format!("{over_demands}×") }
+        }
+        if under_demands > 0 {
+            Kv { label: "Zu wenig verlangt", value: format!("{under_demands}×") }
+        }
+        if reclaims > 0 {
+            Kv { label: "Zurückverlangt", value: format!("{reclaims}×") }
+        }
+        for (label, cents) in money.iter().filter(|(_, c)| *c > 0) {
+            Kv { key: "{label}", label: label.to_string(), value: format_euro(*cents) }
         }
     }
 }

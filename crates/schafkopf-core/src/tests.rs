@@ -2508,3 +2508,218 @@ fn wrong_demands_count_for_every_winner_and_old_files_with_one_player_still_load
         .price_error_by
         .is_empty());
 }
+
+fn asked(price: Cents) -> GameInput {
+    GameInput {
+        price_override: Some(price),
+        ..sauspiel(0, 1, 3)
+    }
+}
+
+#[test]
+fn too_much_demanded_stands_if_nobody_notices() {
+    let mut t = table();
+    let g = t.add_game(asked(30)).unwrap();
+    assert_eq!((g.value, g.calculated_value), (30, 20));
+    assert_eq!(g.payouts, vec![-30, 30, -30, 30]);
+    assert!(g.overcharged() && g.demanded_wrong() && !g.input.reclaimed);
+    let s = table_stats(&t);
+    assert_eq!((s.overcharged_games, s.reclaimed_games), (1, 0));
+    let by = |seat: usize| &s.players[seat];
+    // Die Gewinner (1 und 3) bekamen je 10 zu viel, die Verlierer (0 und 2) zahlten je 10 zu viel.
+    assert_eq!((by(1).overcharge_gain, by(3).overcharge_gain), (10, 10));
+    assert_eq!((by(0).overcharge_loss, by(2).overcharge_loss), (10, 10));
+    assert_eq!(by(1).over_demands, 1);
+    assert_eq!(s.overcharge_cents, 20);
+    assert_eq!(s.reclaimed_cents, 0);
+}
+
+#[test]
+fn the_losers_can_reclaim_what_was_demanded_too_much() {
+    let mut t = table();
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..asked(30)
+        })
+        .unwrap();
+    assert_eq!(
+        (g.value, g.calculated_value),
+        (20, 20),
+        "der richtige Preis gilt"
+    );
+    assert_eq!(g.payouts, vec![-20, 20, -20, 20]);
+    assert_eq!(
+        g.input.price_override,
+        Some(30),
+        "der verlangte Preis bleibt für die Statistik"
+    );
+    assert_eq!(
+        g.input.reclaimed_by,
+        vec![2, 0],
+        "ohne Angabe alle Verlierer"
+    );
+    assert_eq!(t.balances(), vec![-20, 20, -20, 20]);
+    let s = table_stats(&t);
+    assert_eq!((s.overcharged_games, s.reclaimed_games), (1, 1));
+    assert_eq!((s.overcharge_cents, s.reclaimed_cents), (20, 20));
+    assert_eq!((s.players[0].reclaims, s.players[2].reclaims), (1, 1));
+    assert_eq!(s.players[1].reclaims, 0);
+    assert_eq!(
+        (s.players[0].reclaim_saved, s.players[2].reclaim_saved),
+        (10, 10)
+    );
+    assert_eq!(
+        (s.players[1].reclaim_returned, s.players[3].reclaim_returned),
+        (10, 10)
+    );
+    assert_eq!(s.players[1].overcharge_gain, 0);
+    // Wer falsch verlangt hat, steht trotzdem drin.
+    assert_eq!(s.players[1].wrong_demands, 1);
+    assert_eq!(s.corrected_games, 1);
+}
+
+#[test]
+fn only_a_loser_can_reclaim_and_only_when_it_was_too_much_and_the_tariff_allows_it() {
+    let mut t = table();
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            reclaimed_by: vec![1, 2],
+            ..asked(30)
+        })
+        .unwrap();
+    assert_eq!(
+        g.input.reclaimed_by,
+        vec![2],
+        "1 ist ein Gewinner und kann nicht zurückverlangen"
+    );
+
+    // Zu wenig verlangt: Es gibt nichts zurückzuverlangen.
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..GameInput {
+                price_override: Some(10),
+                ..sauspiel(1, 0, 2)
+            }
+        })
+        .unwrap();
+    assert!(!g.input.reclaimed && g.input.reclaimed_by.is_empty());
+    assert_eq!(g.value, 10);
+
+    // Der verlangte Preis stimmt: weder falsch verlangt noch zurückverlangt.
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..GameInput {
+                price_override: Some(20),
+                ..sauspiel(2, 0, 3)
+            }
+        })
+        .unwrap();
+    assert!(!g.input.reclaimed && !g.demanded_wrong());
+
+    // Der Tarif erlaubt es nicht: Der verlangte Preis gilt.
+    t.set_tariff(Tariff {
+        reclaim_enabled: false,
+        ..Tariff::default()
+    });
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..GameInput {
+                price_override: Some(30),
+                ..sauspiel(3, 0, 1)
+            }
+        })
+        .unwrap();
+    assert!(!g.input.reclaimed);
+    assert_eq!(g.value, 30);
+}
+
+#[test]
+fn too_little_demanded_costs_the_winners_and_helps_the_losers() {
+    let mut t = table();
+    t.add_game(asked(10)).unwrap();
+    let s = table_stats(&t);
+    assert_eq!((s.undercharged_games, s.overcharged_games), (1, 0));
+    assert_eq!(
+        (
+            s.players[1].undercharge_missed,
+            s.players[3].undercharge_missed
+        ),
+        (10, 10)
+    );
+    assert_eq!(
+        (
+            s.players[0].undercharge_benefit,
+            s.players[2].undercharge_benefit
+        ),
+        (10, 10)
+    );
+    assert_eq!(s.players[1].under_demands, 1);
+    assert_eq!(s.overcharge_cents, 0);
+}
+
+#[test]
+fn a_solo_overcharge_is_counted_per_opponent() {
+    let mut t = table();
+    let solo = GameInput {
+        price_override: Some(80),
+        reclaimed: false,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    t.add_game(solo).unwrap();
+    let s = table_stats(&t);
+    // Der Spieler bekommt von drei Gegnern je 30 zu viel, jeder Gegner zahlt 30 zu viel.
+    assert_eq!(s.players[1].overcharge_gain, 90);
+    assert_eq!(s.players[0].overcharge_loss, 30);
+    assert_eq!(s.overcharge_cents, 90);
+}
+
+#[test]
+fn old_tariffs_allow_reclaiming_and_old_games_have_no_reclaim() {
+    let mut json: serde_json::Value = serde_json::to_value(Tariff::default()).unwrap();
+    json.as_object_mut().unwrap().remove("reclaim_enabled");
+    assert!(
+        serde_json::from_value::<Tariff>(json)
+            .unwrap()
+            .reclaim_enabled
+    );
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let json = t.to_json().unwrap();
+    let old: String = json
+        .lines()
+        .filter(|l| !l.contains("\"reclaimed"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(!Table::from_json(&old).unwrap().games()[0].input.reclaimed);
+}
+
+#[test]
+fn overall_stats_add_up_reclaims_across_evenings() {
+    let a = evening(
+        &["Anna", "Ben", "Cem", "Dora"],
+        vec![GameInput {
+            reclaimed: true,
+            ..asked(30)
+        }],
+    );
+    let b = evening(&["Ben", "Anna", "Cem", "Dora"], vec![asked(30)]);
+    let all = overall_stats(&[&a, &b]);
+    assert_eq!((all.overcharged_games, all.reclaimed_games), (2, 1));
+    assert_eq!((all.overcharge_cents, all.reclaimed_cents), (40, 20));
+    let ben = all.players.iter().find(|p| p.name == "Ben").unwrap();
+    assert!(
+        ben.reclaim_returned + ben.overcharge_loss + ben.overcharge_gain + ben.reclaim_saved > 0
+    );
+    let csv = a.to_csv();
+    assert!(csv
+        .lines()
+        .next()
+        .unwrap()
+        .contains("Zurueckverlangt,Zurueckverlangt_von"));
+    assert!(csv.contains("ja,Cem; Anna"));
+}

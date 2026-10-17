@@ -31,6 +31,29 @@ pub struct Game {
     pub at_table: Vec<Seat>,
 }
 
+impl Game {
+    /// Wurde ein vom berechneten abweichender Preis verlangt (zu viel oder zu wenig)?
+    pub fn demanded_wrong(&self) -> bool {
+        self.input
+            .price_override
+            .is_some_and(|p| p != self.calculated_value)
+    }
+
+    /// Wurde zu viel verlangt?
+    pub fn overcharged(&self) -> bool {
+        self.input
+            .price_override
+            .is_some_and(|p| p > self.calculated_value)
+    }
+
+    /// Wurde zu wenig verlangt?
+    pub fn undercharged(&self) -> bool {
+        self.input
+            .price_override
+            .is_some_and(|p| p < self.calculated_value)
+    }
+}
+
 /// Was am Tisch passiert ist, außer den Spielen.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EventKind {
@@ -517,9 +540,9 @@ impl Table {
         }
         validate(&input, self.players.len())?;
         let calculated_value = calculated_value(tariff, &input);
-        let value = game_value(tariff, &input);
-        if value == calculated_value {
-            // Ohne korrigierten Preis gab es nichts, was falsch verlangt wurde.
+        let demanded = input.price_override.filter(|&p| p != calculated_value);
+        if demanded.is_none() {
+            // Ohne abweichenden Preis gab es nichts, was falsch verlangt oder zurückverlangt wurde.
             input.mistakes.clear();
             input.price_error_by.clear();
         } else {
@@ -534,6 +557,21 @@ impl Table {
                 input.price_error_by = winners;
             }
         }
+        // Zurückverlangen geht nur bei zu viel verlangtem Preis und wenn der Tarif es erlaubt.
+        let too_much = demanded.is_some_and(|p| p > calculated_value);
+        if input.reclaimed && too_much && tariff.reclaim_enabled {
+            let losers = input.losers();
+            input.reclaimed_by.retain(|s| losers.contains(s));
+            input.reclaimed_by.sort_unstable();
+            input.reclaimed_by.dedup();
+            if input.reclaimed_by.is_empty() {
+                input.reclaimed_by = losers;
+            }
+        } else {
+            input.reclaimed = false;
+            input.reclaimed_by.clear();
+        }
+        let value = game_value(tariff, &input);
         let payouts = payouts(tariff, &input, self.players.len());
         Ok(Game {
             input,

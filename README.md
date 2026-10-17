@@ -111,6 +111,7 @@ Entscheidungen:
 - [x] Mehrere Bockrunden pro Spiel; Regelwerk: hintereinander oder übereinander
 - [x] Ramsch: Bock verdoppelt wahlweise nicht, und die Bockrunde zählt, wartet oder verfällt
 - [x] Falsch verlangte Preise: wer, und welche Fehlerart (Grundtarif, Doppler, Bock, Laufende, Schneider/Schwarz, Partei, verrechnet), mit Statistik
+- [x] Zu viel verlangt: Verlierer können zurückverlangen (Tarif-Option), mit Statistik zu Zahl und Geld
 - [x] Gesamtstatistik über mehrere Abende (frei wählbar, mit Doppler-Anteilen und Spielerwerten) und Testabende (Branch feature/gesamtstatistik)
 - [x] Sicherung aller Daten als ZIP in Downloads und Einspielen (auswählbar: Spieler, Regelwerke, Tarife, Abende)
       führen zur Statistik des Spielers

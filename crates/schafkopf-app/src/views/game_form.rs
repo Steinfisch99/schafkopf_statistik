@@ -61,7 +61,12 @@ pub fn GameForm(
     });
     let problem = d.problem();
     // Die Fehlerarten gibt es nur, wenn der Preis wirklich korrigiert wird.
-    let price_corrected = matches!(&preview, Some(Ok(g)) if g.value != g.calculated_value);
+    let price_corrected = matches!(&preview, Some(Ok(g)) if g.demanded_wrong());
+    // Zu viel verlangt und der Tarif erlaubt das Zurückverlangen: Die Verlierer können es zurückholen.
+    let price_too_high = matches!(
+        &preview,
+        Some(Ok(g)) if g.overcharged() && g.tariff.as_ref().is_some_and(|t| t.reclaim_enabled)
+    );
     let stacked = table
         .read()
         .as_ref()
@@ -440,6 +445,34 @@ pub fn GameForm(
                             label: mistake.label().to_string(),
                             on: d.mistakes.contains(&mistake),
                             onclick: move |_| draft.write().toggle_mistake(mistake),
+                        }
+                    }
+                }
+            }
+            if price_too_high {
+                p { class: "hint", "Es wurde zu viel verlangt. Ist es den Verlierern aufgefallen?" }
+                div { class: "chips",
+                    Chip {
+                        label: "Nicht aufgefallen (verlangter Preis gilt)".to_string(),
+                        on: !d.reclaimed,
+                        onclick: move |_| draft.write().set_reclaimed(false),
+                    }
+                    Chip {
+                        label: "Zurückverlangt (richtiger Preis gilt)".to_string(),
+                        on: d.reclaimed,
+                        onclick: move |_| draft.write().set_reclaimed(true),
+                    }
+                }
+                if d.reclaimed {
+                    p { class: "hint", "Wer hat zurückverlangt?" }
+                    div { class: "chips",
+                        for seat in d.losers() {
+                            Chip {
+                                key: "{seat}",
+                                label: players[seat].clone(),
+                                on: d.reclaimed_by().contains(&seat),
+                                onclick: move |_| draft.write().toggle_reclaimer(seat),
+                            }
                         }
                     }
                 }

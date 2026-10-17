@@ -346,6 +346,14 @@ pub struct GameInput {
     /// alle auf der Gewinnerseite.
     #[serde(default, deserialize_with = "seats_or_one")]
     pub price_error_by: Vec<Seat>,
+    /// Haben die Verlierer zu viel verlangten Betrag zurückverlangt? Dann gilt der berechnete Preis, der
+    /// verlangte bleibt nur zur Statistik stehen. Zählt nur, wenn der Preis zu hoch verlangt wurde und
+    /// der Tarif das Zurückverlangen erlaubt, sonst wird es beim Abrechnen verworfen.
+    #[serde(default)]
+    pub reclaimed: bool,
+    /// Wer zurückverlangt hat (Verlierer). Ohne Angabe alle Verlierer. Nur bei `reclaimed` gespeichert.
+    #[serde(default)]
+    pub reclaimed_by: Vec<Seat>,
     /// Augen der Spielerpartei, optional für die Statistik.
     #[serde(default)]
     pub points: Option<u8>,
@@ -382,6 +390,8 @@ impl GameInput {
             price_override: None,
             mistakes: Vec::new(),
             price_error_by: Vec::new(),
+            reclaimed: false,
+            reclaimed_by: Vec::new(),
             points: None,
             played_at: None,
             note: None,
@@ -406,6 +416,15 @@ impl GameInput {
             .iter()
             .copied()
             .filter(|&s| self.is_on_declarer_team(s) == self.won)
+            .collect()
+    }
+
+    /// Die Verliererseite unter den Mitspielenden. Nur sie kann zu viel Verlangtes zurückverlangen.
+    pub fn losers(&self) -> Vec<Seat> {
+        self.participants
+            .iter()
+            .copied()
+            .filter(|&s| self.is_on_declarer_team(s) != self.won)
             .collect()
     }
 

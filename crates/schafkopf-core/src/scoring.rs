@@ -31,6 +31,10 @@ pub struct Tariff {
     /// Verdoppelt ein Bockspiel den Ramsch? Alte Tarife ohne diese Angabe: ja.
     #[serde(default = "yes")]
     pub ramsch_bock_doubles: bool,
+    /// Dürfen die Verlierer zu viel verlangtes Geld zurückverlangen, wenn es ihnen auffällt? Alte
+    /// Tarife ohne diese Angabe: ja.
+    #[serde(default = "yes")]
+    pub reclaim_enabled: bool,
 }
 
 impl Default for Tariff {
@@ -48,6 +52,7 @@ impl Default for Tariff {
             laufende_min_solo: 3,
             ramsch_knock_doubles: true,
             ramsch_bock_doubles: true,
+            reclaim_enabled: true,
         }
     }
 }
@@ -107,7 +112,7 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
         }
     }
     check_active(input.declarer)?;
-    for &by in &input.price_error_by {
+    for &by in input.price_error_by.iter().chain(&input.reclaimed_by) {
         check_active(by)?;
     }
 
@@ -180,13 +185,16 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
 
 /// Wert des Spiels, den jeder Verlierer an jeden Gewinner zahlt (Einzelwert).
 ///
-/// Das ist der verlangte Preis, falls einer eingetragen wurde, sonst [`calculated_value`].
+/// Das ist der verlangte Preis, falls einer eingetragen wurde, sonst [`calculated_value`]. Wurde zu
+/// viel Verlangtes zurückverlangt, gilt der berechnete Preis.
 pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
+    if input.reclaimed {
+        return calculated_value(tariff, input);
+    }
     input
         .price_override
         .unwrap_or_else(|| calculated_value(tariff, input))
 }
-
 /// Der nach Tarif berechnete Einzelwert.
 ///
 /// Grundtarif plus Schneider, Schwarz und Laufende, danach verdoppelt durch

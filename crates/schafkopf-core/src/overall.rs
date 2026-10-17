@@ -34,6 +34,15 @@ pub struct OverallPlayer {
     pub lauf_other_side: u32,
     pub wrong_demands: u32,
     pub wrong_by_kind: BTreeMap<PriceMistake, u32>,
+    pub over_demands: u32,
+    pub under_demands: u32,
+    pub reclaims: u32,
+    pub overcharge_gain: Cents,
+    pub reclaim_returned: Cents,
+    pub undercharge_missed: Cents,
+    pub overcharge_loss: Cents,
+    pub reclaim_saved: Cents,
+    pub undercharge_benefit: Cents,
     pub longest_win_streak: u32,
     pub longest_loss_streak: u32,
     pub by_kind: BTreeMap<GameKind, KindStats>,
@@ -66,6 +75,15 @@ impl OverallPlayer {
             lauf_other_side: 0,
             wrong_demands: 0,
             wrong_by_kind: BTreeMap::new(),
+            over_demands: 0,
+            under_demands: 0,
+            reclaims: 0,
+            overcharge_gain: 0,
+            reclaim_returned: 0,
+            undercharge_missed: 0,
+            overcharge_loss: 0,
+            reclaim_saved: 0,
+            undercharge_benefit: 0,
             longest_win_streak: 0,
             longest_loss_streak: 0,
             by_kind: BTreeMap::new(),
@@ -119,6 +137,15 @@ impl OverallPlayer {
         self.lauf_own_side += p.lauf_own_side;
         self.lauf_other_side += p.lauf_other_side;
         self.wrong_demands += p.wrong_demands;
+        self.over_demands += p.over_demands;
+        self.under_demands += p.under_demands;
+        self.reclaims += p.reclaims;
+        self.overcharge_gain += p.overcharge_gain;
+        self.reclaim_returned += p.reclaim_returned;
+        self.undercharge_missed += p.undercharge_missed;
+        self.overcharge_loss += p.overcharge_loss;
+        self.reclaim_saved += p.reclaim_saved;
+        self.undercharge_benefit += p.undercharge_benefit;
         for (m, n) in &p.wrong_by_kind {
             *self.wrong_by_kind.entry(*m).or_default() += n;
         }
@@ -161,6 +188,11 @@ pub struct OverallStats {
     pub bock_games: u32,
     pub bock_started: u32,
     pub mistake_counts: BTreeMap<PriceMistake, u32>,
+    pub overcharged_games: u32,
+    pub undercharged_games: u32,
+    pub reclaimed_games: u32,
+    pub overcharge_cents: Cents,
+    pub reclaimed_cents: Cents,
     pub players: Vec<OverallPlayer>,
 }
 
@@ -197,6 +229,11 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
         out.schneider_games += stats.schneider_games;
         out.schwarz_games += stats.schwarz_games;
         out.corrected_games += stats.corrected_games;
+        out.overcharged_games += stats.overcharged_games;
+        out.undercharged_games += stats.undercharged_games;
+        out.reclaimed_games += stats.reclaimed_games;
+        out.overcharge_cents += stats.overcharge_cents;
+        out.reclaimed_cents += stats.reclaimed_cents;
         out.bock_games += stats.bock_games;
         out.bock_started += stats.bock_started;
         for (m, n) in &stats.mistake_counts {

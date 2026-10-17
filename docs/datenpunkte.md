@@ -289,3 +289,22 @@ Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schaf
   abwählen (mindestens einer bleibt).
 - In der Statistik zählt jeder der Eingetragenen einmal (und je Fehlerart). Die CSV-Spalte
   "Falsch_verlangt_von" nennt alle, getrennt durch Semikolon. Alte Spiele mit nur einem Namen bleiben lesbar.
+
+### Zu viel verlangt und zurückverlangen
+
+- Wurde der Preis **zu hoch** verlangt, bekommen die Gewinner das Mehr nur, wenn es keinem auffällt. Fällt es
+  den Verlierern auf, **verlangen sie es zurück**, und der **richtige Preis** gilt.
+- Beim Eintragen erscheint bei zu hohem Preis die Frage "Ist es den Verlierern aufgefallen?": **Nicht
+  aufgefallen** (der verlangte Preis gilt, Geld und Stand folgen ihm) oder **Zurückverlangt** (der berechnete
+  Preis gilt) mit der Wahl, **wer zurückverlangt hat** (nur Verlierer, ohne Wahl alle, einer bleibt immer).
+  Der verlangte Preis bleibt in beiden Fällen für die Statistik gespeichert.
+- Bei **zu wenig** Verlangtem gibt es nichts zurückzuverlangen, der verlangte Preis gilt (die Gewinner
+  bekommen weniger, als ihnen zustand).
+- **Option im Tarif:** "Zu viel Verlangtes darf zurückverlangt werden" (Standard an, auch für alte Tarife). Aus:
+  Der verlangte Preis gilt immer, die Frage erscheint nicht.
+- **Statistik** (Abend und Gesamtstatistik, im Abschnitt "Falsch verlangt"): wie oft zu viel und zu wenig
+  verlangt wurde, wie oft davon zurückverlangt, das zu viel verlangte Geld insgesamt, davon zurückgeholt und
+  davon geblieben, und **wer wie oft zurückverlangt** hat. Je Spieler: zu viel und zu wenig verlangt,
+  zurückverlangt, und das Geld in Euro: zu viel bekommen (nicht aufgefallen), zurückgeben müssen, zu wenig
+  bekommen; als Verlierer zu viel gezahlt, durch Zurückverlangen gespart, weniger gezahlt als nötig.
+- CSV: zusätzlich "Zurueckverlangt" (ja/nein) und "Zurueckverlangt_von".

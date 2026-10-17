@@ -58,8 +58,22 @@ pub fn detail(table: &Table, game: &Game) -> String {
         1 => parts.push("löst Bockrunde aus".into()),
         n => parts.push(format!("löst {n} Bockrunden aus")),
     }
-    if game.value != game.calculated_value {
-        let mut text = "Preis korrigiert".to_owned();
+    if game.demanded_wrong() {
+        let mut text = if game.input.reclaimed {
+            let names: Vec<&str> = input
+                .reclaimed_by
+                .iter()
+                .map(|&s| table.players[s].as_str())
+                .collect();
+            format!(
+                "Zu viel verlangt, zurückverlangt von {}",
+                names.join(" und ")
+            )
+        } else if game.overcharged() {
+            "Zu viel verlangt, nicht aufgefallen".to_owned()
+        } else {
+            "Zu wenig verlangt".to_owned()
+        };
         if !input.price_error_by.is_empty() {
             let names: Vec<&str> = input
                 .price_error_by
@@ -201,7 +215,7 @@ mod tests {
         assert_eq!(title(&game), "Sauspiel Eichel");
         assert_eq!(
             detail(&t, &game),
-            "Ben mit Dora gewonnen · Schneider · 3 Laufende · 1× geklopft · Kontra, Re · Preis korrigiert, falsch verlangt von Ben und Dora"
+            "Ben mit Dora gewonnen · Schneider · 3 Laufende · 1× geklopft · Kontra, Re · Zu wenig verlangt, falsch verlangt von Ben und Dora"
         );
     }
 
@@ -334,5 +348,35 @@ mod tests {
         let text = detail(&t, &game);
         assert!(text.contains("Bockspiel (Preis mal 4)"), "{text}");
         assert!(text.contains("löst 2 Bockrunden aus"), "{text}");
+    }
+
+    #[test]
+    fn describes_too_much_demanded_with_and_without_a_reclaim() {
+        let mut t = table();
+        let base = GameInput {
+            suit: Some(Suit::Eichel),
+            partner: Some(3),
+            price_override: Some(300),
+            ..GameInput::new(0, schafkopf_core::GameKind::Sauspiel, 1)
+        };
+        let g = t.add_game(base.clone()).unwrap().clone();
+        let text = detail(&t, &g);
+        assert!(
+            text.contains("Zu viel verlangt, nicht aufgefallen, falsch verlangt von Ben und Dora"),
+            "{text}"
+        );
+        let g = t
+            .add_game(GameInput {
+                reclaimed: true,
+                reclaimed_by: vec![2],
+                ..base
+            })
+            .unwrap()
+            .clone();
+        let text = detail(&t, &g);
+        assert!(
+            text.contains("Zu viel verlangt, zurückverlangt von Cem"),
+            "{text}"
+        );
     }
 }

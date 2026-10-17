@@ -158,6 +158,18 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
             }
         }
         p { class: "hint", "Aus: Klopfen und Bock beim Ramsch werden trotzdem eingetragen und in der Statistik gezählt, ändern den Preis aber nicht." }
+        p { class: "hint", "Falsch verlangen:" }
+        div { class: "chips",
+            Chip {
+                label: "Zu viel Verlangtes darf zurückverlangt werden".to_string(),
+                on: d.reclaim_enabled,
+                onclick: move |_| {
+                    let on = !draft.read().reclaim_enabled;
+                    draft.write().reclaim_enabled = on;
+                },
+            }
+        }
+        p { class: "hint", "An: Verlangen die Gewinner zu viel und fällt es den Verlierern auf, tragen sie beim Spiel \"zurückverlangt\" ein, dann gilt der richtige Preis. Aus: Der verlangte Preis gilt immer." }
     }
 }
 

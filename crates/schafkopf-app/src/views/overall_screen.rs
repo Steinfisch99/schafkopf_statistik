@@ -9,7 +9,7 @@ use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, T
 
 use super::common::{Chip, Notice};
 use super::stat_widgets::{DivergingRow, ShareBar, StackedBar, WinDonut};
-use super::stats_screen::{amount_class, count_share, lost, Kv};
+use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv};
 use crate::stats_text::{kind_rows, max_abs, percent, share, streak};
 use crate::summary::{evening_date, evening_times, games_text, signed_euro};
 use crate::{storage, Screen};
@@ -141,6 +141,17 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
                 for (mistake, count) in p.wrong_by_kind.iter() {
                     Kv { key: "{mistake.label()}", label: mistake.label(), value: format!("{count}×") }
                 }
+            }
+            DemandNumbers {
+                over_demands: p.over_demands,
+                under_demands: p.under_demands,
+                reclaims: p.reclaims,
+                overcharge_gain: p.overcharge_gain,
+                reclaim_returned: p.reclaim_returned,
+                undercharge_missed: p.undercharge_missed,
+                overcharge_loss: p.overcharge_loss,
+                reclaim_saved: p.reclaim_saved,
+                undercharge_benefit: p.undercharge_benefit,
             }
 
             if !kinds.is_empty() {
@@ -297,6 +308,27 @@ fn OverallNumbers(stats: OverallStats) -> Element {
                         part: p.wrong_demands,
                         total: stats.corrected_games,
                         value: format!("{}×", p.wrong_demands),
+                    }
+                }
+                h4 { "Zu viel oder zu wenig?" }
+                Kv { label: "Zu viel verlangt", value: count_share(stats.overcharged_games, stats.corrected_games) }
+                Kv { label: "Davon zurückverlangt", value: count_share(stats.reclaimed_games, stats.overcharged_games) }
+                Kv { label: "Zu wenig verlangt", value: count_share(stats.undercharged_games, stats.corrected_games) }
+                if stats.overcharge_cents > 0 {
+                    Kv { label: "Zu viel verlangtes Geld", value: format_euro(stats.overcharge_cents) }
+                    Kv { label: "Davon zurückgeholt", value: format_euro(stats.reclaimed_cents) }
+                    Kv { label: "Davon geblieben", value: format_euro(stats.overcharge_cents - stats.reclaimed_cents) }
+                }
+                if stats.reclaimed_games > 0 {
+                    h4 { "Wer hat zurückverlangt?" }
+                    for p in ranked.iter().filter(|p| p.reclaims > 0) {
+                        ShareBar {
+                            key: "{p.name}",
+                            label: p.name.clone(),
+                            part: p.reclaims,
+                            total: stats.reclaimed_games,
+                            value: format!("{}×", p.reclaims),
+                        }
                     }
                 }
             }

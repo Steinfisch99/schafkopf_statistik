@@ -3,7 +3,8 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::model::{Cents, GameKind, PriceMistake, Seat, Suit};
-use crate::table::Table;
+use crate::scoring::payouts;
+use crate::table::{Game, Table};
 
 /// Spiele und Siege in einer Rolle, Position oder Kategorie.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,6 +87,20 @@ pub struct PlayerStats {
     /// schiefging. Ein Spiel mit mehreren Fehlerarten zählt bei jeder.
     pub wrong_demands: u32,
     pub wrong_by_kind: BTreeMap<PriceMistake, u32>,
+    /// Wie oft er als Gewinner zu viel und zu wenig verlangt hat.
+    pub over_demands: u32,
+    pub under_demands: u32,
+    /// Wie oft er als Verlierer zu viel Verlangtes zurückverlangt hat.
+    pub reclaims: u32,
+    /// Geld durch falsch verlangte Preise, in Cent: als Gewinner mehr bekommen (nicht aufgefallen),
+    /// zurückgeben müssen (zurückverlangt) oder weniger bekommen als zustand; als Verlierer zu viel
+    /// gezahlt, durch Zurückverlangen gespart oder weniger gezahlt als zustand.
+    pub overcharge_gain: Cents,
+    pub reclaim_returned: Cents,
+    pub undercharge_missed: Cents,
+    pub overcharge_loss: Cents,
+    pub reclaim_saved: Cents,
+    pub undercharge_benefit: Cents,
     pub kontra_given: RoleStats,
     pub re_given: RoleStats,
     pub schneider_wins: u32,
@@ -121,6 +136,15 @@ impl PlayerStats {
             knocks: RoleStats::default(),
             wrong_demands: 0,
             wrong_by_kind: BTreeMap::new(),
+            over_demands: 0,
+            under_demands: 0,
+            reclaims: 0,
+            overcharge_gain: 0,
+            reclaim_returned: 0,
+            undercharge_missed: 0,
+            overcharge_loss: 0,
+            reclaim_saved: 0,
+            undercharge_benefit: 0,
             kontra_given: RoleStats::default(),
             re_given: RoleStats::default(),
             schneider_wins: 0,
@@ -160,6 +184,13 @@ pub struct TableStats {
     pub corrected_games: u32,
     /// Wie oft welche Fehlerart bei korrigierten Preisen vorkam.
     pub mistake_counts: BTreeMap<PriceMistake, u32>,
+    /// Spiele, in denen zu viel (zu wenig) verlangt wurde, und wie oft davon zurückverlangt wurde.
+    pub overcharged_games: u32,
+    pub undercharged_games: u32,
+    pub reclaimed_games: u32,
+    /// Das zu viel verlangte Geld insgesamt und das davon zurückverlangte, in Cent.
+    pub overcharge_cents: Cents,
+    pub reclaimed_cents: Cents,
     /// Spiele, die Bockspiele waren (doppelter Preis), und Spiele, die eine Bockrunde ausgelöst haben.
     pub bock_games: u32,
     pub bock_started: u32,
@@ -194,6 +225,11 @@ pub fn table_stats(table: &Table) -> TableStats {
         schwarz_games: 0,
         corrected_games: 0,
         mistake_counts: BTreeMap::new(),
+        overcharged_games: 0,
+        undercharged_games: 0,
+        reclaimed_games: 0,
+        overcharge_cents: 0,
+        reclaimed_cents: 0,
         bock_games: 0,
         bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
@@ -221,8 +257,8 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.re_games += u32::from(g.re);
         stats.schneider_games += u32::from(g.schneider || g.schwarz);
         stats.schwarz_games += u32::from(g.schwarz);
-        stats.corrected_games += u32::from(game.value != game.calculated_value);
-        if game.value != game.calculated_value {
+        stats.corrected_games += u32::from(game.demanded_wrong());
+        if game.demanded_wrong() {
             for &m in &g.mistakes {
                 *stats.mistake_counts.entry(m).or_default() += 1;
             }
@@ -231,6 +267,42 @@ pub fn table_stats(table: &Table) -> TableStats {
                 p.wrong_demands += 1;
                 for &m in &g.mistakes {
                     *p.wrong_by_kind.entry(m).or_default() += 1;
+                }
+            }
+            let over = game.overcharged();
+            let reclaimed = game.input.reclaimed;
+            stats.overcharged_games += u32::from(over);
+            stats.undercharged_games += u32::from(!over);
+            stats.reclaimed_games += u32::from(reclaimed);
+            for &by in &g.price_error_by {
+                let p = &mut players[by];
+                if over {
+                    p.over_demands += 1;
+                } else {
+                    p.under_demands += 1;
+                }
+            }
+            for &by in &g.reclaimed_by {
+                players[by].reclaims += 1;
+            }
+            // Was jeder dadurch mehr (plus) oder weniger (minus) bekam, als zustand.
+            for (seat, diff) in demand_effect(table, game).into_iter().enumerate() {
+                let p = &mut players[seat];
+                match (over, reclaimed, diff.signum()) {
+                    (true, true, 1) => {
+                        p.reclaim_returned += diff;
+                        stats.overcharge_cents += diff;
+                        stats.reclaimed_cents += diff;
+                    }
+                    (true, true, -1) => p.reclaim_saved -= diff,
+                    (true, false, 1) => {
+                        p.overcharge_gain += diff;
+                        stats.overcharge_cents += diff;
+                    }
+                    (true, false, -1) => p.overcharge_loss -= diff,
+                    (false, _, -1) => p.undercharge_missed -= diff,
+                    (false, _, 1) => p.undercharge_benefit += diff,
+                    _ => {}
                 }
             }
         }
@@ -347,4 +419,24 @@ pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
         history.push(sum.clone());
     }
     history
+}
+
+/// Was jeder Sitzplatz durch einen falsch verlangten Preis mehr (plus) oder weniger (minus) bekam
+/// als ihm nach dem berechneten Preis zustand, ohne Zurückverlangen gerechnet. Leer, wenn der Preis
+/// nicht abwich.
+fn demand_effect(table: &Table, game: &Game) -> Vec<Cents> {
+    if !game.demanded_wrong() {
+        return Vec::new();
+    }
+    let tariff = game.tariff.as_ref().unwrap_or(&table.tariff);
+    let n = table.players.len();
+    let mut asked = game.input.clone();
+    asked.reclaimed = false;
+    let mut right = asked.clone();
+    right.price_override = None;
+    payouts(tariff, &asked, n)
+        .into_iter()
+        .zip(payouts(tariff, &right, n))
+        .map(|(a, r)| a - r)
+        .collect()
 }

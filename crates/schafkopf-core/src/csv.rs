@@ -56,6 +56,8 @@ impl Table {
             "Preis_berechnet_Cent",
             "Falsch_verlangt_von",
             "Fehlerarten",
+            "Zurueckverlangt",
+            "Zurueckverlangt_von",
             "Notiz",
         ];
         let players = self
@@ -113,6 +115,8 @@ impl Table {
                 .map(|m| m.label())
                 .collect::<Vec<_>>()
                 .join("; "),
+            yes_no(g.reclaimed),
+            self.names_of(&g.reclaimed_by),
             opt(g.note.clone()),
         ];
         let per_player = game

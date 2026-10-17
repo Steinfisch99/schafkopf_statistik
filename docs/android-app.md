@@ -411,7 +411,20 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Spieleliste steht "falsch verlangt von Anna und Dora", in der Statistik zählt jeder der beiden.
 - [ ] Beim Solo: gewonnen = der Spieler, verloren = die drei Gegner.
 
-### 21. Darstellung
+### 21. Zu viel verlangt und zurückverlangen
+- [ ] Im Tarif gibt es "Zu viel Verlangtes darf zurückverlangt werden" (an). Aus: Die Frage unten erscheint nie.
+- [ ] Gibst du einen **höheren** Preis als den berechneten ein, erscheint "Ist es den Verlierern aufgefallen?"
+      mit "Nicht aufgefallen" und "Zurückverlangt". Bei einem niedrigeren Preis nicht.
+- [ ] "Nicht aufgefallen": Die Auszahlung (Vorschau, Stand) folgt dem verlangten Preis.
+- [ ] "Zurückverlangt": Die Auszahlung folgt dem berechneten Preis, darunter wählst du, wer zurückverlangt hat
+      (nur Verlierer, einer bleibt).
+- [ ] Die Spieleliste sagt "Zu viel verlangt, nicht aufgefallen" oder "…, zurückverlangt von …" oder "Zu wenig
+      verlangt".
+- [ ] Die Statistik ("Falsch verlangt") zeigt zu viel, zu wenig, zurückverlangt, das Geld und wer
+      zurückverlangt hat, auch in der Gesamtstatistik und in der Spielerkarte.
+- [ ] Spiele, die schon vorher mit abweichendem Preis gespeichert waren, bleiben wie sie waren (Preis gilt).
+
+### 22. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

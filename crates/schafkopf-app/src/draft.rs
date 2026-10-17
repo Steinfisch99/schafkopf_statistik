@@ -45,6 +45,10 @@ pub struct GameDraft {
     /// Wer den Preis falsch verlangt hat, wenn es von Hand gewählt wurde. Sonst gilt die ganze
     /// Gewinnerseite, sie ändert sich mit dem Ergebnis.
     pub price_error_manual: Option<Vec<Seat>>,
+    /// Haben die Verlierer zu viel Verlangtes zurückverlangt? Zählt nur bei zu hoch verlangtem Preis.
+    pub reclaimed: bool,
+    /// Wer zurückverlangt hat, wenn es von Hand gewählt wurde. Sonst gelten alle Verlierer.
+    pub reclaim_manual: Option<Vec<Seat>>,
     /// `starts_bock` wurde von Schwarz eingeschaltet, nicht von Hand.
     pub starts_bock_auto: bool,
     /// Gibt es an diesem Tisch Bock? Nur dann löst Schwarz die Bockrunde von selbst aus.
@@ -100,6 +104,8 @@ impl GameDraft {
             bock_at_ramsch: table.bock_at_ramsch,
             mistakes: Vec::new(),
             price_error_manual: None,
+            reclaimed: false,
+            reclaim_manual: None,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: String::new(),
@@ -141,6 +147,8 @@ impl GameDraft {
             bock_at_ramsch: table.bock_at_ramsch,
             mistakes: i.mistakes.clone(),
             price_error_manual: (!i.price_error_by.is_empty()).then(|| i.price_error_by.clone()),
+            reclaimed: i.reclaimed,
+            reclaim_manual: (!i.reclaimed_by.is_empty()).then(|| i.reclaimed_by.clone()),
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
@@ -157,6 +165,9 @@ impl GameDraft {
         self.partner = self.partner.filter(keep);
         self.kontra_by = self.kontra_by.filter(keep);
         let participants = self.participants.clone();
+        if let Some(manual) = &mut self.reclaim_manual {
+            manual.retain(|s| participants.contains(s));
+        }
         if let Some(manual) = &mut self.price_error_manual {
             manual.retain(|s| participants.contains(s));
         }
@@ -406,6 +417,57 @@ impl GameDraft {
         self.price_error_manual = Some(current);
     }
 
+    /// Die Verliererseite. Nur sie kann zu viel Verlangtes zurückverlangen.
+    pub fn losers(&self) -> Vec<Seat> {
+        let Some(declarer) = self.declarer else {
+            return Vec::new();
+        };
+        self.participants
+            .iter()
+            .copied()
+            .filter(|&s| (s == declarer || self.partner == Some(s)) != self.won)
+            .collect()
+    }
+
+    /// Wer zurückverlangt hat: von Hand gewählt (nur Verlierer), sonst alle Verlierer.
+    pub fn reclaimed_by(&self) -> Vec<Seat> {
+        let losers = self.losers();
+        match &self.reclaim_manual {
+            Some(manual) => {
+                let picked: Vec<Seat> = losers
+                    .iter()
+                    .copied()
+                    .filter(|s| manual.contains(s))
+                    .collect();
+                if picked.is_empty() {
+                    losers
+                } else {
+                    picked
+                }
+            }
+            None => losers,
+        }
+    }
+
+    /// Zu viel Verlangtes wurde zurückverlangt, oder nicht (dann gilt der verlangte Preis).
+    pub fn set_reclaimed(&mut self, on: bool) {
+        self.reclaimed = on;
+    }
+
+    /// Nimmt einen Verlierer unter denen dazu oder heraus, die zurückverlangt haben. Mindestens einer
+    /// bleibt.
+    pub fn toggle_reclaimer(&mut self, seat: Seat) {
+        let mut current = self.reclaimed_by();
+        if current.contains(&seat) {
+            if current.len() > 1 {
+                current.retain(|&s| s != seat);
+            }
+        } else if self.losers().contains(&seat) {
+            current.push(seat);
+        }
+        self.reclaim_manual = Some(current);
+    }
+
     pub fn set_laufende(&mut self, n: u8) {
         self.laufende = n.min(self.kind.max_laufende(self.gegenlauf));
         if self.laufende == 0 {
@@ -493,6 +555,12 @@ impl GameDraft {
         input.points = self.points;
         input.mistakes = self.mistakes.clone();
         input.price_error_by = self.demanded_by();
+        input.reclaimed = self.reclaimed;
+        input.reclaimed_by = if self.reclaimed {
+            self.reclaimed_by()
+        } else {
+            Vec::new()
+        };
         input.note = self.note.clone();
         Ok(input)
     }
@@ -526,6 +594,7 @@ pub struct TariffDraft {
     pub min_solo: String,
     pub ramsch_knock_doubles: bool,
     pub ramsch_bock_doubles: bool,
+    pub reclaim_enabled: bool,
 }
 
 impl TariffDraft {
@@ -543,6 +612,7 @@ impl TariffDraft {
             min_solo: t.laufende_min_solo.to_string(),
             ramsch_knock_doubles: t.ramsch_knock_doubles,
             ramsch_bock_doubles: t.ramsch_bock_doubles,
+            reclaim_enabled: t.reclaim_enabled,
         }
     }
 
@@ -568,6 +638,7 @@ impl TariffDraft {
             laufende_min_solo: count("Laufende ab (Solo)", &self.min_solo)?,
             ramsch_knock_doubles: self.ramsch_knock_doubles,
             ramsch_bock_doubles: self.ramsch_bock_doubles,
+            reclaim_enabled: self.reclaim_enabled,
         })
     }
 }
@@ -1091,6 +1162,60 @@ mod tests {
         };
         let draft = TariffDraft::from_tariff(&tariff);
         assert!(!draft.ramsch_bock_doubles);
+        assert_eq!(draft.to_tariff().unwrap(), tariff);
+    }
+
+    #[test]
+    fn the_losers_can_reclaim_a_price_that_was_too_high() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.declarer = Some(1);
+        d.partner = Some(3);
+        d.suit = Some(Suit::Eichel);
+        d.price_text = "0,50".into();
+        // Ohne Rückforderung gilt der verlangte Preis.
+        let game = d.preview(&t).unwrap();
+        assert_eq!((game.value, game.calculated_value), (50, 20));
+        d.set_reclaimed(true);
+        assert_eq!(d.losers(), vec![2, 0]);
+        assert_eq!(d.reclaimed_by(), vec![2, 0], "ohne Wahl alle Verlierer");
+        let game = d.preview(&t).unwrap();
+        assert_eq!((game.value, game.calculated_value), (20, 20));
+        d.toggle_reclaimer(0);
+        assert_eq!(d.reclaimed_by(), vec![2]);
+        d.toggle_reclaimer(2);
+        assert_eq!(d.reclaimed_by(), vec![2], "einer bleibt immer");
+        d.toggle_reclaimer(1);
+        assert_eq!(
+            d.reclaimed_by(),
+            vec![2],
+            "ein Gewinner kann nicht zurückverlangen"
+        );
+        let input = d.to_input(None).unwrap();
+        assert!(input.reclaimed);
+        assert_eq!(input.reclaimed_by, vec![2]);
+
+        // Ohne Rückforderung bleibt keine Wahl stehen.
+        d.set_reclaimed(false);
+        assert!(d.to_input(None).unwrap().reclaimed_by.is_empty());
+
+        // Beim Bearbeiten kommt die Wahl zurück.
+        d.set_reclaimed(true);
+        let mut table = t;
+        table.add_game(d.to_input(None).unwrap()).unwrap();
+        let back = GameDraft::from_game(&table, 0).unwrap();
+        assert!(back.reclaimed);
+        assert_eq!(back.reclaimed_by(), vec![2]);
+    }
+
+    #[test]
+    fn the_reclaim_option_survives_the_tariff_draft() {
+        let tariff = Tariff {
+            reclaim_enabled: false,
+            ..Tariff::default()
+        };
+        let draft = TariffDraft::from_tariff(&tariff);
+        assert!(!draft.reclaim_enabled);
         assert_eq!(draft.to_tariff().unwrap(), tariff);
     }
 }
