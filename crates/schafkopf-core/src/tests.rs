@@ -2263,3 +2263,136 @@ fn schneider_and_schwarz_can_be_forgotten_separately() {
     assert!(PriceMistake::ALL.contains(&PriceMistake::SchwarzMissed));
     assert_eq!(PriceMistake::ALL.len(), 9);
 }
+
+fn sample_files() -> Vec<(String, Vec<u8>)> {
+    let lib = Library::with_defaults();
+    let mut running = table();
+    running.add_game(sauspiel(0, 1, 3)).unwrap();
+    let mut past = table();
+    past.add_game(sauspiel(0, 2, 1)).unwrap();
+    vec![
+        (LIBRARY_FILE.into(), lib.to_json().unwrap().into_bytes()),
+        (CURRENT_FILE.into(), running.to_json().unwrap().into_bytes()),
+        (
+            "archiv/schafkopf-tisch-1000.json".into(),
+            past.to_json().unwrap().into_bytes(),
+        ),
+        (
+            "archiv/schafkopf-spiele-1000.csv".into(),
+            past.to_csv().into_bytes(),
+        ),
+        ("INFO.txt".into(), "Hallo".as_bytes().to_vec()),
+    ]
+}
+
+#[test]
+fn a_backup_roundtrips_through_a_zip() {
+    let files = sample_files();
+    let zip = pack(&files).unwrap();
+    assert_eq!(&zip[..2], b"PK");
+    let back = unpack(&zip).unwrap();
+    assert_eq!(back, files);
+    let backup = read_backup(&back);
+    assert_eq!(backup.library, Some(Library::with_defaults()));
+    assert_eq!(backup.current.as_ref().unwrap().games().len(), 1);
+    assert_eq!(backup.past.len(), 1);
+    assert_eq!(backup.past[0].0, 1000);
+    assert!(backup.unreadable.is_empty());
+}
+
+#[test]
+fn a_zip_repacked_in_a_folder_still_reads() {
+    let files: Vec<_> = sample_files()
+        .into_iter()
+        .map(|(n, d)| (format!("meine-sicherung/{n}"), d))
+        .collect();
+    let backup = read_backup(&unpack(&pack(&files).unwrap()).unwrap());
+    assert!(backup.library.is_some() && backup.current.is_some());
+    assert_eq!(backup.past.len(), 1);
+}
+
+#[test]
+fn broken_and_unsafe_zip_content_is_not_trusted() {
+    assert!(matches!(
+        unpack(b"das ist keine zip"),
+        Err(Error::Backup(_))
+    ));
+    let evil = pack(&[
+        ("../../etc/passwd".into(), b"x".to_vec()),
+        ("/abs/pfad.json".into(), b"x".to_vec()),
+        ("a\\b.json".into(), b"x".to_vec()),
+        ("ok.txt".into(), b"x".to_vec()),
+    ])
+    .unwrap();
+    let files = unpack(&evil).unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].0, "ok.txt");
+
+    let broken = vec![
+        (LIBRARY_FILE.to_string(), b"{kaputt".to_vec()),
+        (CURRENT_FILE.to_string(), b"[]".to_vec()),
+        (
+            "archiv/schafkopf-tisch-5.json".to_string(),
+            vec![0xff, 0xfe],
+        ),
+    ];
+    let backup = read_backup(&broken);
+    assert!(backup.library.is_none() && backup.current.is_none());
+    assert_eq!(
+        backup.unreadable.len(),
+        2,
+        "die Datei mit ungültigem UTF-8 zählt nicht dazu"
+    );
+}
+
+#[test]
+fn libraries_merge_without_touching_what_exists() {
+    let mut mine = Library::with_defaults();
+    mine.add_player("Anna").unwrap();
+    let mut theirs = Library::with_defaults();
+    theirs.add_player("anna").unwrap();
+    theirs.add_player("Ben").unwrap();
+    theirs
+        .save_rule_set_with(None, "Kneipe", &[GameKind::Wenz], BockMode::NextRound)
+        .unwrap();
+    theirs
+        .save_tariff(
+            None,
+            "10/20",
+            Tariff {
+                sauspiel: 10,
+                ..Tariff::default()
+            },
+        )
+        .unwrap();
+    let before_default = mine.default_rule_set().name.clone();
+
+    let report = mine.merge_from(&theirs, true, true, true);
+    assert_eq!(
+        (report.players, report.rule_sets, report.tariffs),
+        (1, 1, 1)
+    );
+    assert!(
+        report.kept >= 3,
+        "Anna, die zwei Standard-Regelwerke und der Standardtarif waren schon da"
+    );
+    assert!(mine.players().contains(&"Ben".to_string()));
+    assert!(mine.rule_set("Kneipe").is_some() && mine.tariff("10/20").is_some());
+    assert_eq!(mine.default_rule_set().name, before_default);
+    assert_eq!(
+        mine.players()
+            .iter()
+            .filter(|p| p.to_lowercase() == "anna")
+            .count(),
+        1
+    );
+
+    // Nur gewünschte Teile.
+    let mut only_players = Library::with_defaults();
+    let report = only_players.merge_from(&theirs, true, false, false);
+    assert_eq!(
+        (report.players, report.rule_sets, report.tariffs),
+        (2, 0, 0)
+    );
+    assert!(only_players.rule_set("Kneipe").is_none());
+}

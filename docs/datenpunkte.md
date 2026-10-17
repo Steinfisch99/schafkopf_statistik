@@ -249,3 +249,32 @@ Spiele Bockspiele mit doppeltem Preis.
   eintragen und gehen in die Statistik ein. Im Formular steht dazu ein Hinweis, sobald Tout an ist.
 - Ältere Spiele mit Tout und Schneider oder Schwarz, die schon gespeichert sind, behalten ihren
   festgeschriebenen Preis. Beim Bearbeiten wird nach der neuen Regel gerechnet.
+
+## Wo die Daten liegen und Sicherung
+
+Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schafkopf.statistik/files`
+(privat, per Dateimanager nicht erreichbar, bei Deinstallation oder neuem Handy weg), am Rechner
+`~/schafkopf` (oder `SCHAFKOPF_DATA_DIR`).
+
+| Datei | Inhalt |
+| --- | --- |
+| `schafkopf-bibliothek.json` | Spieler, Regelwerke (Spielarten, Bock) und Tarife samt Standards |
+| `schafkopf-tisch.json` | der laufende Abend mit allen Spielen und dem Protokoll |
+| `schafkopf-spiele.csv` | seine Spiele als Tabelle |
+| `schafkopf-ereignisse.csv` | sein Protokoll (Beginn, Ende, Kommen, Gehen, Umsetzen) |
+| `archiv/schafkopf-tisch-<Zeitpunkt>.json` | je ein früherer Abend, dazu `schafkopf-spiele-…csv` und `schafkopf-ereignisse-…csv` |
+
+### Sicherung erstellen und einspielen
+
+- **Sicherung erstellen** (Einrichtung → "Sicherung" oder "Regeln und Tarif" → "Sicherung öffnen")
+  packt alle diese Dateien samt einer `INFO.txt` in `schafkopf-sicherung-JJJJ-MM-TT.zip` im Ordner
+  **Downloads**. Die CSV-Tabellen darin lassen sich auch am Rechner direkt öffnen.
+- **Sicherung einspielen:** "ZIP-Datei wählen" öffnet den Dateiauswahl-Dialog des Handys. Danach steht da, was
+  in der Datei steckt, und du wählst, was übernommen wird: **Spieler**, **Regelwerke (Spielarten, Bock)**,
+  **Tarife**, **frühere Abende**, **laufender Abend**.
+- Eingespielt wird nur **Neues**: Spieler, Regelwerke und Tarife mit einem Namen, den es schon gibt, bleiben
+  unverändert (Groß- und Kleinschreibung zählt nicht), auch die eigenen Standards bleiben. Frühere Abende
+  mit demselben Zeitpunkt im Archiv werden übersprungen. Der laufende Abend wird nur übernommen, wenn hier
+  gerade keiner läuft.
+- Die Datei wird geprüft: Es muss eine ZIP sein, unsichere Pfade werden ignoriert, ausgepackt darf sie
+  höchstens 64 MB groß sein, und nicht lesbare Dateien werden gezählt und übersprungen.

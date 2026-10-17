@@ -178,6 +178,14 @@ pub fn SettingsScreen(
         }
 
         section {
+            h3 { "Sicherung" }
+            p { class: "hint", "Alle Daten als ZIP sichern, zum Beispiel für ein neues Handy, oder eine Sicherung einspielen." }
+            div { class: "actions",
+                button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Backup), "Sicherung öffnen" }
+            }
+        }
+
+        section {
             h3 { "Testabend" }
             div { class: "chips",
                 Chip {

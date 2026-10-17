@@ -72,25 +72,41 @@ pub fn log_file_name(table: &Table, now_secs: u64) -> String {
 
 /// Speichert die CSV und sagt, wo sie liegt. Auf Android im Ordner Downloads.
 pub fn save_csv(file_name: &str, csv: &str) -> Result<String, String> {
+    save_file(file_name, "text/csv", csv.as_bytes())
+}
+
+/// Dateiname der Sicherung aller Daten: `schafkopf-sicherung-2026-10-17.zip`.
+pub fn backup_file_name(now_secs: u64) -> String {
+    let (y, m, d) = date_ymd(now_secs);
+    format!("schafkopf-sicherung-{y:04}-{m:02}-{d:02}.zip")
+}
+
+/// Speichert eine Datei und sagt, wo sie liegt. Auf Android im Ordner Downloads.
+pub fn save_file(file_name: &str, mime: &str, data: &[u8]) -> Result<String, String> {
     #[cfg(target_os = "android")]
     {
-        crate::android::save_to_downloads(file_name, "text/csv", csv.as_bytes())
+        crate::android::save_to_downloads(file_name, mime, data)
             .map(|()| format!("Downloads/{file_name}"))
     }
     #[cfg(not(target_os = "android"))]
     {
+        let _ = mime;
         let dir = std::env::var_os("HOME")
             .map(|home| std::path::PathBuf::from(home).join("Downloads"))
             .filter(|dir| dir.is_dir())
             .unwrap_or_else(crate::storage::data_dir);
-        save_in(&dir, file_name, csv)
+        save_in(&dir, file_name, data)
     }
 }
 
 /// Schreibt die Datei in einen Ordner und legt ihn bei Bedarf an. Bestehende Dateien bleiben
 /// erhalten, der neue Name bekommt dann eine Nummer.
 #[cfg(not(target_os = "android"))]
-fn save_in(dir: &std::path::Path, file_name: &str, csv: &str) -> Result<String, String> {
+fn save_in(
+    dir: &std::path::Path,
+    file_name: &str,
+    data: impl AsRef<[u8]>,
+) -> Result<String, String> {
     std::fs::create_dir_all(dir).map_err(|e| format!("Ordner anlegen: {e}"))?;
     let (stem, ext) = file_name.rsplit_once('.').unwrap_or((file_name, ""));
     let mut path = dir.join(file_name);
@@ -99,7 +115,7 @@ fn save_in(dir: &std::path::Path, file_name: &str, csv: &str) -> Result<String, 
         path = dir.join(format!("{stem} ({n}).{ext}"));
         n += 1;
     }
-    std::fs::write(&path, csv).map_err(|e| format!("Schreiben: {e}"))?;
+    std::fs::write(&path, data).map_err(|e| format!("Schreiben: {e}"))?;
     Ok(path.display().to_string())
 }
 

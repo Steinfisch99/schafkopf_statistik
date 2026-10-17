@@ -18,6 +18,7 @@ pub fn effective_screen(table: Option<&Table>, screen: Screen) -> Screen {
         // aus der Einrichtung erreichbar.
         (None, library @ Screen::Library { from_setup: true }) => library,
         (None, past) if is_past_screen(past) => past,
+        (None, Screen::Backup) => Screen::Backup,
         (None, _) => Screen::Setup,
         (Some(t), Screen::EditGame(index)) if index >= t.games().len() => Screen::Table,
         (_, other) => other,
@@ -56,6 +57,11 @@ pub fn back_target(screen: Screen, has_table: bool) -> Option<Screen> {
             Screen::Setup
         }),
         Screen::Past(_) | Screen::Overall => Some(Screen::PastList),
+        Screen::Backup => Some(if has_table {
+            Screen::Settings
+        } else {
+            Screen::Setup
+        }),
         Screen::PastStats { stamp, .. } | Screen::PastExport(stamp) => Some(Screen::Past(stamp)),
     }
 }
@@ -146,6 +152,7 @@ mod tests {
             },
             Screen::PastExport(7),
             Screen::Overall,
+            Screen::Backup,
         ];
         for has_table in [true, false] {
             for start in all {
@@ -240,5 +247,12 @@ mod tests {
         assert_eq!(history_action(true, 1), HistoryAction::Nothing);
         assert_eq!(history_action(false, 1), HistoryAction::Pop);
         assert_eq!(history_action(false, 0), HistoryAction::Nothing);
+    }
+
+    #[test]
+    fn the_backup_screen_works_without_an_evening_and_goes_back_sensibly() {
+        assert_eq!(effective_screen(None, Screen::Backup), Screen::Backup);
+        assert_eq!(back_target(Screen::Backup, false), Some(Screen::Setup));
+        assert_eq!(back_target(Screen::Backup, true), Some(Screen::Settings));
     }
 }

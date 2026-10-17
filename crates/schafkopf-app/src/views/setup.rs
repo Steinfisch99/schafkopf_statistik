@@ -400,6 +400,12 @@ pub fn Setup(
                 onclick: move |_| screen.set(Screen::PastList),
                 "Frühere Abende ansehen"
             }
+            button {
+                class: "secondary",
+                r#type: "button",
+                onclick: move |_| screen.set(Screen::Backup),
+                "Sicherung: Daten sichern und einspielen"
+            }
         }
         div { class: "actions",
             button { class: "primary big", r#type: "button", onclick: start, "Abend starten" }

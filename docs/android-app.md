@@ -388,7 +388,22 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In allen Statistik-Balken (zum Beispiel "Wie oft kam was vor?", "Bockrunden ausgelöst") ist nichts
       abgeschnitten, lange Beschriftungen brechen in die nächste Zeile um.
 
-### 19. Darstellung
+### 19. Sicherung und Einspielen
+- [ ] Unter "Sicherung" (Einrichtung, oder "Regeln und Tarif" → "Sicherung öffnen") steht, wo die Daten liegen,
+      und wie viele Spieler, Regelwerke, Tarife und frühere Abende es gibt.
+- [ ] "Sicherung in Downloads speichern" legt `schafkopf-sicherung-JJJJ-MM-TT.zip` in Downloads. Die ZIP lässt
+      sich in der Dateien-App öffnen und enthält JSON und CSV und `INFO.txt`.
+- [ ] **Wichtig, ungetestet auf dem Handy:** "ZIP-Datei wählen" öffnet den Dateiauswahl-Dialog. Wähle die ZIP aus
+      Downloads. Danach erscheint "Was in der Datei steckt" mit Auswahlknöpfen. Öffnet sich kein Dialog,
+      sag mir Bescheid, dann bauen wir einen anderen Weg.
+- [ ] Die Auswahl (Spieler, Regelwerke, Tarife, frühere Abende, laufender Abend) lässt sich einzeln
+      abwählen. "Auswahl einspielen" meldet, was dazukam.
+- [ ] Probe: App deinstallieren oder Daten löschen, neu installieren, Sicherung einspielen: Spieler,
+      Tarife, frühere Abende und Gesamtstatistik sind wieder da.
+- [ ] Spielst du eine Sicherung zweimal ein, kommt nichts doppelt dazu.
+- [ ] Läuft schon ein Abend, ist "Laufenden Abend übernehmen" ausgegraut.
+
+### 20. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

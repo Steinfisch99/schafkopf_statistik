@@ -6,11 +6,11 @@ use std::path::{Path, PathBuf};
 
 use schafkopf_core::{Library, Table};
 
-const JSON_FILE: &str = "schafkopf-tisch.json";
+const JSON_FILE: &str = schafkopf_core::CURRENT_FILE;
 const CSV_FILE: &str = "schafkopf-spiele.csv";
 const EVENTS_FILE: &str = "schafkopf-ereignisse.csv";
 const ARCHIVE_DIR: &str = "archiv";
-const LIBRARY_FILE: &str = "schafkopf-bibliothek.json";
+const LIBRARY_FILE: &str = schafkopf_core::LIBRARY_FILE;
 
 /// Android-App-Kennung aus `Dioxus.toml`; bestimmt das private Datenverzeichnis der App.
 #[cfg(target_os = "android")]
@@ -195,6 +195,77 @@ fn list_past_in(dir: &Path) -> Vec<PastEvening> {
     past
 }
 
+/// Alle Dateien des Datenordners für die Sicherung: der laufende Abend, die Bibliothek und das
+/// Archiv, dazu eine kurze Beschreibung. Die Namen sind die im Datenordner, mit `/` als Trenner.
+pub fn backup_files(now_secs: u64) -> io::Result<Vec<(String, Vec<u8>)>> {
+    backup_files_in(&data_dir(), now_secs)
+}
+
+/// Nimmt einen früheren Abend aus einer Sicherung ins Archiv auf, samt CSV-Dateien. `false`, wenn
+/// es unter diesem Zeitpunkt schon einen Abend gibt (er bleibt dann, wie er ist).
+pub fn import_past(stamp: u64, table: &Table) -> io::Result<bool> {
+    import_past_in(&data_dir(), stamp, table)
+}
+
+fn backup_files_in(dir: &Path, now_secs: u64) -> io::Result<Vec<(String, Vec<u8>)>> {
+    let mut files = Vec::new();
+    for name in [LIBRARY_FILE, JSON_FILE, CSV_FILE, EVENTS_FILE] {
+        match fs::read(dir.join(name)) {
+            Ok(data) => files.push((name.to_owned(), data)),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e),
+        }
+    }
+    if let Ok(entries) = fs::read_dir(dir.join(ARCHIVE_DIR)) {
+        let mut archive: Vec<(String, Vec<u8>)> = Vec::new();
+        for entry in entries {
+            let entry = entry?;
+            let Ok(name) = entry.file_name().into_string() else {
+                continue;
+            };
+            if entry.file_type()?.is_file() {
+                archive.push((format!("{ARCHIVE_DIR}/{name}"), fs::read(entry.path())?));
+            }
+        }
+        archive.sort();
+        files.extend(archive);
+    }
+    let (y, m, d) = crate::export::date_ymd(now_secs);
+    let info = format!(
+        "Schafkopf-Statistik: Sicherung vom {d}.{m}.{y}\n\n\
+         schafkopf-bibliothek.json   Spieler, Regelwerke und Tarife\n\
+         schafkopf-tisch.json        der laufende Abend\n\
+         schafkopf-spiele.csv        seine Spiele als Tabelle\n\
+         schafkopf-ereignisse.csv    sein Protokoll (Beginn, Ende, Kommen und Gehen)\n\
+         archiv/                     alle früheren Abende (JSON, Spiele-CSV und Protokoll-CSV)\n\n\
+         Einspielen: In der App unter \"Sicherung\" die ZIP-Datei wählen.\n\
+         Die CSV-Dateien lassen sich auch direkt in Excel oder LibreOffice öffnen.\n"
+    );
+    files.push(("INFO.txt".to_owned(), info.into_bytes()));
+    Ok(files)
+}
+
+fn import_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<bool> {
+    let json_path = past_file(dir, "schafkopf-tisch", stamp, "json");
+    if json_path.exists() {
+        return Ok(false);
+    }
+    fs::create_dir_all(dir.join(ARCHIVE_DIR))?;
+    let json = table
+        .to_json()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    fs::write(&json_path, json)?;
+    fs::write(
+        past_file(dir, "schafkopf-spiele", stamp, "csv"),
+        table.to_csv(),
+    )?;
+    fs::write(
+        past_file(dir, "schafkopf-ereignisse", stamp, "csv"),
+        table.events_csv(),
+    )?;
+    Ok(true)
+}
+
 fn save_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<()> {
     let json = table
         .to_json()
@@ -334,6 +405,51 @@ mod tests {
         fs::remove_dir_all(&dir).unwrap();
     }
 
+    #[test]
+    fn the_backup_holds_everything_and_import_skips_what_exists() {
+        let dir = temp_dir("backup");
+        let mut running = table();
+        running
+            .add_game(GameInput::new(0, GameKind::Wenz, 1))
+            .unwrap();
+        save_in(&dir, &running, None).unwrap();
+        save_library_in(&dir, &Library::with_defaults()).unwrap();
+        let mut old = table();
+        old.add_game(GameInput::new(1, GameKind::Wenz, 2)).unwrap();
+        assert!(import_past_in(&dir, 55, &old).unwrap());
+        assert!(!import_past_in(&dir, 55, &old).unwrap(), "schon da");
+
+        let files = backup_files_in(&dir, 1_000_000_000).unwrap();
+        let names: Vec<&str> = files.iter().map(|(n, _)| n.as_str()).collect();
+        for expected in [
+            LIBRARY_FILE,
+            JSON_FILE,
+            CSV_FILE,
+            EVENTS_FILE,
+            "archiv/schafkopf-tisch-55.json",
+            "archiv/schafkopf-spiele-55.csv",
+            "archiv/schafkopf-ereignisse-55.csv",
+            "INFO.txt",
+        ] {
+            assert!(names.contains(&expected), "{expected} fehlt in {names:?}");
+        }
+        // Über die ZIP und wieder zurück bleibt alles lesbar.
+        let backup = schafkopf_core::read_backup(
+            &schafkopf_core::unpack(&schafkopf_core::pack(&files).unwrap()).unwrap(),
+        );
+        assert!(backup.library.is_some());
+        assert_eq!(backup.current.unwrap().games().len(), 1);
+        assert_eq!(backup.past.len(), 1);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_backup_of_an_empty_folder_is_just_the_description() {
+        let dir = temp_dir("backup-empty");
+        let files = backup_files_in(&dir, 0).unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0].0, "INFO.txt");
+    }
     #[test]
     fn a_past_evening_can_be_marked_as_a_test_evening() {
         let dir = temp_dir("debug");

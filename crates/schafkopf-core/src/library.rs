@@ -68,6 +68,65 @@ fn same(a: &str, b: &str) -> bool {
     a.to_lowercase() == b.to_lowercase()
 }
 
+/// Was beim Zusammenführen zweier Bibliotheken neu dazukam.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct MergeReport {
+    pub players: usize,
+    pub rule_sets: usize,
+    pub tariffs: usize,
+    /// Einträge, die es unter diesem Namen schon gab und die deshalb unverändert blieben.
+    pub kept: usize,
+}
+
+impl Library {
+    /// Nimmt Spieler, Regelwerke und Tarife aus `other` dazu, soweit gewünscht. Was es unter dem
+    /// Namen schon gibt, bleibt, wie es ist, und die eigenen Standards bleiben auch.
+    pub fn merge_from(
+        &mut self,
+        other: &Library,
+        players: bool,
+        rule_sets: bool,
+        tariffs: bool,
+    ) -> MergeReport {
+        let mut report = MergeReport::default();
+        if players {
+            for name in &other.players {
+                if self.players.iter().any(|p| same(p, name)) {
+                    report.kept += 1;
+                } else if self.add_player(name).is_ok() {
+                    report.players += 1;
+                }
+            }
+        }
+        if rule_sets {
+            for rule_set in &other.rule_sets {
+                if self.rule_sets.iter().any(|r| same(&r.name, &rule_set.name)) {
+                    report.kept += 1;
+                } else {
+                    self.rule_sets.push(rule_set.clone());
+                    report.rule_sets += 1;
+                }
+            }
+        }
+        if tariffs {
+            for tariff in &other.tariffs {
+                if self.tariffs.iter().any(|t| same(&t.name, &tariff.name)) {
+                    report.kept += 1;
+                } else {
+                    self.tariffs.push(tariff.clone());
+                    report.tariffs += 1;
+                }
+            }
+        }
+        report
+    }
+
+    /// Wie viele Spieler, Regelwerke und Tarife die Bibliothek hat.
+    pub fn counts(&self) -> (usize, usize, usize) {
+        (self.players.len(), self.rule_sets.len(), self.tariffs.len())
+    }
+}
+
 impl Library {
     pub const CURRENT_VERSION: u32 = 1;
 

@@ -3,6 +3,7 @@
 //! Das Crate ist bewusst frei von UI- und Plattformcode, damit es auf Android
 //! (und überall sonst) unverändert läuft und sich normal mit `cargo test` testen lässt.
 
+mod backup;
 mod clock;
 mod csv;
 mod error;
@@ -14,9 +15,12 @@ mod scoring;
 mod stats;
 mod table;
 
+pub use backup::{
+    pack, read_backup, unpack, Backup, CURRENT_FILE, LIBRARY_FILE, MAX_UNPACKED_BYTES,
+};
 pub use clock::{civil, format_clock, format_duration, format_local};
 pub use error::{Error, Result};
-pub use library::{Library, NamedTariff, RuleSet};
+pub use library::{Library, MergeReport, NamedTariff, RuleSet};
 pub use model::{
     outcome_from_points, BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, Outcome,
     PriceMistake, Seat, Suit, MAX_BOCK,

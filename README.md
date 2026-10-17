@@ -112,6 +112,7 @@ Entscheidungen:
 - [x] Ramsch: Bock verdoppelt wahlweise nicht, und die Bockrunde zählt, wartet oder verfällt
 - [x] Falsch verlangte Preise: wer, und welche Fehlerart (Grundtarif, Doppler, Bock, Laufende, Schneider/Schwarz, Partei, verrechnet), mit Statistik
 - [x] Gesamtstatistik über mehrere Abende (frei wählbar, mit Doppler-Anteilen und Spielerwerten) und Testabende (Branch feature/gesamtstatistik)
+- [x] Sicherung aller Daten als ZIP in Downloads und Einspielen (auswählbar: Spieler, Regelwerke, Tarife, Abende)
       führen zur Statistik des Spielers
 - [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit

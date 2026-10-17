@@ -1,3 +1,4 @@
+mod backup_screen;
 mod balance_chart;
 mod common;
 mod export_screen;
@@ -14,6 +15,7 @@ mod stats_screen;
 mod suit_icon;
 mod table_view;
 
+pub use backup_screen::BackupScreen;
 pub use common::{Notice, NoticeBar};
 pub use export_screen::ExportScreen;
 pub use game_form::GameForm;

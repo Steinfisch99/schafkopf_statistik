@@ -227,3 +227,4 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 
 .evening-pick { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.4rem 0; }
 .evening-pick .chip { text-align: left; border-radius: 0.8rem; }
+.pick-file { display: inline-block; padding: 0.7rem 1rem; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--soft); cursor: pointer; margin: 0.3rem 0 0.6rem; font-weight: 600; }

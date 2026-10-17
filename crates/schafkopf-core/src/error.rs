@@ -64,6 +64,8 @@ pub enum Error {
     LastEntry,
     #[error("Mindestens eine Spielart muss aktiv sein")]
     NoKinds,
+    #[error("Sicherung: {0}")]
+    Backup(String),
     #[error("JSON-Fehler: {0}")]
     Json(String),
     #[error("Nicht unterstützte Dateiversion {0}")]
