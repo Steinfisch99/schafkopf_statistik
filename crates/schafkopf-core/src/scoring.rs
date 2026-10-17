@@ -205,16 +205,20 @@ pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
             value += Cents::from(input.laufende) * tariff.laufende;
         }
     }
+    value << price_doublings(tariff, input)
+}
+
+/// Wie oft der Preis des Spiels nach dem Tarif verdoppelt wird: Klopfen, Kontra, Re, Tout und Bock.
+/// Beim Ramsch zählen Klopfen und Bock nur, wenn der Tarif es sagt.
+pub fn price_doublings(tariff: &Tariff, input: &GameInput) -> u32 {
     let mut doublings = input.doublings();
-    if kind == GameKind::Ramsch && !tariff.ramsch_knock_doubles {
-        // Das Klopfen steht weiter im Spiel (für die Statistik), zählt hier aber nicht für den Preis.
+    if input.kind == GameKind::Ramsch && !tariff.ramsch_knock_doubles {
         doublings -= input.knockers.len() as u32;
     }
-    if kind == GameKind::Ramsch && !tariff.ramsch_bock_doubles {
-        // Der Bock steht weiter im Spiel (für die Statistik), zählt hier aber nicht für den Preis.
+    if input.kind == GameKind::Ramsch && !tariff.ramsch_bock_doubles {
         doublings -= input.bock_doublings();
     }
-    value << doublings
+    doublings
 }
 
 /// Gewinn und Verlust pro Sitzplatz in Cent. Die Summe ist immer null.

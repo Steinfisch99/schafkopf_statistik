@@ -9,6 +9,7 @@ mod error;
 mod library;
 mod model;
 mod money;
+mod overall;
 mod scoring;
 mod stats;
 mod table;
@@ -21,7 +22,8 @@ pub use model::{
     PriceMistake, Seat, Suit, MAX_BOCK,
 };
 pub use money::parse_euro;
-pub use scoring::{calculated_value, game_value, payouts, validate, Tariff};
+pub use overall::{overall_stats, OverallPlayer, OverallStats};
+pub use scoring::{calculated_value, game_value, payouts, price_doublings, validate, Tariff};
 pub use stats::{
     balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
 };

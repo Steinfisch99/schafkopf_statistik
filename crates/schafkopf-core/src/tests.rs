@@ -2100,3 +2100,117 @@ fn statistics_count_wrong_demands_per_player_and_kind() {
     assert!(header.contains(&"Falsch_verlangt_von") && header.contains(&"Fehlerarten"));
     assert!(csv.contains("Bockrunde vergessen; Laufende nicht alle oder keine"));
 }
+
+fn evening(players: &[&str], games: Vec<GameInput>) -> Table {
+    let names = players.iter().map(|s| s.to_string()).collect();
+    let mut t = Table::new("Abend", names, 0, Tariff::default()).unwrap();
+    for g in games {
+        t.add_game(g).unwrap();
+    }
+    t
+}
+
+#[test]
+fn overall_stats_merge_players_by_name_across_evenings() {
+    let a = evening(
+        &["Anna", "Ben", "Cem", "Dora"],
+        vec![sauspiel(0, 1, 3), sauspiel(1, 0, 2)],
+    );
+    // Am zweiten Abend sitzen andere Sitzplätze: Ben ist jetzt Platz 0.
+    let b = evening(
+        &["Ben", "Eva", "Anna", "Dora"],
+        vec![GameInput {
+            knockers: vec![2],
+            ..sauspiel(0, 0, 3)
+        }],
+    );
+    let all = overall_stats(&[&a, &b]);
+    assert_eq!((all.evenings, all.games), (2, 3));
+    let by_name = |n: &str| all.players.iter().find(|p| p.name == n).unwrap();
+    assert_eq!(all.players.len(), 5);
+    assert_eq!(by_name("Anna").evenings, 2);
+    assert_eq!(by_name("Eva").evenings, 1);
+    let ta = table_stats(&a);
+    let tb = table_stats(&b);
+    assert_eq!(
+        by_name("Ben").balance,
+        ta.players[1].balance + tb.players[0].balance
+    );
+    assert_eq!(
+        by_name("Ben").evening_balances,
+        vec![ta.players[1].balance, tb.players[0].balance]
+    );
+    assert_eq!(
+        by_name("Anna").knocks.games,
+        1,
+        "Anna hat am zweiten Abend geklopft"
+    );
+    assert_eq!(by_name("Anna").games_played, 3);
+    assert_eq!(all.knocked_games, 1);
+    // Das Geld bleibt über alle Abende null.
+    assert_eq!(all.players.iter().map(|p| p.balance).sum::<Cents>(), 0);
+}
+
+#[test]
+fn overall_stats_count_how_often_prices_were_doubled() {
+    let t = evening(
+        &["Anna", "Ben", "Cem", "Dora"],
+        vec![
+            sauspiel(0, 1, 3),
+            GameInput {
+                knockers: vec![2],
+                ..sauspiel(1, 0, 2)
+            },
+            GameInput {
+                knockers: vec![2, 3],
+                ..sauspiel(2, 1, 3)
+            },
+            GameInput {
+                knockers: vec![2, 3],
+                bock: true,
+                ..sauspiel(3, 0, 1)
+            },
+        ],
+    );
+    let all = overall_stats(&[&t]);
+    assert_eq!(all.by_doublings[&0], 1);
+    assert_eq!(all.by_doublings[&1], 1);
+    assert_eq!(all.by_doublings[&2], 1);
+    assert_eq!(all.by_doublings[&3], 1);
+    assert_eq!(all.doubled_at_least(1), 3);
+    assert_eq!(all.doubled_at_least(2), 2);
+    let anna = &all.players.iter().find(|p| p.name == "Anna").unwrap();
+    assert_eq!(anna.doubled_games, 3);
+    assert_eq!(anna.quadrupled_games, 2);
+    assert_eq!(overall_stats(&[]).games, 0);
+}
+
+#[test]
+fn a_ramsch_that_ignores_bock_does_not_count_as_doubled() {
+    let mut t = table();
+    t.tariff.ramsch_bock_doubles = false;
+    t.bock_mode = BockMode::NextGame;
+    t.add_game(GameInput {
+        bock: true,
+        ..ramsch(0, 1)
+    })
+    .unwrap();
+    assert_eq!(overall_stats(&[&t]).doubled_at_least(1), 0);
+    assert_eq!(overall_stats(&[&t]).bock_games, 1);
+}
+
+#[test]
+fn debug_evenings_are_a_flag_that_old_files_do_not_have() {
+    let mut t = table();
+    assert!(!t.debug);
+    t.debug = true;
+    assert!(Table::from_json(&t.to_json().unwrap()).unwrap().debug);
+    let old: String = t
+        .to_json()
+        .unwrap()
+        .lines()
+        .filter(|l| !l.contains("\"debug\""))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(!Table::from_json(&old).unwrap().debug);
+}

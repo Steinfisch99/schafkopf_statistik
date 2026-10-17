@@ -113,6 +113,9 @@ pub struct Table {
     /// Wann der Abend beendet wurde (Unix-Sekunden). `None`: noch offen.
     #[serde(default)]
     pub ended_at: Option<i64>,
+    /// Ein Testabend: Er geht nicht in die Gesamtstatistik über mehrere Abende ein.
+    #[serde(default)]
+    pub debug: bool,
     /// Wer im Lauf des Abends kam, ging oder sich umsetzte.
     #[serde(default)]
     pub events: Vec<TableEvent>,
@@ -161,6 +164,7 @@ impl Table {
             bock_at_ramsch: BockAtRamsch::Counts,
             utc_offset_min: 0,
             ended_at: None,
+            debug: false,
             events: Vec::new(),
             created_at: None,
             games: Vec::new(),
