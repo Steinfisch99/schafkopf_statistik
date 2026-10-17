@@ -86,7 +86,9 @@ Entscheidungen:
 - [x] Eintragen-Ablauf: Abend einrichten, Tarif, Spiel eintragen mit Preisvorschau und Korrekturfeld,
       Tischansicht mit Geldstand und Spieleliste, Rückgängig, Neuer Abend mit Archiv. Auf dem Handy
       noch zu prüfen, siehe [`docs/android-app.md`](docs/android-app.md)
-- [ ] Statistik-Bildschirm (Quoten, Serien, Mitspieler-Matrix, Ergebnis nach Platz)
+- [x] Statistik-Bildschirm: Rangliste, Überblick über den Abend, Spielarten, gerufene Sau, Paare und jeder
+      Spieler im Detail (Rollen, Ansagen, Serien, Spielarten, Plätze). Am Desktop geprüft, auf dem Handy
+      noch zu prüfen
 - [ ] Spätere Ideen: Schneider/Schwarz angesagt, Ramsch mit Jungfrau, Hochzeit-Details, Sup/Supra,
       mehrere Tische, Abendabrechnung teilen
 

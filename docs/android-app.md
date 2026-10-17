@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (73). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (81). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -180,7 +180,23 @@ das musst du auf dem Handy prüfen.
 - [ ] Nach einem neuen Spiel zeigt das Diagramm wieder den ganzen Verlauf.
 - [ ] Der Zoom läuft flüssig, auch bei vielen Spielen.
 
-### 7. Darstellung
+### 7. Statistik
+Am Desktop mit einem Abend von 14 Spielen durchgeklickt, die Zahlen untereinander geprüft (zum
+Beispiel ergeben die Siege nach Rolle die Siegquote in der Rangliste).
+
+- [ ] Tischansicht, "Statistik" öffnet den Bildschirm, "Zurück" geht zurück.
+- [ ] **Rangliste:** Reihenfolge nach Kontostand, Beträge, gespielte Spiele und Siegquote.
+- [ ] **Dieser Abend:** Spiele, bewegtes Geld, teuerstes Spiel mit Beschreibung, Anteile mit Klopfen,
+      Kontra, Re, Schneider, Schwarz und korrigiertem Preis.
+- [ ] **Spielarten** und **Gerufene Sau** passen zu dem, was ihr gespielt habt.
+- [ ] **Wer mit wem** nennt die richtigen Paare und ihre Siege.
+- [ ] **Die Spieler im Detail:** Antippen klappt einen Spieler auf. Bilanz, Siege nach Rolle, Ansagen,
+      Serien, Spielarten und Plätze stimmen mit deinem Gefühl vom Abend überein.
+- [ ] Die Tabellen passen in die Breite, nichts wird abgeschnitten (auch bei langen Namen, im
+      Querformat und bei großer Schrift).
+- [ ] Ohne Spiele steht ein Hinweis statt leerer Tabellen.
+
+### 8. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

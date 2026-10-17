@@ -143,3 +143,20 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .range .chip { min-height: 2.4rem; padding: 0.3rem 0.9rem; }
 .chart-info { display: flex; gap: 0.6rem; justify-content: space-between; align-items: baseline; margin: 0.2rem 0 0.8rem; font-size: 0.9rem; }
 .legend-title { margin: 0 0 0.4rem; }
+
+/* Statistik */
+.kv { display: flex; justify-content: space-between; gap: 1rem; padding: 0.4rem 0; border-top: 1px solid var(--line); }
+.kv > b { text-align: right; font-variant-numeric: tabular-nums; }
+.small { font-size: 0.85rem; margin: 0 0 0.4rem; }
+.stat-table { width: 100%; border-collapse: collapse; margin: 0.3rem 0 0.8rem; font-variant-numeric: tabular-nums; }
+.stat-table th { text-align: right; font-size: 0.8rem; font-weight: 600; opacity: 0.75; padding: 0.3rem 0.3rem; }
+.stat-table td { text-align: right; padding: 0.5rem 0.3rem; border-top: 1px solid var(--line); }
+.stat-table th:first-child, .stat-table td:first-child, .stat-table .name-cell { text-align: left; }
+.name-cell { display: flex; align-items: center; gap: 0.4rem; }
+.name-cell .dot, .player-detail summary .dot { width: 0.8rem; height: 0.8rem; border-radius: 50%; flex: none; display: inline-block; }
+.player-detail { border: 1px solid var(--line); border-radius: 0.7rem; padding: 0 0.8rem; margin-bottom: 0.6rem; background: var(--soft); }
+.player-detail summary { display: flex; align-items: center; gap: 0.5rem; min-height: 3rem; }
+.player-detail summary .name { flex: 1; }
+.player-detail h4 { margin: 1rem 0 0.2rem; font-size: 0.9rem; opacity: 0.8; }
+.player-detail[open] { padding-bottom: 0.8rem; }
+.ranking th:nth-child(2) { text-align: left; }

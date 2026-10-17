@@ -38,7 +38,7 @@ immer null.
 Voreingestellter Tarif (pro Tisch änderbar): Sauspiel 0,20 €, Solo 0,50 €, Schneider +0,10 €,
 Schwarz +0,10 €, jedes Laufende +0,10 €.
 
-## Statistiken
+## Statistiken (in der App unter "Statistik")
 
 **Pro Spieler**
 

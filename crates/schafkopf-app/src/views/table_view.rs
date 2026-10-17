@@ -73,6 +73,7 @@ pub fn TableView(
             }
         }
         div { class: "actions stack",
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats), "Statistik" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Tariff), "Tarif ändern" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Export), "CSV exportieren" }
             if !games.is_empty() {
