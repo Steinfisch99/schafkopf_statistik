@@ -21,7 +21,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Gewonnen | Spielerpartei ja/nein | ja |
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
-| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar) | nein |
+| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier | nein |
 | Augen | Augen der Spielerpartei, daraus lassen sich Sieg und Schneider ableiten | nein |
 | Zeitpunkt, Notiz | frei | nein |
 
@@ -101,3 +101,18 @@ nie überschrieben, es kommt eine Nummer dazu.
   und Tarif" wechseln; das gilt ab dem nächsten Spiel.
 - Jedes Spiel speichert den Tarif, mit dem es abgerechnet wurde, damit das Bearbeiten alter Spiele
   nicht von einer späteren Tarifänderung abhängt.
+
+### Grafiken in der Statistik
+
+Zu den Zahlen gibt es Grafiken, die Zahlen stehen aber immer daneben, damit keine Farbe allein etwas
+aussagt. Grün steht für gewonnen und Orange für verloren (Okabe/Ito, auch bei Farbschwäche
+unterscheidbar).
+
+- **Rangliste:** Balken für den Geldstand, von einer Mittellinie aus (Gewinn rechts, Verlust links).
+- **Dieser Abend:** Ring, wie oft die Spielerpartei gewann; Balken für die Anteile mit Klopfen, Kontra,
+  Re, Schneider, Schwarz und korrigiertem Preis.
+- **Spielarten:** Ring mit der Verteilung; Balken für gewonnen und verloren je Spielart.
+- **Gerufene Sau** und **Wer mit wem:** Balken für gewonnen und verloren, untereinander vergleichbar.
+- **Pro Spieler:** Ring mit Siegen und Niederlagen und der Siegquote in der Mitte; Balken für die Rollen
+  (Spieler, Mitspieler, Gegenspieler), Ansagen (Klopfen, Kontra, Re) und Plätze; Balken für die Bilanz je
+  Spielart; eine Ergebnisreihe mit einem Kästchen je Spiel (Sieg, Niederlage, ausgesetzt).

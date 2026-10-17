@@ -5,6 +5,7 @@ mod game_form;
 mod library_screen;
 mod settings_screen;
 mod setup;
+mod stat_widgets;
 mod stats_screen;
 mod table_view;
 

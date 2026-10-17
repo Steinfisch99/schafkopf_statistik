@@ -93,7 +93,8 @@ Entscheidungen:
       getestet, auf dem Handy noch zu prüfen
 - [x] Spiele nachträglich bearbeiten und löschen
 - [x] Regelwerke (aktive Spielarten) und benannte Tarife mit Standard und Auswahl, Verwaltung in der App
-- [x] Korrekturen aus dem ersten Handytest: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
+- [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
+      führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
       Durchmarsch-Knopf, Umlaute in beiden CSV-Formaten
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
@@ -103,7 +104,8 @@ Entscheidungen:
 - [x] Eintragen-Ablauf: Abend einrichten, Tarif, Spiel eintragen mit Preisvorschau und Korrekturfeld,
       Tischansicht mit Geldstand und Spieleliste, Rückgängig, Neuer Abend mit Archiv. Auf dem Handy
       noch zu prüfen, siehe [`docs/android-app.md`](docs/android-app.md)
-- [x] Statistik-Bildschirm: Rangliste, Überblick über den Abend, Spielarten, gerufene Sau, Paare und jeder
+- [x] Statistik-Bildschirm mit Grafiken (Ringe für Siege und Niederlagen, Balken, Ergebnisreihe Spiel für
+      Spiel): Rangliste, Überblick über den Abend, Spielarten, gerufene Sau, Paare und jeder
       Spieler im Detail (Rollen, Ansagen, Serien, Spielarten, Plätze). Am Desktop geprüft, auf dem Handy
       noch zu prüfen
 - [ ] Spätere Ideen: Schneider/Schwarz angesagt, Ramsch mit Jungfrau, Hochzeit-Details, Sup/Supra,

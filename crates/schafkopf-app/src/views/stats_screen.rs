@@ -1,12 +1,16 @@
 //! Statistik: Rangliste, Überblick über den Abend, Spielarten, Paare und jeder Spieler im Detail.
+//! Zu jeder Zahlenreihe, bei der es sich lohnt, gibt es eine Grafik. Die Zahlen bleiben daneben stehen.
 
 use dioxus::prelude::*;
-use schafkopf_charts::{format_euro, player_color};
-use schafkopf_core::{table_stats, Cents, PlayerStats, Suit, Table};
+use schafkopf_charts::{format_euro, player_color, series_color};
+use schafkopf_core::{table_stats, Cents, PlayerStats, RoleStats, Suit, Table};
 
+use super::stat_widgets::{
+    DivergingRow, DonutWithLegend, ResultStrip, ShareBar, StackedBar, WinDonut,
+};
 use crate::stats_text::{
-    average_per_game, declarer_rate, kind_rows, overall, pair_rows, percent, position_label,
-    ranking, share, streak,
+    average_per_game, declarer_rate, kind_rows, max_abs, overall, pair_rows, percent,
+    position_label, ranking, results_per_player, share, streak,
 };
 use crate::summary::{detail, signed_euro, title};
 use crate::Screen;
@@ -24,6 +28,10 @@ fn amount_class(cents: Cents) -> &'static str {
     }
 }
 
+fn lost(role: RoleStats) -> u32 {
+    role.games.saturating_sub(role.wins)
+}
+
 #[component]
 fn Kv(label: String, value: String) -> Element {
     rsx! {
@@ -35,17 +43,33 @@ fn Kv(label: String, value: String) -> Element {
 }
 
 #[component]
-fn PlayerDetail(player: PlayerStats) -> Element {
+fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>) -> Element {
     let p = player;
+    let total = overall(&p);
     let kinds = kind_rows(&p.by_kind);
-    let positions: Vec<(usize, _)> = p
+    let kind_scale = max_abs(kinds.iter().map(|(_, k)| k.balance));
+    let positions: Vec<(usize, RoleStats)> = p
         .by_position
         .iter()
         .copied()
         .enumerate()
         .filter(|(_, r)| r.games > 0)
         .collect();
+    let position_scale = positions.iter().map(|(_, r)| r.games).max().unwrap_or(0);
+    let roles = [
+        ("Spieler", p.as_declarer),
+        ("Mitspieler", p.as_partner),
+        ("Gegenspieler", p.as_defender),
+    ];
+    let role_scale = roles.iter().map(|(_, r)| r.games).max().unwrap_or(0);
+    let calls = [
+        ("Geklopft", p.knocks),
+        ("Kontra", p.kontra_given),
+        ("Re", p.re_given),
+    ];
+    let call_scale = calls.iter().map(|(_, r)| r.games).max().unwrap_or(0);
     let average = average_per_game(&p).map_or("–".to_string(), signed_euro);
+    let win_label = format!("Siege und Niederlagen von {}", p.name);
 
     rsx! {
         details { class: "player-detail",
@@ -54,6 +78,15 @@ fn PlayerDetail(player: PlayerStats) -> Element {
                 span { class: "name", "{p.name}" }
                 span { class: amount_class(p.balance), "{format_euro(p.balance)}" }
             }
+
+            WinDonut {
+                wins: total.wins,
+                games: total.games,
+                win_name: "Siege".to_string(),
+                lose_name: "Niederlagen".to_string(),
+                label: win_label,
+            }
+
             h4 { "Bilanz" }
             Kv { label: "Ø pro Spiel", value: average }
             Kv { label: "Bestes Spiel", value: signed_euro(p.best_game) }
@@ -63,24 +96,51 @@ fn PlayerDetail(player: PlayerStats) -> Element {
             Kv { label: "Gegeben", value: p.games_dealt.to_string() }
 
             h4 { "Siege nach Rolle" }
-            Kv { label: "Als Spieler", value: share(p.as_declarer) }
-            Kv { label: "Als Mitspieler", value: share(p.as_partner) }
-            Kv { label: "Als Gegenspieler", value: share(p.as_defender) }
+            p { class: "legend-note", "Grün gewonnen, orange verloren. Die Länge zeigt die Zahl der Spiele." }
+            for (label, role) in roles {
+                StackedBar {
+                    key: "{label}",
+                    label: label.to_string(),
+                    won: role.wins,
+                    lost: lost(role),
+                    max: role_scale,
+                    value: share(role),
+                }
+            }
 
             h4 { "Ansagen" }
-            Kv { label: "Geklopft, danach gewonnen", value: share(p.knocks) }
-            Kv { label: "Kontra gegeben, gewonnen", value: share(p.kontra_given) }
-            Kv { label: "Re gegeben, gewonnen", value: share(p.re_given) }
+            for (label, role) in calls {
+                StackedBar {
+                    key: "{label}",
+                    label: label.to_string(),
+                    won: role.wins,
+                    lost: lost(role),
+                    max: call_scale,
+                    value: if role.games == 0 { "–".to_string() } else { share(role) },
+                }
+            }
             Kv { label: "Siege mit Schneider", value: p.schneider_wins.to_string() }
             Kv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string() }
 
             h4 { "Serien" }
+            p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt." }
+            ResultStrip { results }
             Kv { label: "Längste Siegesserie", value: p.longest_win_streak.to_string() }
             Kv { label: "Längste Verlustserie", value: p.longest_loss_streak.to_string() }
             Kv { label: "Aktuell", value: streak(p.current_streak) }
 
             if !kinds.is_empty() {
                 h4 { "Nach Spielart" }
+                p { class: "legend-note", "Balken: Gewinn nach rechts, Verlust nach links." }
+                for (kind, k) in kinds.iter().copied() {
+                    DivergingRow {
+                        key: "{kind.label()}",
+                        label: kind.label().to_string(),
+                        seat: None,
+                        balance: k.balance,
+                        max_abs: kind_scale,
+                    }
+                }
                 table { class: "stat-table",
                     thead { tr { th { "Spielart" } th { "Spiele" } th { "Siege" } th { "Bilanz" } } }
                     tbody {
@@ -97,6 +157,16 @@ fn PlayerDetail(player: PlayerStats) -> Element {
             }
             if !positions.is_empty() {
                 h4 { "Nach Platz (ab links vom Geber)" }
+                for (index, role) in positions.iter().copied() {
+                    StackedBar {
+                        key: "{index}",
+                        label: position_label(index).to_string(),
+                        won: role.wins,
+                        lost: lost(role),
+                        max: position_scale,
+                        value: share(role),
+                    }
+                }
                 table { class: "stat-table",
                     thead { tr { th { "Platz" } th { "Spiele" } th { "Siege" } } }
                     tbody {
@@ -125,8 +195,21 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
     let games = stats.games;
 
     let ranked = ranking(&stats);
+    let money_scale = max_abs(ranked.iter().map(|p| p.balance));
     let kinds = kind_rows(&stats.by_kind);
-    let aces: Vec<(Suit, _)> = [Suit::Eichel, Suit::Gras, Suit::Schellen]
+    let kind_scale = kinds.iter().map(|(_, k)| k.games).max().unwrap_or(0);
+    let kind_parts: Vec<(String, u32, String)> = kinds
+        .iter()
+        .enumerate()
+        .map(|(i, (kind, k))| {
+            (
+                kind.label().to_string(),
+                k.games,
+                series_color(i).to_string(),
+            )
+        })
+        .collect();
+    let aces: Vec<(Suit, RoleStats)> = [Suit::Eichel, Suit::Gras, Suit::Schellen]
         .into_iter()
         .filter_map(|s| {
             stats
@@ -136,7 +219,11 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
                 .map(|r| (s, *r))
         })
         .collect();
+    let ace_scale = aces.iter().map(|(_, r)| r.games).max().unwrap_or(0);
     let pairs = pair_rows(&stats);
+    let pair_scale = pairs.iter().map(|r| r.stats.games).max().unwrap_or(0);
+    let declarers = declarer_rate(&stats);
+    let results = results_per_player(t);
     let priciest = stats.most_expensive.and_then(|(index, value)| {
         t.games().get(index).map(|g| {
             (
@@ -145,6 +232,14 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
             )
         })
     });
+    let shares = [
+        ("Mit Klopfen", stats.knocked_games),
+        ("Mit Kontra", stats.kontra_games),
+        ("Mit Re", stats.re_games),
+        ("Mit Schneider", stats.schneider_games),
+        ("Mit Schwarz", stats.schwarz_games),
+        ("Preis korrigiert", stats.corrected_games),
+    ];
 
     rsx! {
         h2 { "Statistik" }
@@ -155,6 +250,16 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
         } else {
             section {
                 h3 { "Rangliste" }
+                p { class: "legend-note", "Geldstand: Gewinn nach rechts, Verlust nach links." }
+                for p in ranked.iter() {
+                    DivergingRow {
+                        key: "{p.seat}",
+                        label: p.name.clone(),
+                        seat: Some(p.seat),
+                        balance: p.balance,
+                        max_abs: money_scale,
+                    }
+                }
                 table { class: "stat-table ranking",
                     thead { tr { th { "" } th { "Spieler" } th { "Stand" } th { "Spiele" } th { "Siege" } } }
                     tbody {
@@ -182,17 +287,45 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
                     Kv { label: "Teuerstes Spiel", value: headline }
                     p { class: "muted small", "{description}" }
                 }
-                Kv { label: "Spielerpartei gewann", value: share(declarer_rate(&stats)) }
-                Kv { label: "Mit Klopfen", value: count_share(stats.knocked_games, games) }
-                Kv { label: "Mit Kontra", value: count_share(stats.kontra_games, games) }
-                Kv { label: "Mit Re", value: count_share(stats.re_games, games) }
-                Kv { label: "Mit Schneider", value: count_share(stats.schneider_games, games) }
-                Kv { label: "Mit Schwarz", value: count_share(stats.schwarz_games, games) }
-                Kv { label: "Preis von Hand korrigiert", value: count_share(stats.corrected_games, games) }
+                Kv { label: "Spielerpartei gewann", value: share(declarers) }
+                WinDonut {
+                    wins: declarers.wins,
+                    games: declarers.games,
+                    win_name: "Spielerpartei gewann".to_string(),
+                    lose_name: "Spielerpartei verlor".to_string(),
+                    label: "Wie oft die Spielerpartei gewann".to_string(),
+                }
+                h4 { "Wie oft kam was vor?" }
+                for (label, count) in shares {
+                    ShareBar {
+                        key: "{label}",
+                        label: label.to_string(),
+                        part: count,
+                        total: games,
+                        value: count_share(count, games),
+                    }
+                }
             }
 
             section {
                 h3 { "Spielarten" }
+                DonutWithLegend {
+                    parts: kind_parts,
+                    center: games.to_string(),
+                    sub: if games == 1 { "Spiel".to_string() } else { "Spiele".to_string() },
+                    label: "Verteilung der Spielarten".to_string(),
+                }
+                p { class: "legend-note", "Grün gewonnen, orange verloren (Spielerpartei). Die Länge zeigt die Zahl der Spiele." }
+                for (kind, k) in kinds.iter().copied() {
+                    StackedBar {
+                        key: "{kind.label()}",
+                        label: kind.label().to_string(),
+                        won: k.wins,
+                        lost: k.games.saturating_sub(k.wins),
+                        max: kind_scale,
+                        value: format!("{} von {}", k.wins, k.games),
+                    }
+                }
                 table { class: "stat-table",
                     thead { tr { th { "Spielart" } th { "Spiele" } th { "Gewonnen" } th { "Ø Preis" } } }
                     tbody {
@@ -212,6 +345,16 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
             if !aces.is_empty() {
                 section {
                     h3 { "Gerufene Sau" }
+                    for (suit, r) in aces.iter().copied() {
+                        StackedBar {
+                            key: "{suit.label()}",
+                            label: suit.label().to_string(),
+                            won: r.wins,
+                            lost: lost(r),
+                            max: ace_scale,
+                            value: share(r),
+                        }
+                    }
                     table { class: "stat-table",
                         thead { tr { th { "Sau" } th { "Sauspiele" } th { "Gewonnen" } } }
                         tbody {
@@ -230,11 +373,15 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
             if !pairs.is_empty() {
                 section {
                     h3 { "Wer mit wem" }
-                    p { class: "hint", "Sauspiele und Hochzeiten, in denen beide zusammen gespielt haben." }
+                    p { class: "hint", "Sauspiele und Hochzeiten, in denen beide zusammen gespielt haben. Grün gewonnen, orange verloren." }
                     for row in pairs {
-                        div { class: "kv", key: "{row.first}-{row.second}",
-                            span { "{row.first} & {row.second}" }
-                            b { "{share(row.stats)}" }
+                        StackedBar {
+                            key: "{row.first}-{row.second}",
+                            label: format!("{} & {}", row.first, row.second),
+                            won: row.stats.wins,
+                            lost: lost(row.stats),
+                            max: pair_scale,
+                            value: share(row.stats),
                         }
                     }
                 }
@@ -243,7 +390,11 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
             section {
                 h3 { "Die Spieler im Detail" }
                 for p in ranked.iter().map(|p| (*p).clone()) {
-                    PlayerDetail { key: "{p.seat}", player: p }
+                    PlayerDetail {
+                        key: "{p.seat}",
+                        results: results[p.seat].clone(),
+                        player: p,
+                    }
                 }
             }
         }

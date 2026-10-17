@@ -19,6 +19,12 @@ pub fn player_color(seat: usize) -> &'static str {
     PALETTE[seat % PALETTE.len()]
 }
 
+/// Farbe des n-ten Stücks einer Reihe, zum Beispiel der Spielarten im Ringdiagramm. Es ist
+/// dieselbe Palette wie bei den Spielern, jede Farbe ist also von den anderen gut zu unterscheiden.
+pub fn series_color(index: usize) -> &'static str {
+    PALETTE[index % PALETTE.len()]
+}
+
 /// Betrag ohne Währung, deutsch formatiert: `-120` wird zu `−1,20`.
 pub fn format_amount(cents: Cents) -> String {
     let sign = if cents < 0 { "\u{2212}" } else { "" };
@@ -45,8 +51,10 @@ fn nice_step(range: Cents, target: Cents) -> Cents {
         .unwrap_or(magnitude * 10)
 }
 
+mod donut;
 mod view;
 
+pub use donut::donut_svg;
 pub use view::ChartView;
 
 /// Breite und Höhe der Zeichnung in SVG-Einheiten. Das Diagramm skaliert auf die Breite der Seite.
@@ -215,6 +223,17 @@ pub fn balance_chart_svg_view(history: &[Vec<Cents>], view: &ChartView) -> Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn series_colors_are_distinct_and_wrap() {
+        let colors: Vec<&str> = (0..10).map(series_color).collect();
+        let mut unique = colors.clone();
+        unique.sort();
+        unique.dedup();
+        assert_eq!(unique.len(), 10, "zehn verschiedene Farben");
+        assert_eq!(series_color(10), series_color(0));
+        assert_eq!(series_color(3), player_color(3));
+    }
 
     #[test]
     fn amounts_are_formatted_german() {

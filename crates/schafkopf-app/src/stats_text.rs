@@ -1,6 +1,6 @@
 //! Aufbereitung der Statistik für die Anzeige: Texte und Sortierungen ohne Oberfläche.
 
-use schafkopf_core::{Cents, GameKind, KindStats, PlayerStats, RoleStats, TableStats};
+use schafkopf_core::{Cents, GameKind, KindStats, PlayerStats, RoleStats, Table, TableStats};
 
 /// Prozent als ganze Zahl mit geschütztem Leerzeichen, "–" ohne Spiele.
 pub fn percent(wins: u32, games: u32) -> String {
@@ -132,6 +132,54 @@ pub fn pair_rows(stats: &TableStats) -> Vec<PairRow> {
     rows
 }
 
+/// Breite eines Balkens in Prozent der Spur, zwischen 0 und 100 (auf eine Stelle gerundet).
+pub fn bar_percent(value: u32, max: u32) -> f64 {
+    if max == 0 {
+        return 0.0;
+    }
+    let pct = f64::from(value) / f64::from(max) * 100.0;
+    (pct.clamp(0.0, 100.0) * 10.0).round() / 10.0
+}
+
+/// Lage und Breite eines Balkens, der von einer Mittellinie aus nach links (Verlust) oder rechts
+/// (Gewinn) wächst. Beide Werte in Prozent der Spur: `(links, Breite)`. Der größte Betrag füllt
+/// eine Hälfte. Ohne Maßstab (`max_abs` 0) gibt es keinen Balken.
+pub fn diverging(value: Cents, max_abs: Cents) -> (f64, f64) {
+    if max_abs <= 0 {
+        return (50.0, 0.0);
+    }
+    let half = (value.unsigned_abs() as f64 / max_abs as f64).min(1.0) * 50.0;
+    let half = (half * 10.0).round() / 10.0;
+    if value >= 0 {
+        (50.0, half)
+    } else {
+        (50.0 - half, half)
+    }
+}
+
+/// Der größte Betrag unter den Werten, als Maßstab für [`diverging`].
+pub fn max_abs(values: impl IntoIterator<Item = Cents>) -> Cents {
+    values.into_iter().map(Cents::abs).max().unwrap_or(0)
+}
+
+/// Pro Sitzplatz die Ergebnisse aller Spiele in Reihenfolge: `Some(true)` Sieg, `Some(false)`
+/// Niederlage, `None` ausgesetzt. Ein Spieler gewinnt, wenn seine Partei gewinnt.
+pub fn results_per_player(table: &Table) -> Vec<Vec<Option<bool>>> {
+    let mut rows = vec![Vec::new(); table.player_count()];
+    for game in table.games() {
+        let input = &game.input;
+        for (seat, row) in rows.iter_mut().enumerate() {
+            row.push(
+                input
+                    .participants
+                    .contains(&seat)
+                    .then(|| input.is_on_declarer_team(seat) == input.won),
+            );
+        }
+    }
+    rows
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,6 +302,68 @@ mod tests {
             overall(&stats.players[0]).games,
             stats.players[0].games_played
         );
+    }
+
+    #[test]
+    fn bar_percent_scales_and_clamps() {
+        assert_eq!(bar_percent(0, 0), 0.0);
+        assert_eq!(bar_percent(3, 4), 75.0);
+        assert_eq!(bar_percent(1, 3), 33.3);
+        assert_eq!(bar_percent(9, 4), 100.0);
+        assert_eq!(bar_percent(0, 5), 0.0);
+    }
+
+    #[test]
+    fn diverging_bars_grow_from_the_middle() {
+        assert_eq!(
+            diverging(100, 100),
+            (50.0, 50.0),
+            "größter Gewinn: rechte Hälfte voll"
+        );
+        assert_eq!(
+            diverging(-100, 100),
+            (0.0, 50.0),
+            "größter Verlust: linke Hälfte voll"
+        );
+        assert_eq!(diverging(50, 100), (50.0, 25.0));
+        assert_eq!(diverging(-25, 100), (37.5, 12.5));
+        assert_eq!(diverging(0, 100), (50.0, 0.0));
+        assert_eq!(diverging(70, 0), (50.0, 0.0), "ohne Maßstab kein Balken");
+        assert_eq!(
+            diverging(500, 100),
+            (50.0, 50.0),
+            "nie über die Hälfte hinaus"
+        );
+        assert_eq!(max_abs([30, -120, 80]), 120);
+        assert_eq!(max_abs([]), 0);
+    }
+
+    #[test]
+    fn results_follow_the_players_party_and_mark_sat_out_games() {
+        let players: Vec<String> = (0..5).map(|i| format!("S{i}")).collect();
+        let mut t = Table::new("T", players, 0, Tariff::default()).unwrap();
+        // Geber 0: es spielen 1, 2, 4, 0; Platz 3 setzt aus.
+        t.add_game(sau(0, 1, 4, true)).unwrap();
+        t.add_game(GameInput {
+            won: false,
+            ..GameInput::new(1, GameKind::Wenz, 2)
+        })
+        .unwrap();
+        let rows = results_per_player(&t);
+        assert_eq!(rows.len(), 5);
+        // Spiel 1: Spieler 1 und Mitspieler 4 gewinnen, 2 und 0 verlieren, 3 setzt aus.
+        let first: Vec<Option<bool>> = rows.iter().map(|r| r[0]).collect();
+        assert_eq!(
+            first,
+            [Some(false), Some(true), Some(false), None, Some(true)]
+        );
+        // Spiel 2 (Geber 1, es spielen 2, 3, 0, 1): Spieler 2 verliert allein, die anderen gewinnen.
+        let second: Vec<Option<bool>> = rows.iter().map(|r| r[1]).collect();
+        assert_eq!(
+            second,
+            [Some(true), Some(true), Some(false), Some(true), None]
+        );
+        assert!(results_per_player(&table()).iter().all(Vec::is_empty));
     }
 
     #[test]

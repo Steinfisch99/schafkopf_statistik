@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (101). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (119). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -120,6 +120,7 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
       ihm und die zwei danach.
 - [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
 - [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
+- [ ] **Laufende:** Beim Sauspiel, der Hochzeit und dem Farbsolo gehen sie bis **14**, beim Wenz und Geier bis 4, beim Farbwenz und Farbgeier bis 11. Wechselst du die Spielart, kürzt sich ein zu hoher Wert.
 - [ ] Bei Spieler und Mitspieler ist "Kontra" ausgegraut.
 - [ ] Der Preis ändert sich sofort. Rechenprobe beim Sauspiel: 0,20 €, Schneider +0,10 €, ab 3 Laufenden
       je +0,10 €, jedes Klopfen, Kontra und Re verdoppelt.
@@ -186,18 +187,26 @@ das musst du auf dem Handy prüfen.
 
 ### 7. Statistik
 Am Desktop mit einem Abend von 14 Spielen durchgeklickt, die Zahlen untereinander geprüft (zum
-Beispiel ergeben die Siege nach Rolle die Siegquote in der Rangliste).
+Beispiel ergeben die Siege nach Rolle die Siegquote in der Rangliste). Zu den Zahlen gibt es jetzt
+Grafiken, die Zahlen stehen aber immer daneben.
 
 - [ ] Tischansicht, "Statistik" öffnet den Bildschirm, "Zurück" geht zurück.
-- [ ] **Rangliste:** Reihenfolge nach Kontostand, Beträge, gespielte Spiele und Siegquote.
-- [ ] **Dieser Abend:** Spiele, bewegtes Geld, teuerstes Spiel mit Beschreibung, Anteile mit Klopfen,
-      Kontra, Re, Schneider, Schwarz und korrigiertem Preis.
-- [ ] **Spielarten** und **Gerufene Sau** passen zu dem, was ihr gespielt habt.
-- [ ] **Wer mit wem** nennt die richtigen Paare und ihre Siege.
-- [ ] **Die Spieler im Detail:** Antippen klappt einen Spieler auf. Bilanz, Siege nach Rolle, Ansagen,
-      Serien, Spielarten und Plätze stimmen mit deinem Gefühl vom Abend überein.
-- [ ] Die Tabellen passen in die Breite, nichts wird abgeschnitten (auch bei langen Namen, im
-      Querformat und bei großer Schrift).
+- [ ] **Rangliste:** Balken für den Geldstand (Gewinn nach rechts, Verlust nach links) und darunter die
+      Tabelle mit Reihenfolge, Beträgen, Spielen und Siegquote.
+- [ ] **Dieser Abend:** Spiele, bewegtes Geld, teuerstes Spiel mit Beschreibung. Ein **Ring** zeigt, wie
+      oft die Spielerpartei gewann. Darunter Balken für die Anteile mit Klopfen, Kontra, Re, Schneider,
+      Schwarz und korrigiertem Preis.
+- [ ] **Spielarten:** Ring mit der Verteilung, Balken (grün gewonnen, orange verloren) und die Tabelle.
+- [ ] **Gerufene Sau** und **Wer mit wem** haben Balken. Sie sind untereinander vergleichbar, ein längerer
+      Balken heißt mehr Spiele.
+- [ ] **Die Spieler im Detail:** Antippen klappt einen Spieler auf.
+  - [ ] Oben ein **Ring mit Siegen und Niederlagen** und der Siegquote in der Mitte.
+  - [ ] Bilanz, Siege nach Rolle (Spieler, Mitspieler, Gegenspieler) und Ansagen als Balken mit den Zahlen.
+  - [ ] **Serien** mit einem Kästchen je Spiel (+ Sieg, − Niederlage, gestrichelt ausgesetzt).
+  - [ ] Nach Spielart: Balken für Gewinn und Verlust, dazu die Tabelle.
+  - [ ] Nach Platz: Balken und Tabelle.
+- [ ] Alles stimmt mit deinem Gefühl vom Abend überein. Sind die Farben (grün/orange) gut zu unterscheiden?
+- [ ] Die Balken und Tabellen passen in die Breite (auch bei langen Namen, im Querformat, bei großer Schrift).
 - [ ] Ohne Spiele steht ein Hinweis statt leerer Tabellen.
 
 ### 8. Spiele bearbeiten
@@ -232,7 +241,20 @@ Tarif unter einem Namen gespeichert und übernommen. Die Dateien habe ich nachge
 - [ ] Ein laufender Abend ändert sich nicht, wenn du in der Verwaltung etwas änderst.
 - [ ] Nach dem Schließen und Öffnen der App sind Regelwerke, Tarife und die Standards noch da.
 
-### 10. Darstellung
+### 10. Zurück-Taste
+Im Browser (WebKit) mit der Zurück-Maustaste durchgeklickt: Von Statistik, Regeln und Tarif und dem
+Eintragen führt sie in die Übersicht, mehrfach hintereinander und nach dem App-Knopf "Zurück". Auf
+einem Handy ist das noch nicht ausprobiert.
+
+- [ ] Beim **Eintragen eines Spiels** führt die Zurück-Taste (oder Zurück-Geste) zur Übersicht mit dem
+      Diagramm, die App wandert nicht in den Hintergrund.
+- [ ] Dasselbe bei Statistik, "Regeln und Tarif", "CSV exportieren" und beim Bearbeiten eines Spiels.
+- [ ] In der Verwaltung der Regelwerke führt sie zu "Regeln und Tarif" bzw. zur Einrichtung.
+- [ ] Auf der **Übersicht** selbst geht die App wie gewohnt in den Hintergrund.
+- [ ] Erst "Zurück" in der App antippen, dann die Zurück-Taste: Die Übersicht bleibt, nichts Seltsames.
+- [ ] Mehrmals hin und zurück (Statistik, Zurück-Taste, Statistik, Zurück-Taste) geht jedes Mal.
+
+### 11. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.
