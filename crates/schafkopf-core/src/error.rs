@@ -10,6 +10,8 @@ pub enum Error {
     EmptyName,
     #[error("Spielername kommt doppelt vor: {0}")]
     DuplicateName(String),
+    #[error("Es gibt kein Spiel mit der Nummer {}", .0 + 1)]
+    UnknownGame(usize),
     #[error("Unbekannter Sitzplatz {0}")]
     UnknownSeat(Seat),
     #[error("Sitzplatz {0} sitzt in diesem Spiel aus")]

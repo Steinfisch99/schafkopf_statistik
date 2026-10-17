@@ -21,6 +21,11 @@ pub struct GameDraft {
     pub schwarz: bool,
     pub laufende: u8,
     pub price_text: String,
+    /// Beim Bearbeiten: Angaben des ursprünglichen Spiels, die das Formular nicht zeigt, aber nicht
+    /// verlieren darf.
+    pub played_at: Option<i64>,
+    pub points: Option<u8>,
+    pub note: Option<String>,
 }
 
 impl GameDraft {
@@ -43,7 +48,36 @@ impl GameDraft {
             schwarz: false,
             laufende: 0,
             price_text: String::new(),
+            played_at: None,
+            points: None,
+            note: None,
         }
+    }
+
+    /// Entwurf aus einem bestehenden Spiel, zum Bearbeiten.
+    pub fn from_game(table: &Table, index: usize) -> Option<Self> {
+        let g = table.games().get(index)?;
+        let i = &g.input;
+        Some(GameDraft {
+            dealer: i.dealer,
+            participants: i.participants.clone(),
+            kind: i.kind,
+            suit: i.suit,
+            declarer: Some(i.declarer),
+            partner: i.partner,
+            knockers: i.knockers.clone(),
+            kontra_by: i.kontra_by,
+            re: i.re,
+            tout: i.tout,
+            won: i.won,
+            schneider: i.schneider || i.schwarz,
+            schwarz: i.schwarz,
+            laufende: i.laufende,
+            price_text: i.price_override.map(format_amount).unwrap_or_default(),
+            played_at: i.played_at,
+            points: i.points,
+            note: i.note.clone(),
+        })
     }
 
     /// Wirft alles raus, was nicht mehr zu den Mitspielenden gehört.
@@ -243,7 +277,9 @@ impl GameDraft {
         input.schwarz = self.schwarz;
         input.laufende = self.laufende;
         input.price_override = parse_euro(&self.price_text);
-        input.played_at = played_at;
+        input.played_at = self.played_at.or(played_at);
+        input.points = self.points;
+        input.note = self.note.clone();
         Ok(input)
     }
 
@@ -251,6 +287,13 @@ impl GameDraft {
     pub fn preview(&self, table: &Table) -> Result<Game, String> {
         let input = self.to_input(None)?;
         table.preview_game(input).map_err(|e| e.to_string())
+    }
+
+    /// Preis und Auszahlung beim Bearbeiten des Spiels mit diesem Index: Es gilt der Tarif, mit dem
+    /// das Spiel ursprünglich abgerechnet wurde.
+    pub fn preview_edit(&self, table: &Table, index: usize) -> Result<Game, String> {
+        let input = self.to_input(None)?;
+        table.preview_edit(index, input).map_err(|e| e.to_string())
     }
 }
 
@@ -431,6 +474,53 @@ mod tests {
         d.set_kind(GameKind::Wenz);
         d.toggle_durchmarsch();
         assert!(d.won);
+    }
+
+    #[test]
+    fn editing_roundtrips_a_game_and_keeps_hidden_fields() {
+        let mut t = table(4);
+        let input = GameInput {
+            suit: Some(Suit::Gras),
+            partner: Some(3),
+            knockers: vec![2],
+            kontra_by: Some(0),
+            re: true,
+            schneider: true,
+            laufende: 3,
+            price_override: Some(150),
+            points: Some(95),
+            played_at: Some(1234),
+            note: Some("Notiz".into()),
+            ..GameInput::new(0, GameKind::Sauspiel, 1)
+        };
+        t.add_game(input.clone()).unwrap();
+        let draft = GameDraft::from_game(&t, 0).unwrap();
+        assert_eq!(draft.price_text, "1,50");
+        let back = draft.to_input(Some(9999)).unwrap();
+        // Zeitpunkt, Augen und Notiz bleiben erhalten, die Mitspielenden sind jetzt festgelegt.
+        assert_eq!(back.played_at, Some(1234));
+        assert_eq!(
+            (back.points, back.note.as_deref()),
+            (Some(95), Some("Notiz"))
+        );
+        assert_eq!(
+            GameInput {
+                participants: vec![],
+                ..back.clone()
+            },
+            GameInput {
+                participants: vec![],
+                ..input
+            }
+        );
+        assert!(GameDraft::from_game(&t, 1).is_none());
+
+        let mut edited = draft;
+        edited.price_text = String::new();
+        edited.won = false;
+        let preview = edited.preview_edit(&t, 0).unwrap();
+        // (20 + 10 Schneider + 3 * 10 Laufende) * 2^3 für Klopfen, Kontra und Re; Preis von Hand entfernt.
+        assert_eq!((preview.value, preview.calculated_value), (480, 480));
     }
 
     #[test]

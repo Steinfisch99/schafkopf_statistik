@@ -25,6 +25,8 @@ pub enum Screen {
     Setup,
     Table,
     Game,
+    /// Ein früheres Spiel bearbeiten, gezählt ab 0.
+    EditGame(usize),
     Tariff,
     Export,
     Stats,
@@ -52,10 +54,11 @@ fn App() -> Element {
     });
     let notice = use_signal(|| None::<Notice>);
     // Ohne Tisch gibt es nur die Einrichtung.
-    let current = if table.read().is_some() {
-        screen()
-    } else {
-        Screen::Setup
+    let current = match (table.read().as_ref(), screen()) {
+        (None, _) => Screen::Setup,
+        // Ein Spiel, das es nicht mehr gibt, kann nicht bearbeitet werden.
+        (Some(t), Screen::EditGame(index)) if index >= t.games().len() => Screen::Table,
+        (_, other) => other,
     };
 
     rsx! {
@@ -66,7 +69,8 @@ fn App() -> Element {
             match current {
                 Screen::Setup => rsx! { Setup { table, screen, notice } },
                 Screen::Table => rsx! { TableView { table, screen, notice } },
-                Screen::Game => rsx! { GameForm { table, screen, notice } },
+                Screen::Game => rsx! { GameForm { table, screen, notice, editing: None } },
+                Screen::EditGame(index) => rsx! { GameForm { key: "{index}", table, screen, notice, editing: Some(index) } },
                 Screen::Tariff => rsx! { TariffScreen { table, screen, notice } },
                 Screen::Export => rsx! { ExportScreen { table, screen, notice } },
                 Screen::Stats => rsx! { StatsScreen { table, screen } },

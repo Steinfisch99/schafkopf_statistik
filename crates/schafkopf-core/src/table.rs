@@ -15,6 +15,11 @@ pub struct Game {
     pub calculated_value: Cents,
     /// Gewinn/Verlust pro Sitzplatz in Cent.
     pub payouts: Vec<Cents>,
+    /// Der Tarif, mit dem dieses Spiel abgerechnet wurde. Beim Bearbeiten gilt er weiter, auch wenn
+    /// der Tarif des Abends inzwischen geändert wurde. Spiele aus alten Dateien haben keinen und
+    /// werden dann mit dem aktuellen Tarif des Abends neu gerechnet.
+    #[serde(default)]
+    pub tariff: Option<Tariff>,
 }
 
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
@@ -105,20 +110,50 @@ impl Table {
     /// Prüft die Eingabe und rechnet sie ab, ohne das Spiel zu speichern.
     /// Damit zeigt die App den Preis und die Auszahlung schon vor dem Eintragen.
     pub fn preview_game(&self, input: GameInput) -> Result<Game> {
+        self.settle(&self.tariff, input)
+    }
+
+    fn settle(&self, tariff: &Tariff, input: GameInput) -> Result<Game> {
         let mut input = input;
         if input.participants.is_empty() && input.dealer < self.player_count() {
             input.participants = self.default_participants(input.dealer);
         }
         validate(&input, self.player_count())?;
-        let calculated_value = calculated_value(&self.tariff, &input);
-        let value = game_value(&self.tariff, &input);
-        let payouts = payouts(&self.tariff, &input, self.player_count());
+        let calculated_value = calculated_value(tariff, &input);
+        let value = game_value(tariff, &input);
+        let payouts = payouts(tariff, &input, self.player_count());
         Ok(Game {
             input,
             value,
             calculated_value,
             payouts,
+            tariff: Some(tariff.clone()),
         })
+    }
+
+    /// Der Tarif, mit dem ein bestehendes Spiel abgerechnet wird: sein eigener, sonst der des Abends.
+    fn tariff_of(&self, index: usize) -> Result<Tariff> {
+        let game = self.games.get(index).ok_or(Error::UnknownGame(index))?;
+        Ok(game.tariff.clone().unwrap_or_else(|| self.tariff.clone()))
+    }
+
+    /// Rechnet eine geänderte Fassung eines bestehenden Spiels, ohne es zu speichern. Es gilt der
+    /// Tarif, mit dem das Spiel ursprünglich abgerechnet wurde.
+    pub fn preview_edit(&self, index: usize, input: GameInput) -> Result<Game> {
+        self.settle(&self.tariff_of(index)?, input)
+    }
+
+    /// Ersetzt ein bestehendes Spiel durch eine geänderte Fassung. Beträge werden mit dem Tarif
+    /// von damals neu gerechnet, nicht mit dem heutigen.
+    pub fn replace_game(&mut self, index: usize, input: GameInput) -> Result<&Game> {
+        let game = self.preview_edit(index, input)?;
+        self.games[index] = game;
+        Ok(&self.games[index])
+    }
+
+    /// Entfernt ein beliebiges Spiel. `None`, wenn es den Index nicht gibt.
+    pub fn remove_game(&mut self, index: usize) -> Option<Game> {
+        (index < self.games.len()).then(|| self.games.remove(index))
     }
 
     /// Prüft die Eingabe, rechnet ab und hängt das Spiel an.

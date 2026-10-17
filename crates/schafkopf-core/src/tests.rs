@@ -609,3 +609,99 @@ fn tariff_saved_with_the_old_field_name_still_loads() {
     let loaded: Tariff = serde_json::from_value(json).unwrap();
     assert_eq!(loaded, Tariff::default());
 }
+
+#[test]
+fn edited_game_keeps_the_tariff_it_was_played_with() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.set_tariff(Tariff {
+        sauspiel: 50,
+        ..Tariff::default()
+    });
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    assert_eq!(t.balances(), vec![-70, 70, -70, 70]);
+
+    // Das erste Spiel bekommt Schneider: 20 + 10 mit dem Tarif von damals, nicht 50 + 10.
+    let mut input = t.games()[0].input.clone();
+    input.schneider = true;
+    let edited = t.replace_game(0, input).unwrap();
+    assert_eq!(edited.value, 30);
+    assert_eq!(edited.calculated_value, 30);
+    assert_eq!(edited.tariff.as_ref().unwrap().sauspiel, 20);
+    assert_eq!(t.games()[1].value, 50, "das zweite Spiel bleibt unberührt");
+    assert_eq!(t.balances(), vec![-80, 80, -80, 80]);
+}
+
+#[test]
+fn edit_can_change_winner_players_and_price() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let mut input = t.games()[0].input.clone();
+    input.won = false;
+    input.declarer = 2;
+    input.partner = Some(0);
+    input.price_override = Some(100);
+    let preview = t.preview_edit(0, input.clone()).unwrap();
+    assert_eq!(
+        t.games()[0].payouts,
+        vec![-20, 20, -20, 20],
+        "Vorschau ändert nichts"
+    );
+    assert_eq!(preview.payouts, vec![-100, 100, -100, 100]);
+    t.replace_game(0, input).unwrap();
+    assert_eq!(t.balances(), vec![-100, 100, -100, 100]);
+}
+
+#[test]
+fn invalid_edits_and_unknown_games_are_rejected() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let mut bad = t.games()[0].input.clone();
+    bad.partner = Some(bad.declarer);
+    assert_eq!(
+        t.replace_game(0, bad).unwrap_err(),
+        Error::PartnerIsDeclarer
+    );
+    assert_eq!(t.games()[0].payouts, vec![-20, 20, -20, 20]);
+    let ok = t.games()[0].input.clone();
+    assert_eq!(
+        t.replace_game(5, ok.clone()).unwrap_err(),
+        Error::UnknownGame(5)
+    );
+    assert_eq!(t.preview_edit(1, ok).unwrap_err(), Error::UnknownGame(1));
+    assert!(t.remove_game(3).is_none());
+}
+
+#[test]
+fn removing_a_game_from_the_middle() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_game(GameInput::new(1, GameKind::Wenz, 2)).unwrap();
+    t.add_game(sauspiel(2, 0, 1)).unwrap();
+    let removed = t.remove_game(1).unwrap();
+    assert_eq!(removed.input.kind, GameKind::Wenz);
+    assert_eq!(t.games().len(), 2);
+    assert_eq!(t.balances(), vec![0, 40, -40, 0]);
+    assert_eq!(
+        t.next_dealer(),
+        3,
+        "der Geber richtet sich nach dem letzten Spiel"
+    );
+}
+
+#[test]
+fn games_saved_without_a_tariff_are_repriced_with_the_current_one_when_edited() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let mut json = serde_json::to_value(&t).unwrap();
+    json["games"][0].as_object_mut().unwrap().remove("tariff");
+    let mut old: Table = serde_json::from_value(json).unwrap();
+    assert!(old.games()[0].tariff.is_none());
+    old.set_tariff(Tariff {
+        sauspiel: 40,
+        ..Tariff::default()
+    });
+    let input = old.games()[0].input.clone();
+    assert_eq!(old.replace_game(0, input).unwrap().value, 40);
+    assert!(old.games()[0].tariff.is_some());
+}

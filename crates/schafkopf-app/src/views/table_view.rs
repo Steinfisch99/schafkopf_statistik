@@ -67,6 +67,12 @@ pub fn TableView(
                                 }
                             }
                             div { class: "muted", "{detail(t, game)}" }
+                            button {
+                                class: "link edit",
+                                r#type: "button",
+                                onclick: move |_| screen.set(Screen::EditGame(index)),
+                                "Bearbeiten"
+                            }
                         }
                     }
                 }

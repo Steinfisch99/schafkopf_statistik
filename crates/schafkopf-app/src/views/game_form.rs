@@ -1,21 +1,24 @@
-//! Ein Spiel eintragen: Spielart wählen, dann in der Übersicht der Mitspielenden alles ankreuzen.
+//! Ein Spiel eintragen oder ein früheres bearbeiten: Spielart wählen, dann in der Übersicht der
+//! Mitspielenden alles ankreuzen.
 
 use dioxus::prelude::*;
 use schafkopf_charts::format_euro;
 use schafkopf_core::{GameKind, Suit, Table};
 
-use super::common::{Chip, Notice};
+use super::common::{Chip, ConfirmButton, Notice};
 use crate::draft::GameDraft;
 use crate::summary::signed_euro;
 use crate::{now_secs, storage, Screen};
 
 const CALLABLE_SUITS: [Suit; 3] = [Suit::Eichel, Suit::Gras, Suit::Schellen];
 
+/// `editing` ist die Position des Spiels in der Liste, wenn ein bestehendes bearbeitet wird.
 #[component]
 pub fn GameForm(
     table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
+    editing: Option<usize>,
 ) -> Element {
     let mut table = table;
     let mut screen = screen;
@@ -24,8 +27,13 @@ pub fn GameForm(
         table
             .read()
             .as_ref()
-            .map(GameDraft::new)
-            .expect("Das Formular gibt es nur, wenn ein Tisch existiert")
+            .and_then(|t| match editing {
+                Some(index) => GameDraft::from_game(t, index),
+                None => Some(GameDraft::new(t)),
+            })
+            .expect(
+                "Das Formular gibt es nur für einen vorhandenen Tisch und ein vorhandenes Spiel",
+            )
     });
 
     let players: Vec<String> = table
@@ -35,7 +43,10 @@ pub fn GameForm(
         .unwrap_or_default();
     let d = draft();
     let kind = d.kind;
-    let preview = table.read().as_ref().map(|t| d.preview(t));
+    let preview = table.read().as_ref().map(|t| match editing {
+        Some(index) => d.preview_edit(t, index),
+        None => d.preview(t),
+    });
     let problem = d.problem();
     let declarer_label = match (kind, d.won) {
         (GameKind::Ramsch, true) => "Durchmarsch",
@@ -50,24 +61,58 @@ pub fn GameForm(
         };
         let mut guard = table.write();
         let Some(t) = guard.as_mut() else { return };
-        if let Err(e) = t.add_game(input) {
-            return notice.set(Some(Notice::error(e.to_string())));
-        }
-        let index = t.games().len() - 1;
-        let saved = storage::save(t, Some(index));
+        let (index, saved, verb) = match editing {
+            Some(index) => {
+                if let Err(e) = t.replace_game(index, input) {
+                    return notice.set(Some(Notice::error(e.to_string())));
+                }
+                // Beim Ändern kann sich jede Zeile ändern, deshalb wird die ganze CSV neu geschrieben.
+                (index, storage::save(t, None), "geändert")
+            }
+            None => {
+                if let Err(e) = t.add_game(input) {
+                    return notice.set(Some(Notice::error(e.to_string())));
+                }
+                let index = t.games().len() - 1;
+                (index, storage::save(t, Some(index)), "gespeichert")
+            }
+        };
         drop(guard);
         match saved {
-            Ok(_) => notice.set(Some(Notice::ok(format!("Spiel {} gespeichert", index + 1)))),
+            Ok(_) => notice.set(Some(Notice::ok(format!("Spiel {} {verb}", index + 1)))),
             Err(e) => notice.set(Some(Notice::error(format!(
-                "Spiel {} ist eingetragen, aber die Datei konnte nicht geschrieben werden: {e}",
+                "Spiel {} ist {verb}, aber die Datei konnte nicht geschrieben werden: {e}",
                 index + 1
             )))),
         }
         screen.set(Screen::Table);
     };
 
+    let delete = move |_| {
+        let Some(index) = editing else { return };
+        let mut guard = table.write();
+        let Some(t) = guard.as_mut() else { return };
+        if t.remove_game(index).is_none() {
+            return;
+        }
+        let saved = storage::save(t, None);
+        drop(guard);
+        match saved {
+            Ok(_) => notice.set(Some(Notice::ok(format!("Spiel {} gelöscht", index + 1)))),
+            Err(e) => notice.set(Some(Notice::error(format!(
+                "Gelöscht, aber die Datei konnte nicht geschrieben werden: {e}"
+            )))),
+        }
+        screen.set(Screen::Table);
+    };
+
     rsx! {
-        h2 { "Spiel {table.read().as_ref().map_or(0, |t| t.games().len()) + 1} eintragen" }
+        if let Some(index) = editing {
+            h2 { "Spiel {index + 1} bearbeiten" }
+            p { class: "hint", "Der Preis wird mit dem Tarif gerechnet, der damals galt." }
+        } else {
+            h2 { "Spiel {table.read().as_ref().map_or(0, |t| t.games().len()) + 1} eintragen" }
+        }
 
         section {
             label { class: "field",
@@ -290,9 +335,12 @@ pub fn GameForm(
                 r#type: "button",
                 disabled: problem.is_some(),
                 onclick: save,
-                "Spiel speichern"
+                if editing.is_some() { "Änderungen speichern" } else { "Spiel speichern" }
             }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "Abbrechen" }
+            if editing.is_some() {
+                ConfirmButton { label: "Spiel löschen", confirm_label: "Ja, löschen", onconfirm: delete }
+            }
         }
     }
 }
