@@ -3,7 +3,7 @@
 use dioxus::prelude::*;
 use schafkopf_core::{GameKind, Library, RuleSet, Table};
 
-use super::common::{persist_library, Notice, TariffFields};
+use super::common::{persist_library, Chip, Notice, TariffFields};
 use crate::draft::TariffDraft;
 use crate::{now_secs, storage, Screen};
 
@@ -44,6 +44,8 @@ pub struct SetupState {
     pub rule_set: Signal<String>,
     pub tariff_name: Signal<String>,
     pub tariff: Signal<TariffDraft>,
+    /// Ein Testabend, der nicht in die Gesamtstatistik eingeht.
+    pub debug: Signal<bool>,
 }
 
 /// Legt den Zustand der Einrichtung an, vorbelegt mit den Standards der Bibliothek und den
@@ -65,6 +67,7 @@ pub fn use_setup_state(library: Signal<Library>, table: Signal<Option<Table>>) -
         rule_set: use_signal(|| rule_set),
         tariff_name: use_signal(|| tariff.name.clone()),
         tariff: use_signal(|| TariffDraft::from_tariff(&tariff.tariff)),
+        debug: use_signal(|| false),
     }
 }
 
@@ -213,6 +216,7 @@ pub fn Setup(
         mut rule_set,
         mut tariff_name,
         tariff,
+        mut debug,
     } = state;
     let mut tariff_signal = tariff;
     let running = table.read().is_some();
@@ -247,6 +251,7 @@ pub fn Setup(
         new_table.use_tariff(Some(tariff_label.clone()), tariff);
         let now = now_secs();
         new_table.created_at = Some(now as i64);
+        new_table.debug = debug();
         new_table.utc_offset_min = crate::utc_offset_min();
         // Wurde der alte Abend nicht beendet, endet er mit seiner letzten bekannten Aktivität.
         if let Some(previous) = table.write().as_mut() {
@@ -372,6 +377,13 @@ pub fn Setup(
                 summary { "Für diesen Abend anpassen" }
                 p { class: "hint", "Ändert nur diesen Abend, nicht den gespeicherten Tarif. Der Tarif lässt sich später jederzeit ändern, schon eingetragene Spiele bleiben dabei unverändert." }
                 TariffFields { draft: tariff_signal }
+            }
+        }
+        div { class: "chips",
+            Chip {
+                label: "Testabend (nicht in der Gesamtstatistik)".to_string(),
+                on: debug(),
+                onclick: move |_| debug.set(!debug()),
             }
         }
         p { class: "hint", "Spieler, Regelwerke und Tarife legst du in der Verwaltung an und änderst sie dort, bei Regelwerken und Tarifen auch den Standard." }

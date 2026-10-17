@@ -100,6 +100,11 @@ pub fn load_past(stamp: u64) -> Option<Table> {
     load_past_in(&data_dir(), stamp)
 }
 
+/// Speichert einen früheren Abend neu, zum Beispiel nachdem er als Testabend markiert wurde.
+pub fn save_past(stamp: u64, table: &Table) -> io::Result<()> {
+    save_past_in(&data_dir(), stamp, table)
+}
+
 /// Löscht einen früheren Abend samt seiner CSV. Fehlt eine der Dateien, ist das kein Fehler.
 pub fn delete_past(stamp: u64) -> io::Result<()> {
     delete_past_in(&data_dir(), stamp)
@@ -188,6 +193,13 @@ fn list_past_in(dir: &Path) -> Vec<PastEvening> {
         .collect();
     past.sort_by_key(|p| std::cmp::Reverse(p.stamp));
     past
+}
+
+fn save_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<()> {
+    let json = table
+        .to_json()
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    fs::write(past_file(dir, "schafkopf-tisch", stamp, "json"), json)
 }
 
 fn delete_past_in(dir: &Path, stamp: u64) -> io::Result<()> {
@@ -319,6 +331,20 @@ mod tests {
             "auch die CSV ist weg"
         );
         delete_past_in(&dir, 200).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_past_evening_can_be_marked_as_a_test_evening() {
+        let dir = temp_dir("debug");
+        let mut table = table();
+        save_in(&dir, &table, None).unwrap();
+        archive_in(&dir, 7).unwrap();
+        assert!(!load_past_in(&dir, 7).unwrap().debug);
+        table.debug = true;
+        save_past_in(&dir, 7, &table).unwrap();
+        assert!(load_past_in(&dir, 7).unwrap().debug);
+        assert_eq!(list_past_in(&dir).len(), 1);
         fs::remove_dir_all(&dir).unwrap();
     }
 

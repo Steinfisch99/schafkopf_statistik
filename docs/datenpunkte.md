@@ -221,3 +221,22 @@ Spiele Bockspiele mit doppeltem Preis.
 - Stimmt der Preis am Ende doch, werden beide Angaben verworfen.
 - Statistik: Wie oft jeder falsch verlangt hat (Rangliste und Spielerkarte, je Fehlerart) und welche
   Fehlerarten am Abend vorkamen. CSV: "Falsch_verlangt_von" und "Fehlerarten" (mit Semikolon getrennt).
+
+### Gesamtstatistik über mehrere Abende
+
+- Erreichbar über **Frühere Abende → Gesamtstatistik über mehrere Abende**. Standardmäßig zählt **jeder**
+  Abend mit mindestens einem Spiel (auch der laufende), einzelne lassen sich abwählen und wieder
+  dazunehmen ("Keinen", "Alle").
+- **Testabende** (Abend beim Start oder unter "Regeln und Tarif" markiert, bei früheren Abenden mit
+  "Als Testabend markieren") erscheinen in der Liste der früheren Abende mit "Test", zählen aber **nie**
+  in der Gesamtstatistik und sind dort nicht wählbar.
+- Spieler werden über den **Namen** zusammengeführt (die Sitzplätze sind an jedem Abend andere).
+- Allgemein: Abende, Spiele, bewegtes Geld, Siege der Spielerpartei, **wie oft gedoppelt wurde** (ohne,
+  gedoppelt, vervierfacht, mal 8, ...; mindestens gedoppelt, mindestens vervierfacht), Anteil mit
+  Klopfen/Kontra/Re/Schneider/Schwarz/Bock, Spielarten, falsch verlangte Preise.
+  Verdopplungen zählen nach dem Preis: Ein Ramsch, bei dem Klopfen oder Bock laut Tarif nicht zählen, gilt
+  nicht als gedoppelt.
+- Je Spieler: Gesamtgewinn, Abende (und wie oft im Plus), Ø pro Abend und Spiel, bester und
+  schlechtester Abend, Ergebnis je Abend, bestes und schlechtestes Spiel, Serien, Siege nach Rolle,
+  wie oft er selbst gedoppelt hat (Klopfen, Kontra, Re), in wie vielen gedoppelten und vervierfachten
+  Spielen er saß, Schneider/Schwarz, Lauf, falsch verlangt, Ergebnis je Spielart.

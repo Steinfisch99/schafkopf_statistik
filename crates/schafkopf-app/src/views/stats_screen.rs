@@ -21,11 +21,11 @@ use crate::summary::{detail, signed_euro, title};
 use crate::Screen;
 
 /// "3 (21 %)": eine Anzahl und ihr Anteil an allen Spielen.
-fn count_share(count: u32, total: u32) -> String {
+pub(super) fn count_share(count: u32, total: u32) -> String {
     format!("{count} ({})", percent(count, total))
 }
 
-fn amount_class(cents: Cents) -> &'static str {
+pub(super) fn amount_class(cents: Cents) -> &'static str {
     if cents < 0 {
         "amount neg"
     } else {
@@ -33,12 +33,12 @@ fn amount_class(cents: Cents) -> &'static str {
     }
 }
 
-fn lost(role: RoleStats) -> u32 {
+pub(super) fn lost(role: RoleStats) -> u32 {
     role.games.saturating_sub(role.wins)
 }
 
 #[component]
-fn Kv(label: String, value: String) -> Element {
+pub(super) fn Kv(label: String, value: String) -> Element {
     rsx! {
         div { class: "kv",
             span { "{label}" }

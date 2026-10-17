@@ -224,3 +224,6 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .legend-btn.away { opacity: 0.55; }
 .event-log { margin: 0.3rem 0 0.6rem; padding-left: 1.2rem; font-size: 0.9rem; }
 .seat-list .reseat { flex: 0 0 auto; min-width: 2.6rem; padding: 0.4rem 0.5rem; }
+
+.evening-pick { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.4rem 0; }
+.evening-pick .chip { text-align: left; border-radius: 0.8rem; }

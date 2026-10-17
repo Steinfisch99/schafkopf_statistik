@@ -18,8 +18,9 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use navigation::{back_target, effective_screen, history_action, HistoryAction};
 use views::{
-    use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, PastEveningView,
-    PastList, PastSection, SeatsScreen, SettingsScreen, Setup, StatsScreen, TableView,
+    use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, OverallScreen,
+    PastEveningView, PastList, PastSection, SeatsScreen, SettingsScreen, Setup, StatsScreen,
+    TableView,
 };
 
 const CSS: &str = include_str!("style.css");
@@ -54,6 +55,8 @@ pub enum Screen {
         player: Option<usize>,
     },
     PastExport(u64),
+    /// Die Statistik über mehrere Abende.
+    Overall,
 }
 
 pub fn now_secs() -> u64 {
@@ -164,6 +167,7 @@ fn App() -> Element {
                     Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },
                     Screen::PastList => rsx! { PastList { screen, has_table } },
                     // Diese drei zeigt `PastEveningView` oben.
+                    Screen::Overall => rsx! { OverallScreen { table, screen, notice } },
                     Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_) => rsx! {},
                 }
             }

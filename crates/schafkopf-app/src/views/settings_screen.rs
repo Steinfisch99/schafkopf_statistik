@@ -3,7 +3,7 @@
 use dioxus::prelude::*;
 use schafkopf_core::{Library, Table, Tariff};
 
-use super::common::{persist_library, Notice, TariffFields, TextField};
+use super::common::{persist_library, Chip, Notice, TariffFields, TextField};
 use super::setup::{kinds_text, tariff_label};
 use crate::draft::TariffDraft;
 use crate::{storage, Screen};
@@ -30,6 +30,7 @@ pub fn SettingsScreen(
     let mut chosen = use_signal(String::new);
     let mut save_name = use_signal(String::new);
 
+    let is_debug = table.read().as_ref().is_some_and(|t| t.debug);
     let (current_rules, current_tariff, enabled, bock_mode) = {
         let guard = table.read();
         let Some(t) = guard.as_ref() else {
@@ -174,6 +175,27 @@ pub fn SettingsScreen(
                 }
                 button { class: "secondary", r#type: "button", style: "margin-bottom:0.6rem", onclick: save_as_new, "Speichern" }
             }
+        }
+
+        section {
+            h3 { "Testabend" }
+            div { class: "chips",
+                Chip {
+                    label: "Testabend (nicht in der Gesamtstatistik)".to_string(),
+                    on: is_debug,
+                    onclick: move |_| {
+                        let mut guard = table.write();
+                        let Some(t) = guard.as_mut() else { return };
+                        t.debug = !t.debug;
+                        let saved = storage::save(t, None);
+                        drop(guard);
+                        if let Err(e) = saved {
+                            notice.set(Some(Notice::error(format!("Speichern fehlgeschlagen: {e}"))));
+                        }
+                    },
+                }
+            }
+            p { class: "hint", "Ein Testabend steht in den früheren Abenden, geht aber nicht in die Gesamtstatistik über mehrere Abende ein. Zum Ausprobieren." }
         }
 
         div { class: "actions",

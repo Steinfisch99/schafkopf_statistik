@@ -49,6 +49,9 @@ pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
                     },
                     div { class: "past-title",
                         b { "{evening_date(&past.table, past.stamp)}" }
+                        if past.table.debug {
+                            span { class: "badge", " Test" }
+                        }
                         span { class: "muted", " · {games_text(past.table.games().len())}" }
                     }
                     if let Some(times) = evening_times(&past.table) {
@@ -60,6 +63,9 @@ pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
                     }
                 }
             }
+        }
+        div { class: "actions stack",
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Overall), "Gesamtstatistik über mehrere Abende" }
         }
         div { class: "actions",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
@@ -79,7 +85,7 @@ pub fn PastEveningView(
 ) -> Element {
     let mut screen = screen;
     let mut notice = notice;
-    let viewed = use_signal(|| storage::load_past(stamp));
+    let mut viewed = use_signal(|| storage::load_past(stamp));
 
     let delete = move |_| {
         match storage::delete_past(stamp) {
@@ -88,6 +94,25 @@ pub fn PastEveningView(
         }
         screen.set(Screen::PastList);
     };
+
+    let toggle_debug = move |_| {
+        let mut guard = viewed.write();
+        let Some(t) = guard.as_mut() else { return };
+        t.debug = !t.debug;
+        let saved = storage::save_past(stamp, t);
+        let debug = t.debug;
+        drop(guard);
+        notice.set(Some(match saved {
+            Ok(()) if debug => {
+                Notice::ok("Als Testabend markiert, er zählt nicht mehr in der Gesamtstatistik")
+            }
+            Ok(()) => {
+                Notice::ok("Markierung entfernt, der Abend zählt wieder in der Gesamtstatistik")
+            }
+            Err(e) => Notice::error(format!("Speichern fehlgeschlagen: {e}")),
+        }));
+    };
+    let is_debug = viewed.read().as_ref().is_some_and(|t| t.debug);
 
     let (date, times, players, rules, game_count) = match viewed.read().as_ref() {
         Some(t) => (
@@ -120,7 +145,12 @@ pub fn PastEveningView(
             ExportScreen { table: viewed, screen, notice, back: Screen::Past(stamp) }
         },
         PastSection::Overview => rsx! {
-            h2 { "Abend vom {date}" }
+            h2 {
+                "Abend vom {date}"
+                if is_debug {
+                    span { class: "badge", " Test" }
+                }
+            }
             if let Some(times) = &times {
                 p { class: "muted", "{times}" }
             }
@@ -145,6 +175,12 @@ pub fn PastEveningView(
                     r#type: "button",
                     onclick: move |_| screen.set(Screen::PastExport(stamp)),
                     "CSV exportieren"
+                }
+                button {
+                    class: "secondary",
+                    r#type: "button",
+                    onclick: toggle_debug,
+                    if is_debug { "Testabend-Markierung entfernen" } else { "Als Testabend markieren" }
                 }
                 ConfirmButton { label: "Abend löschen", confirm_label: "Ja, endgültig löschen", onconfirm: delete }
                 button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Zurück" }

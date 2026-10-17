@@ -206,8 +206,10 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
             let tariff = game.tariff.as_ref().unwrap_or(&table.tariff);
             let times = price_doublings(tariff, &game.input);
             *out.by_doublings.entry(times).or_default() += 1;
-            out.declarer_side.games += 1;
-            out.declarer_side.wins += u32::from(game.input.won);
+            if game.input.kind != GameKind::Ramsch {
+                out.declarer_side.games += 1;
+                out.declarer_side.wins += u32::from(game.input.won);
+            }
             for &seat in &game.input.participants {
                 let Some(name) = table.players.get(seat) else {
                     continue;

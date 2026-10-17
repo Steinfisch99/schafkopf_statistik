@@ -368,7 +368,19 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
       Fehlerart. Ohne korrigierte Preise fehlt der Abschnitt.
 - [ ] Die CSV hat die Spalten "Falsch_verlangt_von" und "Fehlerarten".
 
-### 17. Darstellung
+### 17. Gesamtstatistik und Testabende
+- [ ] Unter "Frühere Abende" gibt es "Gesamtstatistik über mehrere Abende" (auch ohne laufenden Abend).
+- [ ] Standardmäßig sind alle Abende mit Spielen gewählt, der laufende steht als "Laufender Abend". Ein
+      Antippen nimmt einen Abend heraus, "Keinen" und "Alle" funktionieren, die Zahlen ändern sich sofort.
+- [ ] Rangliste, "Alle Abende zusammen" (inklusive "Wie oft wurde gedoppelt?"), Spielarten, Falsch
+      verlangt und die Karte jedes Spielers sind da. Spieler mit gleichem Namen sind über die Abende
+      zusammengeführt.
+- [ ] Bei der Einrichtung gibt es "Testabend (nicht in der Gesamtstatistik)", ebenso unter "Regeln und
+      Tarif" für den laufenden Abend.
+- [ ] Ein früherer Abend hat "Als Testabend markieren" und "Testabend-Markierung entfernen". Testabende
+      stehen mit "Test" in der Liste, fehlen aber in der Gesamtstatistik.
+
+### 18. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

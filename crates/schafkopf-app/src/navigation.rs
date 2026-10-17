@@ -28,7 +28,11 @@ pub fn effective_screen(table: Option<&Table>, screen: Screen) -> Screen {
 pub fn is_past_screen(screen: Screen) -> bool {
     matches!(
         screen,
-        Screen::PastList | Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_)
+        Screen::PastList
+            | Screen::Past(_)
+            | Screen::PastStats { .. }
+            | Screen::PastExport(_)
+            | Screen::Overall
     )
 }
 
@@ -51,7 +55,7 @@ pub fn back_target(screen: Screen, has_table: bool) -> Option<Screen> {
         } else {
             Screen::Setup
         }),
-        Screen::Past(_) => Some(Screen::PastList),
+        Screen::Past(_) | Screen::Overall => Some(Screen::PastList),
         Screen::PastStats { stamp, .. } | Screen::PastExport(stamp) => Some(Screen::Past(stamp)),
     }
 }
@@ -141,6 +145,7 @@ mod tests {
                 player: Some(1),
             },
             Screen::PastExport(7),
+            Screen::Overall,
         ];
         for has_table in [true, false] {
             for start in all {
@@ -221,6 +226,7 @@ mod tests {
                 player: None,
             },
             Screen::PastExport(3),
+            Screen::Overall,
         ] {
             assert!(is_past_screen(screen));
             assert_eq!(effective_screen(None, screen), screen, "{screen:?}");
