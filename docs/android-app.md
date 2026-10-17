@@ -334,7 +334,25 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Die Zurück-Taste führt vom Bildschirm "Am Tisch" zur Übersicht.
 - [ ] Die CSV hat auch Spalten für Gegangene und Dazugekommene. Die Statistik zeigt sie weiter.
 
-### 15. Darstellung
+### 15. Umsetzen, Abend beenden, Protokoll, mehrere Bockrunden
+- [ ] Am Bildschirm "Am Tisch" hat jeder Spieler Pfeile ▲ ▼ (bei mindestens drei Spielern). Der Spieler
+      rückt einen Platz, "Nächster Geber" und die Mitspielenden richten sich nach der neuen Reihenfolge.
+- [ ] Unter "Wer kam und ging" steht, wer wann dazukam, ging, zurückkam oder sich umsetzte, mit Uhrzeit
+      und "nach Spiel N". Die Uhrzeit ist deine Ortszeit.
+- [ ] In der Tischübersicht steht "Abend: seit 19:30 Uhr". "Abend beenden" (mit Rückfrage) legt den Abend
+      bei den früheren Abenden ab und öffnet ihn dort, dort steht "19:30 bis 23:10 Uhr (3 h 40 min)".
+- [ ] Ein Abend ohne Spiel wird beim Beenden nicht aufgehoben.
+- [ ] Auch in der Liste der früheren Abende steht die Uhrzeit. Alte Abende ohne Uhrzeit zeigen nichts.
+- [ ] Beim CSV-Export gibt es zusätzlich "Protokoll in Downloads speichern" (eigene Datei, Spalten Zeit,
+      Zeit_Unix, Ereignis, Spieler, Hinter, Nach_Spiel_Nr).
+- [ ] Im Regelwerk (Bock an) gibt es "Mehrere Bockrunden: Hintereinander / Übereinander".
+- [ ] Im Formular erscheint bei "Bockrunde entstanden" die Wahl der Anzahl (1 bis 4). In der Liste steht
+      "löst 2 Bockrunden aus".
+- [ ] Mit "Übereinander" und zwei laufenden Bockrunden ist "mal 4" vorgewählt, der Preis stimmt in der
+      Vorschau. Mit "Hintereinander" bleibt es bei "Bockspiel" (mal 2) und die Zahl der offenen
+      Bockspiele wird länger.
+
+### 16. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

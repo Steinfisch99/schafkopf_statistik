@@ -8,6 +8,7 @@ use schafkopf_core::{Library, Table};
 
 const JSON_FILE: &str = "schafkopf-tisch.json";
 const CSV_FILE: &str = "schafkopf-spiele.csv";
+const EVENTS_FILE: &str = "schafkopf-ereignisse.csv";
 const ARCHIVE_DIR: &str = "archiv";
 const LIBRARY_FILE: &str = "schafkopf-bibliothek.json";
 
@@ -125,6 +126,7 @@ fn save_in(dir: &Path, table: &Table, new_game: Option<usize>) -> io::Result<()>
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     fs::write(dir.join(JSON_FILE), json)?;
 
+    fs::write(dir.join(EVENTS_FILE), table.events_csv())?;
     let csv_path = dir.join(CSV_FILE);
     match new_game {
         Some(index) if index > 0 => {
@@ -144,7 +146,7 @@ fn save_in(dir: &Path, table: &Table, new_game: Option<usize>) -> io::Result<()>
 
 fn archive_in(dir: &Path, stamp: u64) -> io::Result<bool> {
     let mut moved = false;
-    for file in [JSON_FILE, CSV_FILE] {
+    for file in [JSON_FILE, CSV_FILE, EVENTS_FILE] {
         let from = dir.join(file);
         if from.exists() {
             let archive = dir.join(ARCHIVE_DIR);
@@ -189,7 +191,11 @@ fn list_past_in(dir: &Path) -> Vec<PastEvening> {
 }
 
 fn delete_past_in(dir: &Path, stamp: u64) -> io::Result<()> {
-    for (stem, ext) in [("schafkopf-tisch", "json"), ("schafkopf-spiele", "csv")] {
+    for (stem, ext) in [
+        ("schafkopf-tisch", "json"),
+        ("schafkopf-spiele", "csv"),
+        ("schafkopf-ereignisse", "csv"),
+    ] {
         match fs::remove_file(past_file(dir, stem, stamp, ext)) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
             _ => {}
@@ -199,7 +205,7 @@ fn delete_past_in(dir: &Path, stamp: u64) -> io::Result<()> {
 }
 
 fn discard_in(dir: &Path) -> io::Result<()> {
-    for file in [JSON_FILE, CSV_FILE] {
+    for file in [JSON_FILE, CSV_FILE, EVENTS_FILE] {
         match fs::remove_file(dir.join(file)) {
             Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
             _ => {}
@@ -356,10 +362,11 @@ mod tests {
         assert!(!dir.join(CSV_FILE).exists());
         assert!(dir.join("archiv/schafkopf-tisch-100.json").exists());
         assert!(dir.join("archiv/schafkopf-spiele-100.csv").exists());
+        assert!(dir.join("archiv/schafkopf-ereignisse-100.csv").exists());
 
         save_in(&dir, &table, None).unwrap();
         assert!(archive_in(&dir, 200).unwrap());
-        assert_eq!(fs::read_dir(dir.join(ARCHIVE_DIR)).unwrap().count(), 4);
+        assert_eq!(fs::read_dir(dir.join(ARCHIVE_DIR)).unwrap().count(), 6);
         fs::remove_dir_all(&dir).unwrap();
     }
 }

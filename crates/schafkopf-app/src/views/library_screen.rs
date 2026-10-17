@@ -1,7 +1,7 @@
 //! Verwaltung der gespeicherten Regelwerke (welche Spielarten) und Tarife (was es kostet).
 
 use dioxus::prelude::*;
-use schafkopf_core::{BockMode, GameKind, Library, Tariff};
+use schafkopf_core::{BockMode, BockStacking, GameKind, Library, Tariff};
 
 use super::common::{persist_library, Chip, ConfirmButton, Notice, TariffFields, TextField};
 use crate::draft::TariffDraft;
@@ -53,13 +53,14 @@ fn RuleSetEditor(
     notice: Signal<Option<Notice>>,
     original: Option<String>,
 ) -> Element {
-    let (name0, kinds0, bock0, is_default, can_delete) = {
+    let (name0, kinds0, bock0, stacking0, is_default, can_delete) = {
         let lib = library.read();
         match original.as_deref().and_then(|n| lib.rule_set(n)) {
             Some(r) => (
                 r.name.clone(),
                 r.kinds.clone(),
                 r.bock,
+                r.stacking,
                 lib.is_default_rule_set(&r.name),
                 lib.rule_sets().len() > 1,
             ),
@@ -67,6 +68,7 @@ fn RuleSetEditor(
                 String::new(),
                 lib.default_rule_set().kinds.clone(),
                 BockMode::Off,
+                BockStacking::Sequential,
                 false,
                 false,
             ),
@@ -75,15 +77,22 @@ fn RuleSetEditor(
     let mut name = use_signal(|| name0.clone());
     let mut kinds = use_signal(|| kinds0.clone());
     let mut bock = use_signal(|| bock0);
+    let mut stacking = use_signal(|| stacking0);
     let is_new = original.is_none();
 
     let save = {
         let original = original.clone();
         move |_| {
             let result = change_library(library, |lib| {
-                lib.save_rule_set_with(original.as_deref(), &name.read(), &kinds.read(), bock())
-                    .map(|saved| format!("Regelwerk \"{saved}\" gespeichert"))
-                    .map_err(|e| e.to_string())
+                lib.save_rule_set_full(
+                    original.as_deref(),
+                    &name.read(),
+                    &kinds.read(),
+                    bock(),
+                    stacking(),
+                )
+                .map(|saved| format!("Regelwerk \"{saved}\" gespeichert"))
+                .map_err(|e| e.to_string())
             });
             if result.is_ok() && original.is_none() {
                 name.set(String::new());
@@ -156,6 +165,20 @@ fn RuleSetEditor(
                         onclick: move |_| bock.set(mode),
                     }
                 }
+            }
+            if bock() != BockMode::Off {
+                p { class: "hint", "Mehrere Bockrunden (zwei in einem Spiel oder eine, während schon eine läuft): Wie verbinden sie sich?" }
+                div { class: "chips",
+                    for mode in BockStacking::ALL {
+                        Chip {
+                            key: "{mode.label()}",
+                            label: mode.label().to_string(),
+                            on: stacking() == mode,
+                            onclick: move |_| stacking.set(mode),
+                        }
+                    }
+                }
+                p { class: "hint", "Hintereinander: bei zwei Bockrunden sind die nächsten zwei Runden gedoppelt. Übereinander: solange beide laufen, ist der Preis vervierfacht." }
             }
             div { class: "actions",
                 button { class: "primary", r#type: "button", onclick: save, if is_new { "Anlegen" } else { "Speichern" } }

@@ -39,6 +39,18 @@ pub fn ExportScreen(
         }
     };
 
+    let log_name = export::log_file_name(t, now_secs());
+    let log_events = t.events.len();
+    let save_log = {
+        let log = format().render_log(t);
+        let log_name = log_name.clone();
+        move |_| match export::save_csv(&log_name, &log) {
+            Ok(place) => notice.set(Some(Notice::ok(format!("Gespeichert: {place}")))),
+            Err(e) => notice.set(Some(Notice::error(format!(
+                "Speichern fehlgeschlagen: {e}"
+            )))),
+        }
+    };
     let place = if cfg!(target_os = "android") {
         "im Ordner Downloads deines Handys. Von dort kannst du sie in der Dateien-App öffnen oder teilen."
     } else {
@@ -70,6 +82,16 @@ pub fn ExportScreen(
         div { class: "actions",
             button { class: "primary big", r#type: "button", onclick: save, "In Downloads speichern" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
+        }
+
+        section {
+            h3 { "Protokoll des Abends" }
+            p { class: "hint",
+                "Wann der Abend begann und endete und wann jemand kam, ging oder sich umsetzte ({log_events} Einträge), als zweite Tabelle im selben Format. Dateiname: {log_name}"
+            }
+            div { class: "actions",
+                button { class: "secondary", r#type: "button", onclick: save_log, "Protokoll in Downloads speichern" }
+            }
         }
 
         details {

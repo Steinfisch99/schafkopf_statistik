@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use schafkopf_charts::format_euro;
-use schafkopf_core::{GameKind, Suit, Table};
+use schafkopf_core::{BockStacking, GameKind, Suit, Table, MAX_BOCK};
 
 use super::common::{Chip, ConfirmButton, Notice};
 use crate::draft::GameDraft;
@@ -60,6 +60,10 @@ pub fn GameForm(
         None => d.preview(t),
     });
     let problem = d.problem();
+    let stacked = table
+        .read()
+        .as_ref()
+        .is_some_and(|t| t.bock_stacking == BockStacking::Stacked);
     // Wie viele Bockspiele vor diesem Spiel noch offen sind.
     let bock_pending = table.read().as_ref().map_or(0, |t| match editing {
         Some(index) => t.bock_pending_before(index),
@@ -354,6 +358,32 @@ pub fn GameForm(
                         label: "Bockrunde entstanden".to_string(),
                         on: d.starts_bock,
                         onclick: move |_| draft.write().toggle_starts_bock(),
+                    }
+                }
+                if d.bock && (stacked || d.bock_extra > 0) {
+                    p { class: "hint", "Mehrere Bockrunden laufen zugleich: Wie oft wird der Preis gedoppelt?" }
+                    div { class: "chips",
+                        for n in 0..MAX_BOCK {
+                            Chip {
+                                key: "{n}",
+                                label: format!("mal {}", 1u32 << (n + 1)),
+                                on: d.bock_extra == n,
+                                onclick: move |_| draft.write().set_bock_extra(n),
+                            }
+                        }
+                    }
+                }
+                if d.starts_bock {
+                    p { class: "hint", "Wie viele Bockrunden sind durch dieses Spiel entstanden?" }
+                    div { class: "chips",
+                        for n in 0..MAX_BOCK {
+                            Chip {
+                                key: "{n}",
+                                label: format!("{}", n + 1),
+                                on: d.extra_bock_rounds == n,
+                                onclick: move |_| draft.write().set_extra_bock_rounds(n),
+                            }
+                        }
                     }
                 }
                 p { class: "hint", "{bock_hint}" }

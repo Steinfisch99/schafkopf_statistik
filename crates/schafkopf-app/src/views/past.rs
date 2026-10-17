@@ -6,9 +6,10 @@ use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
 use super::export_screen::ExportScreen;
 use super::game_list::GameList;
+use super::seats_screen::EventLog;
 use super::stats_screen::StatsScreen;
 use crate::navigation::back_target;
-use crate::summary::{evening_date, games_text, leader_text, players_text};
+use crate::summary::{evening_date, evening_times, games_text, leader_text, players_text};
 use crate::{storage, Screen};
 
 /// Welcher Teil eines früheren Abends gezeigt wird.
@@ -50,6 +51,9 @@ pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
                         b { "{evening_date(&past.table, past.stamp)}" }
                         span { class: "muted", " · {games_text(past.table.games().len())}" }
                     }
+                    if let Some(times) = evening_times(&past.table) {
+                        div { class: "muted", "{times}" }
+                    }
                     div { class: "muted", "{players_text(&past.table)}" }
                     if let Some(leader) = leader_text(&past.table) {
                         div { class: "past-leader", "Vorne: {leader}" }
@@ -85,9 +89,10 @@ pub fn PastEveningView(
         screen.set(Screen::PastList);
     };
 
-    let (date, players, rules, game_count) = match viewed.read().as_ref() {
+    let (date, times, players, rules, game_count) = match viewed.read().as_ref() {
         Some(t) => (
             evening_date(t, stamp),
+            evening_times(t),
             players_text(t),
             format!(
                 "Regelwerk: {} · Tarif: {}",
@@ -116,6 +121,9 @@ pub fn PastEveningView(
         },
         PastSection::Overview => rsx! {
             h2 { "Abend vom {date}" }
+            if let Some(times) = &times {
+                p { class: "muted", "{times}" }
+            }
             p { class: "muted", "{players}" }
             p { class: "muted small", "{games_text(game_count)} · {rules}" }
             p { class: "hint", "Dieser Abend ist abgeschlossen. Du kannst ihn ansehen, exportieren oder löschen." }
@@ -123,6 +131,7 @@ pub fn PastEveningView(
                 table: viewed,
                 on_player: move |seat| screen.set(Screen::PastStats { stamp, player: Some(seat) }),
             }
+            EventLog { table: viewed }
             GameList { table: viewed, screen, editable: false }
             div { class: "actions stack",
                 button {

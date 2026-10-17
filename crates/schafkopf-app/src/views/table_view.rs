@@ -7,7 +7,8 @@ use schafkopf_core::{BockMode, Table};
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
 use super::game_list::GameList;
-use crate::{storage, Screen};
+use crate::summary::evening_times;
+use crate::{now_secs, storage, Screen};
 
 #[component]
 pub fn TableView(
@@ -35,6 +36,43 @@ pub fn TableView(
         }
     };
 
+    let finish = move |_| {
+        let now = now_secs();
+        let mut guard = table.write();
+        let Some(t) = guard.as_mut() else { return };
+        t.finish(now as i64);
+        let empty = t.games().is_empty();
+        let saved = storage::save(t, None);
+        drop(guard);
+        if let Err(e) = saved {
+            return notice.set(Some(Notice::error(format!(
+                "Speichern fehlgeschlagen: {e}"
+            ))));
+        }
+        // Ein Abend ohne ein einziges Spiel ist nichts, was man aufheben müsste.
+        let archived = if empty {
+            storage::discard_current()
+        } else {
+            storage::archive_current(now).map(|_| ())
+        };
+        if let Err(e) = archived {
+            return notice.set(Some(Notice::error(format!(
+                "Der Abend konnte nicht archiviert werden: {e}"
+            ))));
+        }
+        table.set(None);
+        screen.set(if empty {
+            Screen::Setup
+        } else {
+            Screen::Past(now)
+        });
+        notice.set(Some(Notice::ok(if empty {
+            "Abend beendet (ohne Spiele, deshalb nicht aufgehoben)"
+        } else {
+            "Abend beendet und bei den früheren Abenden abgelegt"
+        })));
+    };
+
     let guard = table.read();
     let Some(t) = guard.as_ref() else {
         return rsx! {};
@@ -45,19 +83,28 @@ pub fn TableView(
     } else {
         t.bock_pending()
     };
-    let bock_text = match bock_pending {
-        0 => None,
-        1 => Some("Bock: Das nächste Spiel ist ein Bockspiel, der Preis ist doppelt.".to_string()),
-        n => Some(format!(
+    let bock_level = t.bock_level();
+    let bock_text = match (bock_pending, bock_level) {
+        (0, _) => None,
+        (1, 1) => Some("Bock: Das nächste Spiel ist ein Bockspiel, der Preis ist doppelt.".to_string()),
+        (n, 1) => Some(format!(
             "Bock: Die nächsten {n} Spiele sind Bockspiele, der Preis ist doppelt."
         )),
+        (n, level) => Some(format!(
+            "Bock: {level} Bockrunden laufen zugleich, die nächsten {n} Spiele kosten das {}-fache.",
+            1u32 << level
+        )),
     };
+    let times = evening_times(t);
 
     rsx! {
         section { class: "dealer",
             span { "Nächster Geber: " }
             b { "{t.players[t.next_dealer()]}" }
             span { class: "muted", " · {game_count} Spiele" }
+            if let Some(times) = &times {
+                p { class: "muted small", "Abend: {times}" }
+            }
             p { class: "muted small rules",
                 "Regelwerk: {t.rule_set_name.as_deref().unwrap_or(\"eigene Auswahl\")} · Tarif: {t.tariff_name.as_deref().unwrap_or(\"Eigener Tarif\")}"
             }
@@ -88,6 +135,11 @@ pub fn TableView(
                     confirm_label: "Ja, rückgängig",
                     onconfirm: undo,
                 }
+            }
+            ConfirmButton {
+                label: "Abend beenden",
+                confirm_label: "Ja, Abend beenden",
+                onconfirm: finish,
             }
             ConfirmButton {
                 label: "Neuer Abend",

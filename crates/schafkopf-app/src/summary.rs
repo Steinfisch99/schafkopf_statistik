@@ -48,10 +48,15 @@ pub fn detail(table: &Table, game: &Game) -> String {
         parts.push("Tout".into());
     }
     if input.bock {
-        parts.push("Bockspiel".into());
+        parts.push(match input.bock_doublings() {
+            1 => "Bockspiel".to_owned(),
+            n => format!("Bockspiel (Preis mal {})", 1u32 << n),
+        });
     }
-    if input.starts_bock {
-        parts.push("löst Bockrunde aus".into());
+    match input.bock_triggers() {
+        0 => {}
+        1 => parts.push("löst Bockrunde aus".into()),
+        n => parts.push(format!("löst {n} Bockrunden aus")),
     }
     if game.value != game.calculated_value {
         parts.push("Preis korrigiert".into());
@@ -78,6 +83,54 @@ pub fn german_date(unix_secs: u64) -> String {
 /// Angabe der Zeitpunkt, an dem er ins Archiv kam.
 pub fn evening_date(table: &Table, archived_at: u64) -> String {
     german_date(table.created_at.map_or(archived_at, |t| t.max(0) as u64))
+}
+
+/// Wann ein Abend lief: "19:30 bis 23:10 Uhr (3 h 40 min)", noch offen "seit 19:30 Uhr". `None`,
+/// wenn der Beginn nicht bekannt ist (alte Dateien).
+pub fn evening_times(table: &Table) -> Option<String> {
+    let offset = table.utc_offset_min;
+    let start = table.created_at?;
+    let begin = schafkopf_core::format_clock(start, offset);
+    Some(match table.ended_at {
+        Some(end) => format!(
+            "{begin} bis {} Uhr ({})",
+            schafkopf_core::format_clock(end, offset),
+            schafkopf_core::format_duration(end - start)
+        ),
+        None => format!("seit {begin} Uhr"),
+    })
+}
+
+/// Der Satz zu einem Eintrag im Protokoll: "21:05 · Eva kommt dazu (hinter Anna, nach Spiel 4)".
+pub fn event_text(table: &Table, event: &schafkopf_core::TableEvent) -> String {
+    let name = |seat: usize| table.players.get(seat).map_or("?", String::as_str);
+    let time = event
+        .at
+        .map(|t| {
+            format!(
+                "{} · ",
+                schafkopf_core::format_clock(t, table.utc_offset_min)
+            )
+        })
+        .unwrap_or_default();
+    let when = match event.after_games {
+        0 => "vor dem ersten Spiel".to_owned(),
+        n => format!("nach Spiel {n}"),
+    };
+    let behind = event
+        .behind
+        .map(|b| format!("hinter {}, ", name(b)))
+        .unwrap_or_default();
+    format!(
+        "{time}{} {} ({behind}{when})",
+        name(event.seat),
+        match event.kind {
+            schafkopf_core::EventKind::Joined => "kommt dazu",
+            schafkopf_core::EventKind::Left => "geht",
+            schafkopf_core::EventKind::Returned => "kommt zurück",
+            schafkopf_core::EventKind::Moved => "setzt sich um",
+        },
+    )
 }
 
 /// "1 Spiel" oder "14 Spiele".
@@ -215,5 +268,58 @@ mod tests {
         assert_eq!(signed_euro(40), "+0,40\u{a0}€");
         assert_eq!(signed_euro(-40), "\u{2212}0,40\u{a0}€");
         assert_eq!(signed_euro(0), "0,00\u{a0}€");
+    }
+
+    #[test]
+    fn shows_when_an_evening_ran() {
+        let mut t = table();
+        assert_eq!(
+            evening_times(&t),
+            None,
+            "alte Dateien kennen den Beginn nicht"
+        );
+        t.created_at = Some(1_000_000_000);
+        t.utc_offset_min = 120;
+        assert_eq!(evening_times(&t).as_deref(), Some("seit 03:46 Uhr"));
+        t.finish(1_000_000_000 + 3 * 3600 + 40 * 60);
+        assert_eq!(
+            evening_times(&t).as_deref(),
+            Some("03:46 bis 07:26 Uhr (3 h 40 min)")
+        );
+    }
+
+    #[test]
+    fn describes_what_happened_at_the_table() {
+        let mut t = table();
+        t.utc_offset_min = 60;
+        t.add_player("Eva", Some(0), Some(1_000_000_000)).unwrap();
+        t.leave(1, None).unwrap();
+        assert_eq!(
+            event_text(&t, &t.events[0]),
+            "02:46 · Eva kommt dazu (hinter Anna, vor dem ersten Spiel)"
+        );
+        assert_eq!(
+            event_text(&t, &t.events[1]),
+            "Ben geht (vor dem ersten Spiel)"
+        );
+    }
+
+    #[test]
+    fn describes_bock_rounds_and_levels() {
+        let mut t = table();
+        t.bock_mode = schafkopf_core::BockMode::NextGame;
+        let input = GameInput {
+            suit: Some(Suit::Eichel),
+            partner: Some(3),
+            bock: true,
+            bock_extra: 1,
+            starts_bock: true,
+            extra_bock_rounds: 1,
+            ..GameInput::new(0, schafkopf_core::GameKind::Sauspiel, 1)
+        };
+        let game = t.add_game(input).unwrap().clone();
+        let text = detail(&t, &game);
+        assert!(text.contains("Bockspiel (Preis mal 4)"), "{text}");
+        assert!(text.contains("löst 2 Bockrunden aus"), "{text}");
     }
 }

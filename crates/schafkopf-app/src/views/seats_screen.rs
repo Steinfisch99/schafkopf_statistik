@@ -6,7 +6,8 @@ use dioxus::prelude::*;
 use schafkopf_core::{Library, Table};
 
 use super::common::{persist_library, ConfirmButton, Notice, TextField};
-use crate::{storage, Screen};
+use crate::summary::event_text;
+use crate::{now_secs, storage, Screen};
 
 /// Meldung nach einer Änderung am Tisch, mit dem Ergebnis des Speicherns.
 fn saved_notice(mut notice: Signal<Option<Notice>>, text: String, saved: std::io::Result<()>) {
@@ -69,6 +70,28 @@ pub fn SeatsScreen(
         saved_notice(notice, text, saved.map(|_| ()));
     };
 
+    // Zum Umsetzen: Hinter wem sitzt jemand, wenn er eins nach oben (zuerst) oder unten rückt.
+    let rows: Vec<(usize, Option<usize>, Option<usize>)> = present
+        .iter()
+        .enumerate()
+        .map(|(i, &seat)| {
+            let n = present.len();
+            let up = (i > 0).then(|| present[(i + n - 2) % n]);
+            let down = (i + 1 < n).then(|| present[i + 1]);
+            (seat, up, down)
+        })
+        .collect();
+    let mut reseat = move |seat: usize, after: usize| {
+        change(&mut |t: &mut Table| {
+            t.move_player(seat, after, Some(now_secs() as i64))
+                .map_err(|e| e.to_string())?;
+            Ok(format!(
+                "{} sitzt jetzt hinter {}",
+                t.players[seat], t.players[after]
+            ))
+        });
+    };
+
     let add = move |_| {
         let name = if typed.read().trim().is_empty() {
             chosen.read().clone()
@@ -78,7 +101,9 @@ pub fn SeatsScreen(
         let behind = after.read().parse::<usize>().ok();
         let mut added = false;
         change(&mut |t: &mut Table| {
-            let seat = t.add_player(&name, behind).map_err(|e| e.to_string())?;
+            let seat = t
+                .add_player(&name, behind, Some(now_secs() as i64))
+                .map_err(|e| e.to_string())?;
             added = true;
             Ok(format!("{} sitzt jetzt mit am Tisch", t.players[seat]))
         });
@@ -98,23 +123,43 @@ pub fn SeatsScreen(
     rsx! {
         h2 { "Am Tisch" }
         p { class: "hint",
-            "Wer früher geht oder später kommt: Hier änderst du, wer mitspielt. Die Spiele, der Stand und die Statistik der Gegangenen bleiben erhalten. Die Änderung gilt ab dem nächsten Spiel."
+            "Wer früher geht, später kommt oder sich umsetzt: Hier änderst du, wer wo sitzt. Die Spiele, der Stand und die Statistik der Gegangenen bleiben erhalten, und die Uhrzeiten werden im Protokoll des Abends festgehalten. Die Änderung gilt ab dem nächsten Spiel."
         }
         p { class: "muted", "Nächster Geber: " b { "{names[dealer]}" } }
 
         section {
             h3 { "Am Tisch ({present.len()})" }
             ul { class: "seat-list",
-                for &seat in present.iter() {
+                for (row, &seat) in present.iter().enumerate() {
                     li { key: "{seat}",
                         span { class: "name", "{names[seat]}" }
+                        if present.len() > 2 {
+                            if let Some(up) = rows[row].1 {
+                                button {
+                                    class: "secondary reseat",
+                                    r#type: "button",
+                                    "aria-label": "{names[seat]} eins nach oben setzen",
+                                    onclick: move |_| reseat(seat, up),
+                                    "▲"
+                                }
+                            }
+                            if let Some(down) = rows[row].2 {
+                                button {
+                                    class: "secondary reseat",
+                                    r#type: "button",
+                                    "aria-label": "{names[seat]} eins nach unten setzen",
+                                    onclick: move |_| reseat(seat, down),
+                                    "▼"
+                                }
+                            }
+                        }
                         if can_leave {
                             ConfirmButton {
                                 label: "Geht",
                                 confirm_label: "Ja, geht",
                                 onconfirm: move |_| {
                                     change(&mut |t: &mut Table| {
-                                        t.leave(seat).map_err(|e| e.to_string())?;
+                                        t.leave(seat, Some(now_secs() as i64)).map_err(|e| e.to_string())?;
                                         Ok(format!("{} sitzt nicht mehr am Tisch", t.players[seat]))
                                     });
                                 },
@@ -141,7 +186,7 @@ pub fn SeatsScreen(
                                 disabled: !can_add,
                                 onclick: move |_| {
                                     change(&mut |t: &mut Table| {
-                                        t.rejoin(seat).map_err(|e| e.to_string())?;
+                                        t.rejoin(seat, Some(now_secs() as i64)).map_err(|e| e.to_string())?;
                                         Ok(format!("{} sitzt wieder am Tisch", t.players[seat]))
                                     });
                                 },
@@ -152,6 +197,8 @@ pub fn SeatsScreen(
                 }
             }
         }
+
+        EventLog { table }
 
         section {
             h3 { "Neuer Spieler" }
@@ -209,6 +256,29 @@ pub fn SeatsScreen(
 
         div { class: "actions",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "Zurück" }
+        }
+    }
+}
+
+/// Wer an diesem Abend kam, ging oder sich umsetzte, mit Uhrzeit. Ohne Einträge zeigt sie nichts.
+#[component]
+pub fn EventLog(table: Signal<Option<Table>>) -> Element {
+    let guard = table.read();
+    let Some(t) = guard.as_ref() else {
+        return rsx! {};
+    };
+    if t.events.is_empty() {
+        return rsx! {};
+    }
+    let lines: Vec<String> = t.events.iter().map(|e| event_text(t, e)).collect();
+    rsx! {
+        details {
+            summary { "Wer kam und ging ({lines.len()})" }
+            ul { class: "event-log",
+                for (i, line) in lines.iter().enumerate() {
+                    li { key: "{i}", "{line}" }
+                }
+            }
         }
     }
 }

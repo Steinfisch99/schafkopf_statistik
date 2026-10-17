@@ -1,7 +1,9 @@
 //! Entwürfe für die Eingabemasken: reine Logik ohne Oberfläche, damit sie sich testen lässt.
 
 use schafkopf_charts::format_amount;
-use schafkopf_core::{parse_euro, BockMode, Game, GameInput, GameKind, Seat, Suit, Table, Tariff};
+use schafkopf_core::{
+    parse_euro, BockMode, Game, GameInput, GameKind, Seat, Suit, Table, Tariff, MAX_BOCK,
+};
 
 /// Ein Spiel, das gerade eingetragen wird.
 #[derive(Clone, Debug, PartialEq)]
@@ -26,6 +28,10 @@ pub struct GameDraft {
     pub bock: bool,
     /// Ist durch dieses Spiel eine Bockrunde entstanden?
     pub starts_bock: bool,
+    /// Wie oft dieses Bockspiel zusätzlich gedoppelt ist (überlagerte Bockrunden).
+    pub bock_extra: u8,
+    /// Wie viele Bockrunden zusätzlich zur ersten dieses Spiel ausgelöst hat.
+    pub extra_bock_rounds: u8,
     /// `starts_bock` wurde von Schwarz eingeschaltet, nicht von Hand.
     pub starts_bock_auto: bool,
     /// Gibt es an diesem Tisch Bock? Nur dann löst Schwarz die Bockrunde von selbst aus.
@@ -68,6 +74,11 @@ impl GameDraft {
             gegenlauf: false,
             bock: table.bock_pending() > 0,
             starts_bock: false,
+            bock_extra: table
+                .bock_level()
+                .saturating_sub(1)
+                .min(u32::from(MAX_BOCK) - 1) as u8,
+            extra_bock_rounds: 0,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: String::new(),
@@ -99,6 +110,8 @@ impl GameDraft {
             gegenlauf: i.gegenlauf,
             bock: i.bock,
             starts_bock: i.starts_bock,
+            bock_extra: i.bock_extra,
+            extra_bock_rounds: i.extra_bock_rounds,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
@@ -265,6 +278,7 @@ impl GameDraft {
             self.starts_bock_auto = true;
         } else if !self.schwarz && schwarz_before && self.starts_bock_auto {
             self.starts_bock = false;
+            self.extra_bock_rounds = 0;
             self.starts_bock_auto = false;
         }
     }
@@ -279,6 +293,19 @@ impl GameDraft {
     pub fn toggle_starts_bock(&mut self) {
         self.starts_bock = !self.starts_bock;
         self.starts_bock_auto = false;
+        if !self.starts_bock {
+            self.extra_bock_rounds = 0;
+        }
+    }
+
+    /// Wie oft das Bockspiel zusätzlich gedoppelt ist: 0 mal 2, 1 mal 4, ...
+    pub fn set_bock_extra(&mut self, n: u8) {
+        self.bock_extra = n.min(MAX_BOCK - 1);
+    }
+
+    /// Wie viele Bockrunden zusätzlich zur ersten entstanden sind.
+    pub fn set_extra_bock_rounds(&mut self, n: u8) {
+        self.extra_bock_rounds = n.min(MAX_BOCK - 1);
     }
 
     pub fn set_laufende(&mut self, n: u8) {
@@ -357,6 +384,12 @@ impl GameDraft {
         input.gegenlauf = self.gegenlauf && self.laufende > 0;
         input.bock = self.bock;
         input.starts_bock = self.starts_bock;
+        input.bock_extra = if self.bock { self.bock_extra } else { 0 };
+        input.extra_bock_rounds = if self.starts_bock {
+            self.extra_bock_rounds
+        } else {
+            0
+        };
         input.price_override = parse_euro(&self.price_text);
         input.played_at = self.played_at.or(played_at);
         input.points = self.points;

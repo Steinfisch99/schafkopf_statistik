@@ -32,6 +32,15 @@ impl CsvFormat {
         };
         format!("{UTF8_BOM}{}", table.to_csv_with(separator))
     }
+
+    /// Das Protokoll des Abends (Beginn, Kommen, Gehen, Umsetzen, Ende) mit UTF-8-Kennung.
+    pub fn render_log(self, table: &Table) -> String {
+        let separator = match self {
+            CsvFormat::Semicolon => ';',
+            CsvFormat::Comma => ',',
+        };
+        format!("{UTF8_BOM}{}", table.events_csv_with(separator))
+    }
 }
 
 /// Datum (Jahr, Monat, Tag) in UTC zu Unix-Sekunden.
@@ -53,6 +62,12 @@ pub fn file_name(table: &Table, now_secs: u64) -> String {
     let secs = table.created_at.map_or(now_secs, |t| t.max(0) as u64);
     let (y, m, d) = date_ymd(secs);
     format!("schafkopf-{y:04}-{m:02}-{d:02}.csv")
+}
+
+/// Dateiname des Protokolls: `schafkopf-2026-10-17-protokoll.csv`.
+pub fn log_file_name(table: &Table, now_secs: u64) -> String {
+    let name = file_name(table, now_secs);
+    format!("{}-protokoll.csv", name.trim_end_matches(".csv"))
 }
 
 /// Speichert die CSV und sagt, wo sie liegt. Auf Android im Ordner Downloads.

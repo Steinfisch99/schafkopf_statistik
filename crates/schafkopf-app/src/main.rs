@@ -11,6 +11,7 @@ mod storage;
 mod summary;
 mod views;
 
+use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::document::eval;
@@ -59,6 +60,13 @@ pub fn now_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs())
+}
+
+/// Abweichung der Ortszeit von UTC in Minuten, sobald die WebView sie genannt hat, sonst 0.
+static UTC_OFFSET_MIN: AtomicI32 = AtomicI32::new(0);
+
+pub fn utc_offset_min() -> i32 {
+    UTC_OFFSET_MIN.load(Ordering::Relaxed)
 }
 
 fn main() {
@@ -119,6 +127,13 @@ fn App() -> Element {
         }
     });
 
+    // Die Zeitzone kennt nur die WebView: Einmal abfragen, damit Uhrzeiten in Ortszeit stehen.
+    use_future(|| async {
+        let mut tz = eval("dioxus.send(-new Date().getTimezoneOffset())");
+        if let Ok(minutes) = tz.recv::<i32>().await {
+            UTC_OFFSET_MIN.store(minutes, Ordering::Relaxed);
+        }
+    });
     // Alle Teile eines früheren Abends laufen über eine Komponente an einer Stelle, damit der
     // geladene Abend zwischen Übersicht, Statistik und Export nicht neu gelesen wird.
     let past = match current {

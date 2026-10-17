@@ -171,3 +171,31 @@ Spiele Bockspiele mit doppeltem Preis.
   mit Spielern am Tisch, alte lassen sich weiter bearbeiten.
 - Die CSV hat für jeden Spieler des Abends zwei Spalten, auch für Gegangene und Spät-Gekommene. Wer
   dazukommt, schreibt die Datei samt Kopfzeile neu.
+
+### Mehrere Bockrunden
+
+- Ein Spiel kann **mehrere Bockrunden** auslösen (selten, bis zu 4). Beim Eintragen erscheint dann die Wahl
+  "Wie viele Bockrunden sind durch dieses Spiel entstanden?".
+- Das **Regelwerk** legt fest, wie sich Bockrunden verbinden, auch wenn eine entsteht, während schon
+  eine läuft: **Hintereinander** (zwei Bockrunden: die nächsten zwei Runden sind je gedoppelt) oder
+  **Übereinander** (solange beide laufen, ist der Preis vervierfacht, bei dreien mal 8 usw.).
+- Bei "Übereinander" ist ein Bockspiel vorgewählt mit so vielen Verdopplungen, wie Bockrunden gerade
+  laufen. Von Hand lässt es sich ändern ("mal 2", "mal 4", ...).
+- CSV: zusätzlich die Spalten "Bockrunden_Anzahl" und "Bock_Verdopplungen". Die Statistik zählt die
+  ausgelösten Bockrunden einzeln.
+
+### Beginn, Ende und Protokoll des Abends
+
+- Der Abend merkt sich **Beginn** (`created_at`), **Ende** (`ended_at`) und die Abweichung der Ortszeit von
+  UTC (`utc_offset_min`, die App liest sie aus der WebView), damit Uhrzeiten stimmen.
+- **Abend beenden** (Tischübersicht) setzt das Ende, legt den Abend bei den früheren Abenden ab und zeigt
+  ihn dort. Beginnt man einen neuen Abend, ohne den alten zu beenden, endet er mit seiner letzten
+  bekannten Aktivität (letztes Spiel, letztes Kommen oder Gehen, sonst der Beginn).
+- Das **Protokoll** (`events`) hält jedes Dazukommen, Gehen, Zurückkommen und Umsetzen fest: Zeit, Ereignis,
+  Spieler, hinter wem, und nach wie vielen Spielen.
+- Das Protokoll ist eine **eigene CSV** (`schafkopf-ereignisse.csv`, im Archiv je Abend dabei), weil seine
+  Zeilen eine andere Form haben als die Spiele. Spalten: Zeit (Ortszeit), Zeit_Unix, Ereignis, Spieler,
+  Hinter, Nach_Spiel_Nr. Erste Zeile "Abend beginnt", letzte "Abend endet". Der Export-Bildschirm hat dafür
+  einen eigenen Knopf (Dateiname `schafkopf-JJJJ-MM-TT-protokoll.csv`).
+- **Umsetzen:** Am Bildschirm "Am Tisch" rückt jeder Spieler mit den Pfeilen einen Platz. Der Geber geht ab
+  dem nächsten Spiel in der neuen Reihenfolge weiter. Es steht im Protokoll.

@@ -107,6 +107,8 @@ Entscheidungen:
 - [x] Ramsch: Klopfen wirkt wahlweise nicht auf den Preis, wird aber erfasst
 - [x] Icons für Eichel, Gras, Herz und Schellen bei Sau und Farbsolos
 - [x] Spieler kommen und gehen im Laufe des Abends (neuer Platz nach Wahl, gehen, zurückkommen)
+- [x] Spieler umsetzen, Abend beenden, Beginn und Ende, Protokoll (kommt, geht, setzt sich um) als eigene CSV
+- [x] Mehrere Bockrunden pro Spiel; Regelwerk: hintereinander oder übereinander
       führen zur Statistik des Spielers
 - [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit

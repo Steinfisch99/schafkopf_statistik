@@ -247,6 +247,16 @@ pub fn Setup(
         new_table.use_tariff(Some(tariff_label.clone()), tariff);
         let now = now_secs();
         new_table.created_at = Some(now as i64);
+        new_table.utc_offset_min = crate::utc_offset_min();
+        // Wurde der alte Abend nicht beendet, endet er mit seiner letzten bekannten Aktivität.
+        if let Some(previous) = table.write().as_mut() {
+            if previous.ended_at.is_none() {
+                if let Some(last) = previous.last_activity() {
+                    previous.finish(last);
+                    let _ = storage::save(previous, None);
+                }
+            }
+        }
         // Ein Abend ohne ein einziges Spiel ist nichts, was man aufheben müsste.
         let previous_is_empty = table.read().as_ref().is_some_and(|t| t.games().is_empty());
         let archived = if previous_is_empty {
