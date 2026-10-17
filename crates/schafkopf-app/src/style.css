@@ -195,3 +195,18 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .strip .off { border: 1px dashed var(--line); background: transparent; }
 .legend-note { font-size: 0.8rem; opacity: 0.75; margin: 0 0 0.4rem; }
 .bar-seg { height: 100%; }
+
+/* Die Namen unter dem Diagramm führen zur Statistik des Spielers. */
+.legend-btn {
+  display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 2.8rem;
+  background: transparent; color: inherit; border: 1px solid var(--line); border-radius: 0.6rem;
+  padding: 0.3rem 0.6rem; text-align: left; font-size: 1rem;
+}
+.legend-btn .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-btn .amount { margin-left: 0; }
+.legend-btn .chev { opacity: 0.5; font-size: 1.2rem; }
+
+/* Frühere Abende */
+.past-card { display: block; width: 100%; text-align: left; background: var(--soft); color: inherit; border: 1px solid var(--line); border-radius: 0.7rem; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; min-height: 3.4rem; }
+.past-title { font-size: 1.05rem; }
+.past-leader { font-size: 0.9rem; margin-top: 0.2rem; }

@@ -1,6 +1,7 @@
 //! Statistik: Rangliste, Überblick über den Abend, Spielarten, Paare und jeder Spieler im Detail.
 //! Zu jeder Zahlenreihe, bei der es sich lohnt, gibt es eine Grafik. Die Zahlen bleiben daneben stehen.
 
+use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
@@ -46,7 +47,7 @@ fn Kv(label: String, value: String) -> Element {
 }
 
 #[component]
-fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>) -> Element {
+fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>, open: bool) -> Element {
     let p = player;
     let total = overall(&p);
     let kinds = kind_rows(&p.by_kind);
@@ -75,7 +76,7 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>) -> Element {
     let win_label = format!("Siege und Niederlagen von {}", p.name);
 
     rsx! {
-        details { class: "player-detail",
+        details { class: "player-detail", id: "player-{p.seat}", open: open,
             summary {
                 span { class: "dot", style: "background:{player_color(p.seat)}" }
                 span { class: "name", "{p.name}" }
@@ -190,8 +191,21 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>) -> Element {
 }
 
 #[component]
-pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Element {
+pub fn StatsScreen(
+    table: Signal<Option<Table>>,
+    screen: Signal<Screen>,
+    back: Screen,
+    focus: Option<usize>,
+) -> Element {
     let mut screen = screen;
+    // Kommt man über den Namen eines Spielers hierher, scrollt die Seite zu seiner Karte.
+    use_effect(move || {
+        if let Some(seat) = focus {
+            let _ = eval(&format!(
+                "setTimeout(() => {{ const e = document.getElementById('player-{seat}'); if (e) e.scrollIntoView({{ block: 'start' }}); }}, 60);"
+            ));
+        }
+    });
     let guard = table.read();
     let Some(t) = guard.as_ref() else {
         return rsx! {};
@@ -281,7 +295,7 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
 
     rsx! {
         h2 { "Statistik" }
-        button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "← Zurück" }
+        button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "← Zurück" }
 
         if games == 0 {
             p { class: "hint empty", "Noch keine Spiele. Sobald ein Spiel eingetragen ist, erscheinen hier die Zahlen." }
@@ -475,6 +489,7 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
                     PlayerDetail {
                         key: "{p.seat}",
                         results: results[p.seat].clone(),
+                        open: focus == Some(p.seat),
                         player: p,
                     }
                 }
@@ -482,7 +497,7 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
         }
 
         div { class: "actions",
-            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "Zurück" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
         }
     }
 }

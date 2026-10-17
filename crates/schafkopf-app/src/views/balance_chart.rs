@@ -22,7 +22,7 @@ fn now_millis() -> u64 {
 }
 
 #[component]
-pub fn BalanceChart(table: Signal<Option<Table>>) -> Element {
+pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>) -> Element {
     let mut view = use_signal(|| ChartView::full(0));
     let mut gestures = use_signal(Gestures::default);
     let mut width = use_signal(|| 360.0_f64);
@@ -161,12 +161,20 @@ pub fn BalanceChart(table: Signal<Option<Table>>) -> Element {
                 "Aktueller Stand"
             }
         }
+        p { class: "legend-note", "Tippe auf einen Namen für die Statistik des Spielers." }
         ul { class: "legend",
             for (seat, name) in t.players.iter().enumerate() {
                 li { key: "{seat}",
-                    span { class: "dot", style: "background:{player_color(seat)}" }
-                    span { class: "name", "{name}" }
-                    span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
+                    button {
+                        class: "legend-btn",
+                        r#type: "button",
+                        "aria-label": "Statistik von {name}",
+                        onclick: move |_| on_player.call(seat),
+                        span { class: "dot", style: "background:{player_color(seat)}" }
+                        span { class: "name", "{name}" }
+                        span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
+                        span { class: "chev", "›" }
+                    }
                 }
             }
         }

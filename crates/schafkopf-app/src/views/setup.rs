@@ -247,7 +247,14 @@ pub fn Setup(
         new_table.use_tariff(Some(tariff_label.clone()), tariff);
         let now = now_secs();
         new_table.created_at = Some(now as i64);
-        if let Err(e) = storage::archive_current(now) {
+        // Ein Abend ohne ein einziges Spiel ist nichts, was man aufheben müsste.
+        let previous_is_empty = table.read().as_ref().is_some_and(|t| t.games().is_empty());
+        let archived = if previous_is_empty {
+            storage::discard_current()
+        } else {
+            storage::archive_current(now).map(|_| ())
+        };
+        if let Err(e) = archived {
             return notice.set(Some(Notice::error(format!(
                 "Der alte Abend konnte nicht archiviert werden: {e}"
             ))));
@@ -358,11 +365,19 @@ pub fn Setup(
             }
         }
         p { class: "hint", "Spieler, Regelwerke und Tarife legst du in der Verwaltung an und änderst sie dort, bei Regelwerken und Tarifen auch den Standard." }
-        button {
-            class: "secondary",
-            r#type: "button",
-            onclick: move |_| screen.set(Screen::Library { from_setup: true }),
-            "Spieler, Regelwerke und Tarife verwalten"
+        div { class: "actions stack",
+            button {
+                class: "secondary",
+                r#type: "button",
+                onclick: move |_| screen.set(Screen::Library { from_setup: true }),
+                "Spieler, Regelwerke und Tarife verwalten"
+            }
+            button {
+                class: "secondary",
+                r#type: "button",
+                onclick: move |_| screen.set(Screen::PastList),
+                "Frühere Abende ansehen"
+            }
         }
         div { class: "actions",
             button { class: "primary big", r#type: "button", onclick: start, "Abend starten" }

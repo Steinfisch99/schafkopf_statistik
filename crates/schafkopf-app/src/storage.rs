@@ -81,6 +81,35 @@ fn save_library_in(dir: &Path, library: &Library) -> io::Result<()> {
     fs::write(dir.join(LIBRARY_FILE), json)
 }
 
+/// Ein früherer Abend aus dem Archiv. `stamp` ist der Zeitpunkt, an dem er ins Archiv kam.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PastEvening {
+    pub stamp: u64,
+    pub table: Table,
+}
+
+/// Alle früheren Abende, der neueste zuerst. Dateien, die sich nicht lesen lassen, werden
+/// übersprungen, damit ein beschädigter Abend nicht alle anderen unsichtbar macht.
+pub fn list_past() -> Vec<PastEvening> {
+    list_past_in(&data_dir())
+}
+
+/// Lädt einen früheren Abend.
+pub fn load_past(stamp: u64) -> Option<Table> {
+    load_past_in(&data_dir(), stamp)
+}
+
+/// Löscht einen früheren Abend samt seiner CSV. Fehlt eine der Dateien, ist das kein Fehler.
+pub fn delete_past(stamp: u64) -> io::Result<()> {
+    delete_past_in(&data_dir(), stamp)
+}
+
+/// Verwirft den laufenden Abend, ohne ihn zu archivieren. Das ist für Abende ohne ein einziges
+/// Spiel gedacht, damit das Archiv nicht mit leeren Abenden zuwächst.
+pub fn discard_current() -> io::Result<()> {
+    discard_in(&data_dir())
+}
+
 fn load_from(dir: &Path) -> Option<Table> {
     let json = fs::read_to_string(dir.join(JSON_FILE)).ok()?;
     Table::from_json(&json).ok()
@@ -126,6 +155,57 @@ fn archive_in(dir: &Path, stamp: u64) -> io::Result<bool> {
         }
     }
     Ok(moved)
+}
+
+fn past_file(dir: &Path, stem: &str, stamp: u64, ext: &str) -> PathBuf {
+    dir.join(ARCHIVE_DIR).join(format!("{stem}-{stamp}.{ext}"))
+}
+
+fn load_past_in(dir: &Path, stamp: u64) -> Option<Table> {
+    let json = fs::read_to_string(past_file(dir, "schafkopf-tisch", stamp, "json")).ok()?;
+    Table::from_json(&json).ok()
+}
+
+fn list_past_in(dir: &Path) -> Vec<PastEvening> {
+    let Ok(entries) = fs::read_dir(dir.join(ARCHIVE_DIR)) else {
+        return Vec::new();
+    };
+    let mut past: Vec<PastEvening> = entries
+        .filter_map(|entry| {
+            let name = entry.ok()?.file_name().into_string().ok()?;
+            let stamp: u64 = name
+                .strip_prefix("schafkopf-tisch-")?
+                .strip_suffix(".json")?
+                .parse()
+                .ok()?;
+            Some(PastEvening {
+                stamp,
+                table: load_past_in(dir, stamp)?,
+            })
+        })
+        .collect();
+    past.sort_by_key(|p| std::cmp::Reverse(p.stamp));
+    past
+}
+
+fn delete_past_in(dir: &Path, stamp: u64) -> io::Result<()> {
+    for (stem, ext) in [("schafkopf-tisch", "json"), ("schafkopf-spiele", "csv")] {
+        match fs::remove_file(past_file(dir, stem, stamp, ext)) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+fn discard_in(dir: &Path) -> io::Result<()> {
+    for file in [JSON_FILE, CSV_FILE] {
+        match fs::remove_file(dir.join(file)) {
+            Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -197,6 +277,70 @@ mod tests {
         save_in(&dir, &table(), None).unwrap();
         archive_in(&dir, 5).unwrap();
         assert_eq!(load_library_from(&dir), library);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn past_evenings_are_listed_newest_first_and_can_be_deleted() {
+        let dir = temp_dir("past");
+        assert!(list_past_in(&dir).is_empty(), "noch kein Archiv");
+        let mut first = table();
+        first
+            .add_game(GameInput::new(0, GameKind::Wenz, 1))
+            .unwrap();
+        save_in(&dir, &first, None).unwrap();
+        archive_in(&dir, 100).unwrap();
+        let mut second = table();
+        second
+            .add_game(GameInput::new(0, GameKind::Wenz, 2))
+            .unwrap();
+        second
+            .add_game(GameInput::new(1, GameKind::Wenz, 2))
+            .unwrap();
+        save_in(&dir, &second, None).unwrap();
+        archive_in(&dir, 200).unwrap();
+
+        let list = list_past_in(&dir);
+        assert_eq!(list.iter().map(|p| p.stamp).collect::<Vec<_>>(), [200, 100]);
+        assert_eq!(list[0].table.games().len(), 2);
+        assert_eq!(load_past_in(&dir, 100).unwrap(), first);
+        assert!(load_past_in(&dir, 999).is_none());
+
+        delete_past_in(&dir, 200).unwrap();
+        assert_eq!(list_past_in(&dir).len(), 1);
+        assert!(
+            !past_file(&dir, "schafkopf-spiele", 200, "csv").exists(),
+            "auch die CSV ist weg"
+        );
+        delete_past_in(&dir, 200).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn unreadable_archive_files_are_skipped() {
+        let dir = temp_dir("past-broken");
+        let archive = dir.join(ARCHIVE_DIR);
+        fs::create_dir_all(&archive).unwrap();
+        fs::write(archive.join("schafkopf-tisch-5.json"), "{ kaputt").unwrap();
+        fs::write(archive.join("schafkopf-tisch-abc.json"), "{}").unwrap();
+        fs::write(archive.join("notizen.txt"), "x").unwrap();
+        save_in(&dir, &table(), None).unwrap();
+        archive_in(&dir, 7).unwrap();
+        let list = list_past_in(&dir);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].stamp, 7);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn discarding_the_current_evening_leaves_no_archive() {
+        let dir = temp_dir("discard");
+        discard_in(&dir).unwrap();
+        save_in(&dir, &table(), None).unwrap();
+        discard_in(&dir).unwrap();
+        assert!(load_from(&dir).is_none());
+        assert!(!dir.join(CSV_FILE).exists());
+        assert!(list_past_in(&dir).is_empty());
         fs::remove_dir_all(&dir).unwrap();
     }
 

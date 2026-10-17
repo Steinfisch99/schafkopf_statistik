@@ -62,6 +62,45 @@ pub fn signed_euro(cents: Cents) -> String {
     }
 }
 
+/// Datum wie "17.10.2026" aus Unix-Sekunden.
+pub fn german_date(unix_secs: u64) -> String {
+    let (year, month, day) = crate::export::date_ymd(unix_secs);
+    format!("{day}.{month}.{year}")
+}
+
+/// Das Datum, das zu einem Abend gezeigt wird: wann er begonnen wurde, bei alten Dateien ohne diese
+/// Angabe der Zeitpunkt, an dem er ins Archiv kam.
+pub fn evening_date(table: &Table, archived_at: u64) -> String {
+    german_date(table.created_at.map_or(archived_at, |t| t.max(0) as u64))
+}
+
+/// "1 Spiel" oder "14 Spiele".
+pub fn games_text(count: usize) -> String {
+    if count == 1 {
+        "1 Spiel".to_owned()
+    } else {
+        format!("{count} Spiele")
+    }
+}
+
+/// Die Namen aller Spieler, durch Komma getrennt.
+pub fn players_text(table: &Table) -> String {
+    table.players.join(", ")
+}
+
+/// Wer an diesem Abend vorne lag, mit dem Kontostand: "Anna +8,40 €". Ohne Spiele gibt es keinen.
+pub fn leader_text(table: &Table) -> Option<String> {
+    if table.games().is_empty() {
+        return None;
+    }
+    let balances = table.balances();
+    let (seat, balance) = balances
+        .iter()
+        .enumerate()
+        .max_by_key(|(seat, b)| (**b, std::cmp::Reverse(*seat)))?;
+    Some(format!("{} {}", table.players[seat], signed_euro(*balance)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +171,37 @@ mod tests {
             .unwrap()
             .clone();
         assert_eq!(detail(&t, &ramsch), "Dora verliert");
+    }
+
+    #[test]
+    fn dates_and_headlines_of_evenings() {
+        assert_eq!(german_date(0), "1.1.1970");
+        assert_eq!(german_date(1_792_246_327), "17.10.2026");
+        let mut t = table();
+        assert_eq!(
+            evening_date(&t, 951_782_400),
+            "29.2.2000",
+            "ohne Beginn gilt der Archivzeitpunkt"
+        );
+        t.created_at = Some(1_000_000_000);
+        assert_eq!(evening_date(&t, 951_782_400), "9.9.2001");
+        assert_eq!(games_text(1), "1 Spiel");
+        assert_eq!(games_text(0), "0 Spiele");
+        assert_eq!(games_text(14), "14 Spiele");
+        assert_eq!(players_text(&t), "Anna, Ben, Cem, Dora");
+    }
+
+    #[test]
+    fn leader_of_an_evening() {
+        let mut t = table();
+        assert_eq!(leader_text(&t), None, "ohne Spiele kein Erster");
+        t.add_game(GameInput {
+            won: false,
+            ..GameInput::new(0, GameKind::Wenz, 2)
+        })
+        .unwrap();
+        // Cem verliert allein dreimal 0,50, die anderen gewinnen je 0,50, Anna steht als Erste.
+        assert_eq!(leader_text(&t).as_deref(), Some("Anna +0,50\u{a0}€"));
     }
 
     #[test]

@@ -17,8 +17,8 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use navigation::{back_target, effective_screen, history_action, HistoryAction};
 use views::{
-    use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, SettingsScreen,
-    Setup, StatsScreen, TableView,
+    use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, PastEveningView,
+    PastList, PastSection, SettingsScreen, Setup, StatsScreen, TableView,
 };
 
 const CSS: &str = include_str!("style.css");
@@ -38,7 +38,19 @@ pub enum Screen {
         from_setup: bool,
     },
     Export,
-    Stats,
+    /// Die Statistik des laufenden Abends, auf Wunsch mit der Karte eines Spielers geöffnet.
+    Stats {
+        player: Option<usize>,
+    },
+    /// Die Liste der früheren Abende.
+    PastList,
+    /// Ein früherer Abend, bestimmt durch den Zeitpunkt, an dem er ins Archiv kam.
+    Past(u64),
+    PastStats {
+        stamp: u64,
+        player: Option<usize>,
+    },
+    PastExport(u64),
 }
 
 pub fn now_secs() -> u64 {
@@ -105,20 +117,37 @@ fn App() -> Element {
         }
     });
 
+    // Alle Teile eines früheren Abends laufen über eine Komponente an einer Stelle, damit der
+    // geladene Abend zwischen Übersicht, Statistik und Export nicht neu gelesen wird.
+    let past = match current {
+        Screen::Past(stamp) => Some((stamp, PastSection::Overview)),
+        Screen::PastStats { stamp, player } => Some((stamp, PastSection::Stats(player))),
+        Screen::PastExport(stamp) => Some((stamp, PastSection::Export)),
+        _ => None,
+    };
+    let has_table = table.read().is_some();
+
     rsx! {
         style { dangerous_inner_html: CSS }
         main {
             h1 { "Schafkopf" }
             NoticeBar { notice }
-            match current {
-                Screen::Setup => rsx! { Setup { table, screen, notice, library, state: setup } },
-                Screen::Table => rsx! { TableView { table, screen, notice } },
-                Screen::Game => rsx! { GameForm { table, screen, notice, editing: None } },
-                Screen::EditGame(index) => rsx! { GameForm { key: "{index}", table, screen, notice, editing: Some(index) } },
-                Screen::Settings => rsx! { SettingsScreen { table, screen, notice, library } },
-                Screen::Library { from_setup } => rsx! { LibraryScreen { screen, notice, library, from_setup } },
-                Screen::Export => rsx! { ExportScreen { table, screen, notice } },
-                Screen::Stats => rsx! { StatsScreen { table, screen } },
+            if let Some((stamp, section)) = past {
+                PastEveningView { key: "{stamp}", stamp, section, screen, notice }
+            } else {
+                match current {
+                    Screen::Setup => rsx! { Setup { table, screen, notice, library, state: setup } },
+                    Screen::Table => rsx! { TableView { table, screen, notice } },
+                    Screen::Game => rsx! { GameForm { table, screen, notice, editing: None } },
+                    Screen::EditGame(index) => rsx! { GameForm { key: "{index}", table, screen, notice, editing: Some(index) } },
+                    Screen::Settings => rsx! { SettingsScreen { table, screen, notice, library } },
+                    Screen::Library { from_setup } => rsx! { LibraryScreen { screen, notice, library, from_setup } },
+                    Screen::Export => rsx! { ExportScreen { table, screen, notice, back: Screen::Table } },
+                    Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },
+                    Screen::PastList => rsx! { PastList { screen, has_table } },
+                    // Diese drei zeigt `PastEveningView` oben.
+                    Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_) => rsx! {},
+                }
             }
         }
     }

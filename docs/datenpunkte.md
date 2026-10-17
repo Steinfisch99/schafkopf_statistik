@@ -129,3 +129,11 @@ unterscheidbar).
   anlegen, umbenennen und löschen.
 - Ein Abend kopiert die Namen beim Anlegen. Umbenennen oder Löschen in der Liste ändert deshalb keinen
   laufenden oder gespielten Abend. Beim Einrichten sind die Spieler des laufenden Abends vorbelegt.
+
+### Frühere Abende
+
+- Beginnt man einen neuen Abend, wandern Tisch und CSV des alten in den Ordner `archiv` auf dem Handy.
+  Ein Abend ohne ein einziges Spiel wird dabei verworfen statt archiviert.
+- "Frühere Abende" listet sie, der neueste zuerst. Jeder lässt sich mit Diagramm, Statistik und Spielen
+  ansehen, als CSV exportieren und löschen. Bearbeiten lässt sich ein früherer Abend nicht.
+- Ein Tipp auf einen Namen unter dem Diagramm öffnet die Statistik, mit der Karte dieses Spielers.

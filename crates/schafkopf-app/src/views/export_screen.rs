@@ -13,6 +13,7 @@ pub fn ExportScreen(
     table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
+    back: Screen,
 ) -> Element {
     let mut screen = screen;
     let mut notice = notice;
@@ -68,7 +69,7 @@ pub fn ExportScreen(
 
         div { class: "actions",
             button { class: "primary big", r#type: "button", onclick: save, "In Downloads speichern" }
-            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "Zurück" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
         }
 
         details {

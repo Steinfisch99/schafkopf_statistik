@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (138). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (145). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -274,7 +274,29 @@ einem Handy ist das noch nicht ausprobiert.
 - [ ] Erst "Zurück" in der App antippen, dann die Zurück-Taste: Die Übersicht bleibt, nichts Seltsames.
 - [ ] Mehrmals hin und zurück (Statistik, Zurück-Taste, Statistik, Zurück-Taste) geht jedes Mal.
 
-### 11. Darstellung
+### 11. Frühere Abende
+Am Desktop mit zwei archivierten Abenden durchgeklickt: Liste, Abend öffnen, Diagramm bedienen, Statistik
+über einen Namen, Zurück, Löschen (beide Dateien waren danach weg).
+
+- [ ] Beginnst du einen neuen Abend, kommt der alte ins Archiv. Ein Abend **ohne ein einziges Spiel** wird
+      nicht archiviert.
+- [ ] "Frühere Abende" gibt es in der Tischansicht und bei der Einrichtung. Die Liste zeigt je Abend Datum,
+      Zahl der Spiele, Spieler und wer vorne lag, der neueste steht oben.
+- [ ] Ein Abend öffnen zeigt das **Diagramm zum Bedienen** (Tippen, Ziehen, Zoom), die Namen mit den
+      Ständen und die Spieleliste, aber **ohne** "Bearbeiten".
+- [ ] "Statistik" und ein Tipp auf einen Namen zeigen die Statistik **dieses** Abends.
+- [ ] "CSV exportieren" speichert die Datei dieses Abends (Datum im Namen).
+- [ ] "Abend löschen" fragt nach ("Ja, endgültig löschen"). Danach fehlt er in der Liste.
+- [ ] Die Zurück-Taste führt von der Statistik zur Abendansicht, von dort zur Liste und dann zur Übersicht.
+- [ ] Auch Abende aus älteren Fassungen der App (schon archiviert) erscheinen in der Liste.
+
+### 12. Namen unter dem Diagramm
+- [ ] In der Übersicht ist jeder Name unter dem Diagramm ein Knopf mit Pfeil.
+- [ ] Ein Tipp darauf öffnet die **Statistik, scrollt zur Karte des Spielers** und klappt sie auf.
+- [ ] Das geht auch bei einem früheren Abend, und "Zurück" bringt dich zurück.
+- [ ] Der Name lässt sich gut treffen, auch wenn zehn Spieler am Tisch sitzen.
+
+### 13. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

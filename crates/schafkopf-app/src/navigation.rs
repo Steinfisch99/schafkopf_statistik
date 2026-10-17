@@ -14,12 +14,22 @@ use crate::Screen;
 /// Verwaltung, und ein Spiel, das es nicht mehr gibt, lässt sich nicht bearbeiten.
 pub fn effective_screen(table: Option<&Table>, screen: Screen) -> Screen {
     match (table, screen) {
-        // Die Verwaltung braucht keinen Abend, sie ist auch aus der Einrichtung erreichbar.
+        // Die Verwaltung und die früheren Abende brauchen keinen laufenden Abend, sie sind auch
+        // aus der Einrichtung erreichbar.
         (None, library @ Screen::Library { from_setup: true }) => library,
+        (None, past) if is_past_screen(past) => past,
         (None, _) => Screen::Setup,
         (Some(t), Screen::EditGame(index)) if index >= t.games().len() => Screen::Table,
         (_, other) => other,
     }
+}
+
+/// Gehört der Bildschirm zu den früheren Abenden?
+pub fn is_past_screen(screen: Screen) -> bool {
+    matches!(
+        screen,
+        Screen::PastList | Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_)
+    )
 }
 
 /// Wohin die Zurück-Taste von diesem Bildschirm führt. `None`: Das ist die oberste Ansicht, dort
@@ -28,11 +38,20 @@ pub fn back_target(screen: Screen, has_table: bool) -> Option<Screen> {
     match screen {
         Screen::Table => None,
         Screen::Setup => has_table.then_some(Screen::Table),
-        Screen::Game | Screen::EditGame(_) | Screen::Settings | Screen::Export | Screen::Stats => {
-            Some(Screen::Table)
-        }
+        Screen::Game
+        | Screen::EditGame(_)
+        | Screen::Settings
+        | Screen::Export
+        | Screen::Stats { .. } => Some(Screen::Table),
         Screen::Library { from_setup: true } => Some(Screen::Setup),
         Screen::Library { from_setup: false } => Some(Screen::Settings),
+        Screen::PastList => Some(if has_table {
+            Screen::Table
+        } else {
+            Screen::Setup
+        }),
+        Screen::Past(_) => Some(Screen::PastList),
+        Screen::PastStats { stamp, .. } | Screen::PastExport(stamp) => Some(Screen::Past(stamp)),
     }
 }
 
@@ -76,7 +95,7 @@ mod tests {
             Screen::EditGame(3),
             Screen::Settings,
             Screen::Export,
-            Screen::Stats,
+            Screen::Stats { player: None },
         ] {
             assert_eq!(back_target(screen, true), Some(Screen::Table), "{screen:?}");
         }
@@ -111,7 +130,14 @@ mod tests {
             Screen::Library { from_setup: true },
             Screen::Library { from_setup: false },
             Screen::Export,
-            Screen::Stats,
+            Screen::Stats { player: None },
+            Screen::PastList,
+            Screen::Past(7),
+            Screen::PastStats {
+                stamp: 7,
+                player: Some(1),
+            },
+            Screen::PastExport(7),
         ];
         for has_table in [true, false] {
             for start in all {
@@ -135,7 +161,10 @@ mod tests {
     fn effective_screen_matches_what_exists() {
         let t = table_with_one_game();
         assert_eq!(effective_screen(None, Screen::Table), Screen::Setup);
-        assert_eq!(effective_screen(None, Screen::Stats), Screen::Setup);
+        assert_eq!(
+            effective_screen(None, Screen::Stats { player: None }),
+            Screen::Setup
+        );
         assert_eq!(
             effective_screen(None, Screen::Library { from_setup: true }),
             Screen::Library { from_setup: true }
@@ -152,7 +181,48 @@ mod tests {
             effective_screen(Some(&t), Screen::EditGame(1)),
             Screen::Table
         );
-        assert_eq!(effective_screen(Some(&t), Screen::Stats), Screen::Stats);
+        assert_eq!(
+            effective_screen(Some(&t), Screen::Stats { player: Some(2) }),
+            Screen::Stats { player: Some(2) }
+        );
+    }
+
+    #[test]
+    fn past_evenings_go_back_step_by_step() {
+        assert_eq!(back_target(Screen::PastList, true), Some(Screen::Table));
+        assert_eq!(back_target(Screen::PastList, false), Some(Screen::Setup));
+        assert_eq!(back_target(Screen::Past(7), true), Some(Screen::PastList));
+        assert_eq!(
+            back_target(
+                Screen::PastStats {
+                    stamp: 7,
+                    player: Some(2)
+                },
+                true
+            ),
+            Some(Screen::Past(7))
+        );
+        assert_eq!(
+            back_target(Screen::PastExport(7), false),
+            Some(Screen::Past(7))
+        );
+    }
+
+    #[test]
+    fn past_evenings_are_reachable_without_a_running_evening() {
+        for screen in [
+            Screen::PastList,
+            Screen::Past(3),
+            Screen::PastStats {
+                stamp: 3,
+                player: None,
+            },
+            Screen::PastExport(3),
+        ] {
+            assert!(is_past_screen(screen));
+            assert_eq!(effective_screen(None, screen), screen, "{screen:?}");
+        }
+        assert!(!is_past_screen(Screen::Table) && !is_past_screen(Screen::Stats { player: None }));
     }
 
     #[test]

@@ -37,6 +37,10 @@ Wir sitzen meist zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. E
 6. **Graphen aktualisieren:** Im Vordergrund steht der **Kontoverlauf aller Spieler**. Er beginnt bei
    0 und kann ins Negative gehen.
 7. **Der Geber rückt um einen Platz weiter**, und es geht mit dem nächsten Spiel weiter.
+8. **Später ansehen:** Beginnst du einen neuen Abend, kommt der alte **ins Archiv auf dem Handy** (ein
+   Abend ohne ein einziges Spiel wird nicht aufgehoben). Unter **Frühere Abende** siehst du jeden
+   Abend noch einmal mit Diagramm, Statistik und Spielen, kannst ihn als CSV exportieren oder löschen.
+   Ein Tipp auf einen Namen unter dem Diagramm öffnet gleich die Statistik dieses Spielers.
 
 Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](docs/datenpunkte.md).
 
@@ -97,6 +101,9 @@ Entscheidungen:
 - [x] Spiele nachträglich bearbeiten und löschen
 - [x] Regelwerke (aktive Spielarten) und benannte Tarife mit Standard und Auswahl, Verwaltung in der App
 - [x] Spielerliste: Namen einmal eingeben und danach auswählen, neue Namen werden gemerkt, Verwaltung in der App
+- [x] Lauf und Gegenlauf eintragen, Statistik dazu (je Spielart und je Spieler)
+- [x] Frühere Abende ansehen (Diagramm, Statistik, Spiele), exportieren und löschen; Namen unter dem Diagramm
+      führen zur Statistik des Spielers
 - [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
       Durchmarsch-Knopf, Umlaute in beiden CSV-Formaten

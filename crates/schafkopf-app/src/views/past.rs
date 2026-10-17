@@ -1,0 +1,145 @@
+//! Frühere Abende: die Liste, und ein einzelner Abend zum Ansehen mit Diagramm, Statistik und Export.
+
+use dioxus::prelude::*;
+
+use super::balance_chart::BalanceChart;
+use super::common::{ConfirmButton, Notice};
+use super::export_screen::ExportScreen;
+use super::game_list::GameList;
+use super::stats_screen::StatsScreen;
+use crate::navigation::back_target;
+use crate::summary::{evening_date, games_text, leader_text, players_text};
+use crate::{storage, Screen};
+
+/// Welcher Teil eines früheren Abends gezeigt wird.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PastSection {
+    Overview,
+    /// Die Statistik, auf Wunsch mit der Karte eines Spielers geöffnet.
+    Stats(Option<usize>),
+    Export,
+}
+
+/// Alle früheren Abende, der neueste zuerst.
+#[component]
+pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
+    let mut screen = screen;
+    // Beim Öffnen einmal gelesen. Wer einen Abend löscht, kommt über diese Liste zurück und
+    // zeichnet sie damit neu.
+    let list = use_signal(storage::list_past);
+    let back = back_target(Screen::PastList, has_table).unwrap_or(Screen::Setup);
+
+    rsx! {
+        h2 { "Frühere Abende" }
+        if list.read().is_empty() {
+            p { class: "hint empty",
+                "Noch keine früheren Abende. Ein Abend landet hier, sobald du einen neuen beginnst und er mindestens ein Spiel hatte."
+            }
+        } else {
+            p { class: "hint", "Tippe einen Abend an, um Diagramm, Statistik und Spiele noch einmal anzusehen." }
+            for past in list.read().iter() {
+                button {
+                    key: "{past.stamp}",
+                    class: "past-card",
+                    r#type: "button",
+                    onclick: {
+                        let stamp = past.stamp;
+                        move |_| screen.set(Screen::Past(stamp))
+                    },
+                    div { class: "past-title",
+                        b { "{evening_date(&past.table, past.stamp)}" }
+                        span { class: "muted", " · {games_text(past.table.games().len())}" }
+                    }
+                    div { class: "muted", "{players_text(&past.table)}" }
+                    if let Some(leader) = leader_text(&past.table) {
+                        div { class: "past-leader", "Vorne: {leader}" }
+                    }
+                }
+            }
+        }
+        div { class: "actions",
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }
+        }
+    }
+}
+
+/// Ein früherer Abend. Er wird beim Öffnen geladen und lässt sich nur ansehen, exportieren oder
+/// löschen. Diese eine Komponente zeigt alle Teile, damit der geladene Abend zwischen
+/// Übersicht, Statistik und Export nicht neu gelesen wird.
+#[component]
+pub fn PastEveningView(
+    stamp: u64,
+    section: PastSection,
+    screen: Signal<Screen>,
+    notice: Signal<Option<Notice>>,
+) -> Element {
+    let mut screen = screen;
+    let mut notice = notice;
+    let viewed = use_signal(|| storage::load_past(stamp));
+
+    let delete = move |_| {
+        match storage::delete_past(stamp) {
+            Ok(()) => notice.set(Some(Notice::ok("Abend gelöscht"))),
+            Err(e) => notice.set(Some(Notice::error(format!("Löschen fehlgeschlagen: {e}")))),
+        }
+        screen.set(Screen::PastList);
+    };
+
+    let (date, players, rules, game_count) = match viewed.read().as_ref() {
+        Some(t) => (
+            evening_date(t, stamp),
+            players_text(t),
+            format!(
+                "Regelwerk: {} · Tarif: {}",
+                t.rule_set_name.as_deref().unwrap_or("eigene Auswahl"),
+                t.tariff_name.as_deref().unwrap_or("Eigener Tarif")
+            ),
+            t.games().len(),
+        ),
+        None => {
+            return rsx! {
+                h2 { "Abend nicht gefunden" }
+                p { class: "hint", "Diesen Abend gibt es nicht mehr." }
+                div { class: "actions",
+                    button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Zurück" }
+                }
+            };
+        }
+    };
+
+    match section {
+        PastSection::Stats(player) => rsx! {
+            StatsScreen { table: viewed, screen, back: Screen::Past(stamp), focus: player }
+        },
+        PastSection::Export => rsx! {
+            ExportScreen { table: viewed, screen, notice, back: Screen::Past(stamp) }
+        },
+        PastSection::Overview => rsx! {
+            h2 { "Abend vom {date}" }
+            p { class: "muted", "{players}" }
+            p { class: "muted small", "{games_text(game_count)} · {rules}" }
+            p { class: "hint", "Dieser Abend ist abgeschlossen. Du kannst ihn ansehen, exportieren oder löschen." }
+            BalanceChart {
+                table: viewed,
+                on_player: move |seat| screen.set(Screen::PastStats { stamp, player: Some(seat) }),
+            }
+            GameList { table: viewed, screen, editable: false }
+            div { class: "actions stack",
+                button {
+                    class: "secondary",
+                    r#type: "button",
+                    onclick: move |_| screen.set(Screen::PastStats { stamp, player: None }),
+                    "Statistik"
+                }
+                button {
+                    class: "secondary",
+                    r#type: "button",
+                    onclick: move |_| screen.set(Screen::PastExport(stamp)),
+                    "CSV exportieren"
+                }
+                ConfirmButton { label: "Abend löschen", confirm_label: "Ja, endgültig löschen", onconfirm: delete }
+                button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Zurück" }
+            }
+        },
+    }
+}

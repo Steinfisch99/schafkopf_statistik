@@ -6,7 +6,7 @@ use schafkopf_core::Table;
 
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
-use crate::summary::{detail, signed_euro, title};
+use super::game_list::GameList;
 use crate::{storage, Screen};
 
 #[component]
@@ -39,13 +39,13 @@ pub fn TableView(
     let Some(t) = guard.as_ref() else {
         return rsx! {};
     };
-    let games = t.games();
+    let game_count = t.games().len();
 
     rsx! {
         section { class: "dealer",
             span { "Nächster Geber: " }
             b { "{t.players[t.next_dealer()]}" }
-            span { class: "muted", " · {games.len()} Spiele" }
+            span { class: "muted", " · {game_count} Spiele" }
             p { class: "muted small rules",
                 "Regelwerk: {t.rule_set_name.as_deref().unwrap_or(\"eigene Auswahl\")} · Tarif: {t.tariff_name.as_deref().unwrap_or(\"Eigener Tarif\")}"
             }
@@ -56,36 +56,17 @@ pub fn TableView(
             onclick: move |_| screen.set(Screen::Game),
             "Spiel eintragen"
         }
-        BalanceChart { table }
-        if !games.is_empty() {
-            details { class: "history", open: games.len() <= 5,
-                summary { "Spiele ({games.len()})" }
-                ol { reversed: true, start: "{games.len()}",
-                    for (index, game) in games.iter().enumerate().rev() {
-                        li { key: "{index}",
-                            div { class: "game-line",
-                                b { "{title(game)}" }
-                                span { class: if game.payouts[game.input.declarer] < 0 { "amount neg" } else { "amount" },
-                                    "{signed_euro(game.payouts[game.input.declarer])}"
-                                }
-                            }
-                            div { class: "muted", "{detail(t, game)}" }
-                            button {
-                                class: "link edit",
-                                r#type: "button",
-                                onclick: move |_| screen.set(Screen::EditGame(index)),
-                                "Bearbeiten"
-                            }
-                        }
-                    }
-                }
-            }
+        BalanceChart {
+            table,
+            on_player: move |seat| screen.set(Screen::Stats { player: Some(seat) }),
         }
+        GameList { table, screen, editable: true }
         div { class: "actions stack",
-            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats), "Statistik" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats { player: None }), "Statistik" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Frühere Abende" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Settings), "Regeln und Tarif" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Export), "CSV exportieren" }
-            if !games.is_empty() {
+            if game_count > 0 {
                 ConfirmButton {
                     label: "Letztes Spiel rückgängig",
                     confirm_label: "Ja, rückgängig",
