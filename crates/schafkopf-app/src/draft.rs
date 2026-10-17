@@ -139,7 +139,7 @@ impl GameDraft {
             self.schwarz = false;
             self.laufende = 0;
         }
-        self.laufende = self.laufende.min(kind.max_laufende());
+        self.laufende = self.laufende.min(kind.max_laufende(self.gegenlauf));
         if self.laufende == 0 {
             self.gegenlauf = false;
         }
@@ -233,7 +233,7 @@ impl GameDraft {
     }
 
     pub fn set_laufende(&mut self, n: u8) {
-        self.laufende = n.min(self.kind.max_laufende());
+        self.laufende = n.min(self.kind.max_laufende(self.gegenlauf));
         if self.laufende == 0 {
             self.gegenlauf = false;
         }
@@ -244,6 +244,8 @@ impl GameDraft {
     pub fn toggle_gegenlauf(&mut self) {
         if self.laufende > 0 {
             self.gegenlauf = !self.gegenlauf;
+            // Ein Lauf ist beim Solo kürzer als ein Gegenlauf: Beim Zurückschalten wird gekürzt.
+            self.laufende = self.laufende.min(self.kind.max_laufende(self.gegenlauf));
         }
     }
 
@@ -338,6 +340,7 @@ pub struct TariffDraft {
     pub min_sauspiel: String,
     pub min_wenz_geier: String,
     pub min_solo: String,
+    pub ramsch_knock_doubles: bool,
 }
 
 impl TariffDraft {
@@ -353,6 +356,7 @@ impl TariffDraft {
             min_sauspiel: t.laufende_min_sauspiel.to_string(),
             min_wenz_geier: t.laufende_min_wenz_geier.to_string(),
             min_solo: t.laufende_min_solo.to_string(),
+            ramsch_knock_doubles: t.ramsch_knock_doubles,
         }
     }
 
@@ -376,6 +380,7 @@ impl TariffDraft {
             laufende_min_sauspiel: count("Laufende ab (Sauspiel)", &self.min_sauspiel)?,
             laufende_min_wenz_geier: count("Laufende ab (Wenz und Geier)", &self.min_wenz_geier)?,
             laufende_min_solo: count("Laufende ab (Solo)", &self.min_solo)?,
+            ramsch_knock_doubles: self.ramsch_knock_doubles,
         })
     }
 }
@@ -581,9 +586,20 @@ mod tests {
         assert_eq!(d.laufende, 4);
         d.set_kind(GameKind::Farbwenz);
         d.set_laufende(99);
-        assert_eq!(d.laufende, 11);
+        assert_eq!(
+            d.laufende, 8,
+            "beim Solo hat die Spielerpartei nur 8 Karten"
+        );
+        d.toggle_gegenlauf();
+        d.set_laufende(99);
+        assert_eq!(d.laufende, 11, "ein Gegenlauf darf alle Trümpfe umfassen");
+        d.toggle_gegenlauf();
+        assert_eq!(d.laufende, 8, "zurück zum Lauf kürzt");
         d.set_kind(GameKind::Farbsolo);
-        assert_eq!(d.laufende, 11, "Farbsolo erlaubt 14, der Wert bleibt");
+        assert_eq!(d.laufende, 8);
+        d.toggle_gegenlauf();
+        d.set_laufende(99);
+        assert_eq!(d.laufende, 14);
     }
 
     #[test]
@@ -675,6 +691,17 @@ mod tests {
         d.set_kind(GameKind::Wenz);
         assert_eq!(d.problem(), None);
         assert!(d.preview(&t).is_ok());
+    }
+
+    #[test]
+    fn the_ramsch_knock_option_survives_the_tariff_draft() {
+        let tariff = Tariff {
+            ramsch_knock_doubles: false,
+            ..Tariff::default()
+        };
+        let draft = TariffDraft::from_tariff(&tariff);
+        assert!(!draft.ramsch_knock_doubles);
+        assert_eq!(draft.to_tariff().unwrap(), tariff);
     }
 
     #[test]

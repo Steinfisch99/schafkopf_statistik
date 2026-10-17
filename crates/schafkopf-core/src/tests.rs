@@ -919,22 +919,62 @@ fn old_table_files_without_rules_load_with_all_kinds() {
 }
 
 #[test]
-fn max_laufende_per_game_kind() {
+fn max_laufende_per_game_kind_and_side() {
+    // (Spielart, Lauf der Spielerpartei, Gegenlauf der Gegner)
     let expected = [
-        (GameKind::Sauspiel, 14),
-        (GameKind::Hochzeit, 14),
-        (GameKind::Farbsolo, 14),
-        (GameKind::Wenz, 4),
-        (GameKind::Geier, 4),
-        (GameKind::Farbwenz, 11),
-        (GameKind::Farbgeier, 11),
-        (GameKind::Bettel, 0),
-        (GameKind::Ramsch, 0),
+        (GameKind::Sauspiel, 14, 14),
+        (GameKind::Hochzeit, 14, 14),
+        (GameKind::Farbsolo, 8, 14),
+        (GameKind::Wenz, 4, 4),
+        (GameKind::Geier, 4, 4),
+        (GameKind::Farbwenz, 8, 11),
+        (GameKind::Farbgeier, 8, 11),
+        (GameKind::Bettel, 0, 0),
+        (GameKind::Ramsch, 0, 0),
     ];
     assert_eq!(expected.len(), GameKind::ALL.len());
-    for (kind, max) in expected {
-        assert_eq!(kind.max_laufende(), max, "{kind:?}");
+    for (kind, lauf, gegenlauf) in expected {
+        assert_eq!(kind.max_laufende(false), lauf, "{kind:?} Lauf");
+        assert_eq!(kind.max_laufende(true), gegenlauf, "{kind:?} Gegenlauf");
     }
+}
+
+#[test]
+fn a_solo_player_has_only_eight_cards_but_the_opponents_may_hold_more() {
+    let mut t = table();
+    let solo = |laufende: u8, gegenlauf: bool, dealer: Seat| GameInput {
+        suit: Some(Suit::Gras),
+        laufende,
+        gegenlauf,
+        ..GameInput::new(dealer, GameKind::Farbsolo, 1)
+    };
+    assert!(t.add_game(solo(8, false, 0)).is_ok());
+    let err = t.add_game(solo(9, false, 1)).unwrap_err();
+    assert_eq!(
+        err,
+        Error::InvalidLaufende {
+            kind: GameKind::Farbsolo,
+            got: 9,
+            max: 8
+        }
+    );
+    assert_eq!(
+        err.to_string(),
+        "Beim Farbsolo gibt es höchstens 8 Laufende, nicht 9"
+    );
+    assert!(
+        t.add_game(solo(12, true, 1)).is_ok(),
+        "ein Gegenlauf darf länger sein"
+    );
+    assert!(t.add_game(solo(14, true, 2)).is_ok());
+    assert!(t.add_game(solo(15, true, 3)).is_err());
+    // Beim Sauspiel haben beide Parteien 16 Karten.
+    assert!(t
+        .add_game(GameInput {
+            laufende: 14,
+            ..sauspiel(0, 1, 3)
+        })
+        .is_ok());
 }
 
 #[test]
@@ -1260,4 +1300,84 @@ fn players_know_which_side_had_the_laufende() {
         (1, 1),
         "Anna: im ersten Spiel hatten ihre Gegner den Lauf, im zweiten sie selbst"
     );
+}
+
+fn ramsch_with_knocks(dealer: Seat, knockers: Vec<Seat>) -> GameInput {
+    GameInput {
+        won: false,
+        knockers,
+        ..GameInput::new(dealer, GameKind::Ramsch, 2)
+    }
+}
+
+#[test]
+fn knocking_in_a_ramsch_doubles_by_default() {
+    let mut t = table();
+    let g = t.add_game(ramsch_with_knocks(0, vec![0, 1])).unwrap();
+    assert_eq!(g.value, 20 << 2, "wie bisher: zweimal Klopfen = vierfach");
+}
+
+#[test]
+fn knocking_in_a_ramsch_can_be_left_out_of_the_price_but_is_still_recorded() {
+    let mut t = table();
+    t.set_tariff(Tariff {
+        ramsch_knock_doubles: false,
+        ..Tariff::default()
+    });
+    let g = t
+        .add_game(ramsch_with_knocks(0, vec![0, 1]))
+        .unwrap()
+        .clone();
+    assert_eq!(
+        (g.value, g.calculated_value),
+        (20, 20),
+        "der Preis bleibt einfach"
+    );
+    assert_eq!(
+        g.input.knockers,
+        vec![0, 1],
+        "das Klopfen ist trotzdem erfasst"
+    );
+    assert_eq!(g.payouts, vec![20, 20, -60, 20]);
+    let stats = table_stats(&t);
+    assert_eq!(stats.knocked_games, 1);
+    assert_eq!(stats.players[0].knocks.games, 1);
+    assert_eq!(stats.players[1].knocks.games, 1);
+}
+
+#[test]
+fn the_ramsch_option_leaves_other_games_alone() {
+    let tariff = Tariff {
+        ramsch_knock_doubles: false,
+        ..Tariff::default()
+    };
+    let sau = GameInput {
+        knockers: vec![0, 1],
+        ..sauspiel(0, 1, 3)
+    };
+    assert_eq!(
+        game_value(&tariff, &sau),
+        20 << 2,
+        "beim Sauspiel zählt das Klopfen weiter"
+    );
+    let wenz = GameInput {
+        knockers: vec![0],
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    assert_eq!(game_value(&tariff, &wenz), 50 << 1);
+    // Ein verlangter Preis ersetzt die Rechnung wie immer.
+    let demanded = GameInput {
+        price_override: Some(70),
+        ..ramsch_with_knocks(0, vec![0])
+    };
+    assert_eq!(game_value(&tariff, &demanded), 70);
+}
+
+#[test]
+fn tariffs_saved_before_the_ramsch_option_still_double() {
+    let mut json = serde_json::to_value(Tariff::default()).unwrap();
+    json.as_object_mut().unwrap().remove("ramsch_knock_doubles");
+    let old: Tariff = serde_json::from_value(json).unwrap();
+    assert!(old.ramsch_knock_doubles);
+    assert_eq!(old, Tariff::default());
 }

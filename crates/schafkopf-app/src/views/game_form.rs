@@ -301,7 +301,7 @@ pub fn GameForm(
                         class: "secondary icon",
                         r#type: "button",
                         "aria-label": "Eine Laufende mehr",
-                        disabled: d.laufende >= kind.max_laufende(),
+                        disabled: d.laufende >= kind.max_laufende(d.gegenlauf),
                         onclick: move |_| { let n = draft.read().laufende; draft.write().set_laufende(n + 1); },
                         "+"
                     }
@@ -321,6 +321,14 @@ pub fn GameForm(
             h3 { "Preis" }
             if let Some(Ok(game)) = &preview {
                 p { class: "price", "Berechnet: " b { "{format_euro(game.calculated_value)}" } }
+            }
+            if let Some(Ok(game)) = &preview {
+                if kind == GameKind::Ramsch
+                    && !d.knockers.is_empty()
+                    && game.tariff.as_ref().is_some_and(|t| !t.ramsch_knock_doubles)
+                {
+                    p { class: "hint", "Das Klopfen ist erfasst, ändert beim Ramsch laut Tarif den Preis aber nicht." }
+                }
             }
             label { class: "field",
                 span { "Verlangter Preis, falls abweichend (€)" }

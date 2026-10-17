@@ -130,6 +130,18 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
             TextField { label: "Wenz, Geier", value: d.min_wenz_geier, mode: "numeric", oninput: move |v| draft.write().min_wenz_geier = v }
             TextField { label: "Solo", value: d.min_solo, mode: "numeric", oninput: move |v| draft.write().min_solo = v }
         }
+        p { class: "hint", "Ramsch:" }
+        div { class: "chips",
+            Chip {
+                label: "Klopfen verdoppelt den Preis".to_string(),
+                on: d.ramsch_knock_doubles,
+                onclick: move |_| {
+                    let on = !draft.read().ramsch_knock_doubles;
+                    draft.write().ramsch_knock_doubles = on;
+                },
+            }
+        }
+        p { class: "hint", "Aus: Das Klopfen beim Ramsch wird trotzdem eingetragen und in der Statistik gezählt, ändert den Preis aber nicht." }
     }
 }
 

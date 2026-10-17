@@ -136,6 +136,8 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
       ihm und die zwei danach.
 - [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
 - [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
+- [ ] **Solo:** Beim Farbsolo, Farbwenz und Farbgeier geht ein **Lauf** nur bis 8 (der Solospieler hat 8 Karten), ein **Gegenlauf** darf länger sein (Farbsolo bis 14, Farbwenz und Farbgeier bis 11).
+- [ ] **Ramsch:** Unter "Regeln und Tarif" gibt es im Tarif "Klopfen verdoppelt den Preis". Ist es aus, wird das Klopfen beim Ramsch trotzdem eingetragen und gezählt, der Preis bleibt aber einfach. Im Formular steht dann ein Hinweis.
 - [ ] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
 - [ ] **Laufende:** Beim Sauspiel, der Hochzeit und dem Farbsolo gehen sie bis **14**, beim Wenz und Geier bis 4, beim Farbwenz und Farbgeier bis 11. Wechselst du die Spielart, kürzt sich ein zu hoher Wert.
 - [ ] Bei Spieler und Mitspieler ist "Kontra" ausgegraut.

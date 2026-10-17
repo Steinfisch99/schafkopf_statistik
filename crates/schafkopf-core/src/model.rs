@@ -103,16 +103,28 @@ impl GameKind {
     }
 
     /// Wie viele Laufende es höchstens geben kann: so viele Trümpfe in Folge von oben, wie es in
-    /// dieser Spielart gibt. Beim Sauspiel, der Hochzeit und dem Farbsolo sind das alle 14 Trümpfe
-    /// (4 Ober, 4 Unter, 6 Herz), beim Wenz die 4 Unter, beim Geier die 4 Ober. Mit Farbe kommen
-    /// beim Farbwenz und Farbgeier 7 Karten der Farbe dazu, also 11. Ohne Zuschläge gibt es keine.
-    pub fn max_laufende(self) -> u8 {
-        match self {
+    /// dieser Spielart gibt, und nicht mehr, als die haltende Partei Karten hat.
+    ///
+    /// Trümpfe: Beim Sauspiel, der Hochzeit und dem Farbsolo alle 14 (4 Ober, 4 Unter, 6 Herz),
+    /// beim Wenz die 4 Unter, beim Geier die 4 Ober, beim Farbwenz und Farbgeier 4 plus 7 Karten
+    /// der Farbe, also 11. Ohne Zuschläge gibt es keine Laufenden.
+    ///
+    /// Karten: Beim Solo hat die Spielerpartei nur die 8 Karten des Spielers, ein **Lauf** ist dort
+    /// also höchstens 8. Die Gegner haben zusammen 24 Karten, ein **Gegenlauf** kann also alle
+    /// Trümpfe umfassen. Beim Sauspiel und der Hochzeit hat jede Partei 16 Karten, das reicht für alle.
+    pub fn max_laufende(self, gegenlauf: bool) -> u8 {
+        let trumps = match self {
             GameKind::Sauspiel | GameKind::Hochzeit | GameKind::Farbsolo => 14,
             GameKind::Wenz | GameKind::Geier => 4,
             GameKind::Farbwenz | GameKind::Farbgeier => 11,
             GameKind::Bettel | GameKind::Ramsch => 0,
-        }
+        };
+        let solo_hand = if self.is_team_game() || gegenlauf {
+            u8::MAX
+        } else {
+            8
+        };
+        trumps.min(solo_hand)
     }
 }
 

@@ -24,6 +24,10 @@ pub struct Tariff {
     #[serde(alias = "laufende_min_wenz")]
     pub laufende_min_wenz_geier: u8,
     pub laufende_min_solo: u8,
+    /// Verdoppelt Klopfen beim Ramsch den Preis? Das Klopfen wird in jedem Fall erfasst. Alte
+    /// Tarife ohne diese Angabe verhalten sich wie bisher, das Klopfen zählt.
+    #[serde(default = "yes")]
+    pub ramsch_knock_doubles: bool,
 }
 
 impl Default for Tariff {
@@ -39,6 +43,7 @@ impl Default for Tariff {
             laufende_min_sauspiel: 3,
             laufende_min_wenz_geier: 2,
             laufende_min_solo: 3,
+            ramsch_knock_doubles: true,
         }
     }
 }
@@ -147,11 +152,12 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
             return Err(Error::NegativePrice(price));
         }
     }
-    if input.laufende > kind.max_laufende() {
+    let max_laufende = kind.max_laufende(input.gegenlauf);
+    if input.laufende > max_laufende {
         return Err(Error::InvalidLaufende {
             kind,
             got: input.laufende,
-            max: kind.max_laufende(),
+            max: max_laufende,
         });
     }
     if input.gegenlauf && input.laufende == 0 {
@@ -187,7 +193,12 @@ pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
             value += Cents::from(input.laufende) * tariff.laufende;
         }
     }
-    value << input.doublings()
+    let mut doublings = input.doublings();
+    if kind == GameKind::Ramsch && !tariff.ramsch_knock_doubles {
+        // Das Klopfen steht weiter im Spiel (für die Statistik), zählt hier aber nicht für den Preis.
+        doublings -= input.knockers.len() as u32;
+    }
+    value << doublings
 }
 
 /// Gewinn und Verlust pro Sitzplatz in Cent. Die Summe ist immer null.
@@ -213,4 +224,8 @@ pub fn payouts(tariff: &Tariff, input: &GameInput, player_count: usize) -> Vec<C
         };
     }
     result
+}
+
+fn yes() -> bool {
+    true
 }
