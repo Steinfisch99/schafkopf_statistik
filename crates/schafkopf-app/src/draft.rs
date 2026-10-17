@@ -1172,15 +1172,15 @@ mod tests {
         d.declarer = Some(1);
         d.partner = Some(3);
         d.suit = Some(Suit::Eichel);
-        d.price_text = "0,50".into();
+        d.price_text = "0,30".into();
         // Ohne Rückforderung gilt der verlangte Preis.
         let game = d.preview(&t).unwrap();
-        assert_eq!((game.value, game.calculated_value), (50, 20));
+        assert_eq!((game.value, game.calculated_value), (30, 20));
         d.set_reclaimed(true);
         assert_eq!(d.losers(), vec![2, 0]);
         assert_eq!(d.reclaimed_by(), vec![2, 0], "ohne Wahl alle Verlierer");
         let game = d.preview(&t).unwrap();
-        assert_eq!((game.value, game.calculated_value), (20, 20));
+        assert_eq!((game.value, game.calculated_value), (10, 20));
         d.toggle_reclaimer(0);
         assert_eq!(d.reclaimed_by(), vec![2]);
         d.toggle_reclaimer(2);

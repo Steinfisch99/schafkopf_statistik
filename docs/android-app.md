@@ -416,7 +416,8 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Gibst du einen **höheren** Preis als den berechneten ein, erscheint "Ist es den Verlierern aufgefallen?"
       mit "Nicht aufgefallen" und "Zurückverlangt". Bei einem niedrigeren Preis nicht.
 - [ ] "Nicht aufgefallen": Die Auszahlung (Vorschau, Stand) folgt dem verlangten Preis.
-- [ ] "Zurückverlangt": Die Auszahlung folgt dem berechneten Preis, darunter wählst du, wer zurückverlangt hat
+- [ ] "Zurückverlangt": Es steht, wie viel zu viel verlangt wurde und auf welchen Preis es sinkt (verlangt − 2 · Mehrbetrag,
+      zum Beispiel 60, verlangt 80 → 40). Die Auszahlung folgt dem; darunter wählst du, wer zurückverlangt hat
       (nur Verlierer, einer bleibt).
 - [ ] Die Spieleliste sagt "Zu viel verlangt, nicht aufgefallen" oder "…, zurückverlangt von …" oder "Zu wenig
       verlangt".

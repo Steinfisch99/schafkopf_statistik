@@ -2545,10 +2545,10 @@ fn the_losers_can_reclaim_what_was_demanded_too_much() {
         .unwrap();
     assert_eq!(
         (g.value, g.calculated_value),
-        (20, 20),
-        "der richtige Preis gilt"
+        (10, 20),
+        "die Verlierer holen das Doppelte des Mehrbetrags zurück: 30 - 2 * 10"
     );
-    assert_eq!(g.payouts, vec![-20, 20, -20, 20]);
+    assert_eq!(g.payouts, vec![-10, 10, -10, 10]);
     assert_eq!(
         g.input.price_override,
         Some(30),
@@ -2559,19 +2559,23 @@ fn the_losers_can_reclaim_what_was_demanded_too_much() {
         vec![2, 0],
         "ohne Angabe alle Verlierer"
     );
-    assert_eq!(t.balances(), vec![-20, 20, -20, 20]);
+    assert_eq!(t.balances(), vec![-10, 10, -10, 10]);
     let s = table_stats(&t);
     assert_eq!((s.overcharged_games, s.reclaimed_games), (1, 1));
-    assert_eq!((s.overcharge_cents, s.reclaimed_cents), (20, 20));
+    assert_eq!((s.overcharge_cents, s.reclaimed_cents), (20, 40));
+    assert_eq!(
+        s.overcharge_net_cents, -20,
+        "die Gewinner bekommen 10 weniger als zustand, je 10"
+    );
     assert_eq!((s.players[0].reclaims, s.players[2].reclaims), (1, 1));
     assert_eq!(s.players[1].reclaims, 0);
     assert_eq!(
         (s.players[0].reclaim_saved, s.players[2].reclaim_saved),
-        (10, 10)
+        (20, 20)
     );
     assert_eq!(
         (s.players[1].reclaim_returned, s.players[3].reclaim_returned),
-        (10, 10)
+        (20, 20)
     );
     assert_eq!(s.players[1].overcharge_gain, 0);
     // Wer falsch verlangt hat, steht trotzdem drin.
@@ -2710,7 +2714,7 @@ fn overall_stats_add_up_reclaims_across_evenings() {
     let b = evening(&["Ben", "Anna", "Cem", "Dora"], vec![asked(30)]);
     let all = overall_stats(&[&a, &b]);
     assert_eq!((all.overcharged_games, all.reclaimed_games), (2, 1));
-    assert_eq!((all.overcharge_cents, all.reclaimed_cents), (40, 20));
+    assert_eq!((all.overcharge_cents, all.reclaimed_cents), (40, 40));
     let ben = all.players.iter().find(|p| p.name == "Ben").unwrap();
     assert!(
         ben.reclaim_returned + ben.overcharge_loss + ben.overcharge_gain + ben.reclaim_saved > 0
@@ -2722,4 +2726,39 @@ fn overall_stats_add_up_reclaims_across_evenings() {
         .unwrap()
         .contains("Zurueckverlangt,Zurueckverlangt_von"));
     assert!(csv.contains("ja,Cem; Anna"));
+}
+
+#[test]
+fn the_losers_reclaim_twice_what_was_demanded_too_much() {
+    // Das Spiel kostet 60, verlangt werden 80: Mehrbetrag 20, zurück 40, es bleiben 40.
+    assert_eq!(reclaimed_value(60, 80), 40);
+    assert_eq!(reclaimed_value(60, 60), 60, "nichts zu viel, nichts zurück");
+    assert_eq!(reclaimed_value(60, 50), 50, "zu wenig verlangt bleibt");
+    assert_eq!(reclaimed_value(60, 200), 0, "weniger als 0 wird es nie");
+    assert_eq!(reclaimed_value(60, 120), 0);
+
+    let mut t = table();
+    t.set_tariff(Tariff {
+        sauspiel: 60,
+        ..Tariff::default()
+    });
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..asked(80)
+        })
+        .unwrap();
+    assert_eq!((g.value, g.calculated_value), (40, 60));
+    assert_eq!(g.payouts, vec![-40, 40, -40, 40]);
+    let s = table_stats(&t);
+    // Verlangt 80 gegen 60: je Gewinner 20 zu viel. Zurückgeholt 40 je Gewinner, am Ende 20 unter dem Preis.
+    assert_eq!(s.overcharge_cents, 40);
+    assert_eq!(s.reclaimed_cents, 80);
+    assert_eq!(s.overcharge_net_cents, -40);
+    assert_eq!(s.players[0].reclaim_saved, 40);
+    assert_eq!(s.players[1].reclaim_returned, 40);
+
+    // Ohne Zurückverlangen gilt der verlangte Preis.
+    let g = t.add_game(asked(80)).unwrap();
+    assert_eq!(g.value, 80);
 }

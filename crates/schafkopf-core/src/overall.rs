@@ -193,6 +193,9 @@ pub struct OverallStats {
     pub reclaimed_games: u32,
     pub overcharge_cents: Cents,
     pub reclaimed_cents: Cents,
+    /// Unterm Strich für die Gewinner bei zu hohem Preis: mehr bekommen (plus) oder durch das
+    /// Zurückverlangen weniger als zustand (minus), summiert über alle Gewinner.
+    pub overcharge_net_cents: Cents,
     pub players: Vec<OverallPlayer>,
 }
 
@@ -234,6 +237,7 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
         out.reclaimed_games += stats.reclaimed_games;
         out.overcharge_cents += stats.overcharge_cents;
         out.reclaimed_cents += stats.reclaimed_cents;
+        out.overcharge_net_cents += stats.overcharge_net_cents;
         out.bock_games += stats.bock_games;
         out.bock_started += stats.bock_started;
         for (m, n) in &stats.mistake_counts {

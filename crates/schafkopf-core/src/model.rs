@@ -346,8 +346,8 @@ pub struct GameInput {
     /// alle auf der Gewinnerseite.
     #[serde(default, deserialize_with = "seats_or_one")]
     pub price_error_by: Vec<Seat>,
-    /// Haben die Verlierer zu viel verlangten Betrag zurückverlangt? Dann gilt der berechnete Preis, der
-    /// verlangte bleibt nur zur Statistik stehen. Zählt nur, wenn der Preis zu hoch verlangt wurde und
+    /// Haben die Verlierer zu viel verlangten Betrag zurückverlangt? Sie verlangen das Doppelte des
+    /// Mehrbetrags zurück (siehe `reclaimed_value`). Zählt nur, wenn der Preis zu hoch verlangt wurde und
     /// der Tarif das Zurückverlangen erlaubt, sonst wird es beim Abrechnen verworfen.
     #[serde(default)]
     pub reclaimed: bool,

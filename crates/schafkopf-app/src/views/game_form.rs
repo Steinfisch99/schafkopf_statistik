@@ -458,9 +458,21 @@ pub fn GameForm(
                         onclick: move |_| draft.write().set_reclaimed(false),
                     }
                     Chip {
-                        label: "Zurückverlangt (richtiger Preis gilt)".to_string(),
+                        label: "Zurückverlangt (das Doppelte des Mehrbetrags)".to_string(),
                         on: d.reclaimed,
                         onclick: move |_| draft.write().set_reclaimed(true),
+                    }
+                }
+                if d.reclaimed {
+                    if let Some(Ok(game)) = &preview {
+                        {
+                            let extra = game.input.price_override.unwrap_or(0) - game.calculated_value;
+                            rsx! {
+                                p { class: "hint",
+                                    "Zu viel verlangt: {format_euro(extra)} je Gegner. Die Verlierer verlangen das Doppelte zurück ({format_euro(2 * extra)}), der Preis sinkt damit auf {format_euro(game.value)}."
+                                }
+                            }
+                        }
                     }
                 }
                 if d.reclaimed {

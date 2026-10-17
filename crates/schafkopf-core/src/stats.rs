@@ -191,6 +191,9 @@ pub struct TableStats {
     /// Das zu viel verlangte Geld insgesamt und das davon zurückverlangte, in Cent.
     pub overcharge_cents: Cents,
     pub reclaimed_cents: Cents,
+    /// Unterm Strich für die Gewinner bei zu hohem Preis: mehr bekommen (plus) oder durch das
+    /// Zurückverlangen weniger als zustand (minus), summiert über alle Gewinner.
+    pub overcharge_net_cents: Cents,
     /// Spiele, die Bockspiele waren (doppelter Preis), und Spiele, die eine Bockrunde ausgelöst haben.
     pub bock_games: u32,
     pub bock_started: u32,
@@ -230,6 +233,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         reclaimed_games: 0,
         overcharge_cents: 0,
         reclaimed_cents: 0,
+        overcharge_net_cents: 0,
         bock_games: 0,
         bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
@@ -285,24 +289,47 @@ pub fn table_stats(table: &Table) -> TableStats {
             for &by in &g.reclaimed_by {
                 players[by].reclaims += 1;
             }
-            // Was jeder dadurch mehr (plus) oder weniger (minus) bekam, als zustand.
-            for (seat, diff) in demand_effect(table, game).into_iter().enumerate() {
+            // Was jeder dadurch mehr (plus) oder weniger (minus) bekam, als er sollte: verlangt gegen
+            // berechnet, und beim Zurückverlangen der tatsächlich gezahlte gegen den verlangten Preis.
+            let (asked, right) = demand_payouts(table, game);
+            let winners = g.winners();
+            for (seat, (&a, &r)) in asked.iter().zip(&right).enumerate() {
                 let p = &mut players[seat];
-                match (over, reclaimed, diff.signum()) {
-                    (true, true, 1) => {
-                        p.reclaim_returned += diff;
-                        stats.overcharge_cents += diff;
-                        stats.reclaimed_cents += diff;
-                    }
-                    (true, true, -1) => p.reclaim_saved -= diff,
-                    (true, false, 1) => {
-                        p.overcharge_gain += diff;
+                let diff = a - r;
+                let winner = winners.contains(&seat);
+                if over {
+                    if winner && diff > 0 {
                         stats.overcharge_cents += diff;
                     }
-                    (true, false, -1) => p.overcharge_loss -= diff,
-                    (false, _, -1) => p.undercharge_missed -= diff,
-                    (false, _, 1) => p.undercharge_benefit += diff,
-                    _ => {}
+                    if reclaimed {
+                        let back = a - game.payouts[seat];
+                        match back.signum() {
+                            1 => {
+                                p.reclaim_returned += back;
+                                stats.reclaimed_cents += back;
+                            }
+                            -1 => p.reclaim_saved -= back,
+                            _ => {}
+                        }
+                        if winner {
+                            stats.overcharge_net_cents += game.payouts[seat] - r;
+                        }
+                    } else {
+                        match diff.signum() {
+                            1 => p.overcharge_gain += diff,
+                            -1 => p.overcharge_loss -= diff,
+                            _ => {}
+                        }
+                        if winner {
+                            stats.overcharge_net_cents += diff;
+                        }
+                    }
+                } else {
+                    match diff.signum() {
+                        -1 => p.undercharge_missed -= diff,
+                        1 => p.undercharge_benefit += diff,
+                        _ => {}
+                    }
                 }
             }
         }
@@ -421,12 +448,11 @@ pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
     history
 }
 
-/// Was jeder Sitzplatz durch einen falsch verlangten Preis mehr (plus) oder weniger (minus) bekam
-/// als ihm nach dem berechneten Preis zustand, ohne Zurückverlangen gerechnet. Leer, wenn der Preis
-/// nicht abwich.
-fn demand_effect(table: &Table, game: &Game) -> Vec<Cents> {
+/// Die Auszahlungen eines Spiels mit dem verlangten Preis und mit dem berechneten Preis, beide ohne
+/// Zurückverlangen. Leer, wenn der Preis nicht abwich.
+fn demand_payouts(table: &Table, game: &Game) -> (Vec<Cents>, Vec<Cents>) {
     if !game.demanded_wrong() {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
     let tariff = game.tariff.as_ref().unwrap_or(&table.tariff);
     let n = table.players.len();
@@ -434,9 +460,5 @@ fn demand_effect(table: &Table, game: &Game) -> Vec<Cents> {
     asked.reclaimed = false;
     let mut right = asked.clone();
     right.price_override = None;
-    payouts(tariff, &asked, n)
-        .into_iter()
-        .zip(payouts(tariff, &right, n))
-        .map(|(a, r)| a - r)
-        .collect()
+    (payouts(tariff, &asked, n), payouts(tariff, &right, n))
 }

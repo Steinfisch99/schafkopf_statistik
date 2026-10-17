@@ -293,10 +293,10 @@ Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schaf
 ### Zu viel verlangt und zurückverlangen
 
 - Wurde der Preis **zu hoch** verlangt, bekommen die Gewinner das Mehr nur, wenn es keinem auffällt. Fällt es
-  den Verlierern auf, **verlangen sie es zurück**, und der **richtige Preis** gilt.
+  den Verlierern auf, **verlangen sie es zurück**. Sie dürfen das **Doppelte des Mehrbetrags** zurückverlangen
 - Beim Eintragen erscheint bei zu hohem Preis die Frage "Ist es den Verlierern aufgefallen?": **Nicht
-  aufgefallen** (der verlangte Preis gilt, Geld und Stand folgen ihm) oder **Zurückverlangt** (der berechnete
-  Preis gilt) mit der Wahl, **wer zurückverlangt hat** (nur Verlierer, ohne Wahl alle, einer bleibt immer).
+  aufgefallen** (der verlangte Preis gilt, Geld und Stand folgen ihm) oder **Zurückverlangt** (der Preis sinkt
+  wie unten beschrieben) mit der Wahl, **wer zurückverlangt hat** (nur Verlierer, ohne Wahl alle, einer bleibt immer).
   Der verlangte Preis bleibt in beiden Fällen für die Statistik gespeichert.
 - Bei **zu wenig** Verlangtem gibt es nichts zurückzuverlangen, der verlangte Preis gilt (die Gewinner
   bekommen weniger, als ihnen zustand).
@@ -308,3 +308,18 @@ Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schaf
   zurückverlangt, und das Geld in Euro: zu viel bekommen (nicht aufgefallen), zurückgeben müssen, zu wenig
   bekommen; als Verlierer zu viel gezahlt, durch Zurückverlangen gespart, weniger gezahlt als nötig.
 - CSV: zusätzlich "Zurueckverlangt" (ja/nein) und "Zurueckverlangt_von".
+
+#### Wie viel zurückverlangt wird
+
+Die Verlierer dürfen **das Doppelte des Mehrbetrags** zurückverlangen, sonst würden die Gewinner immer zu viel
+verlangen. Die App nimmt immer den **Höchstbetrag** (zu wenig zurückverlangt wird nicht erfasst):
+
+- Mehrbetrag = verlangter Preis minus berechneter Preis, je Gegner.
+- Der Preis sinkt auf **verlangt − 2 · Mehrbetrag**, nie unter 0.
+- Beispiel: Das Spiel kostet 60, verlangt werden 80. Mehrbetrag 20, die Verlierer verlangen 40 zurück, es
+  bleiben **40**. Die Gewinner bekommen damit 20 weniger, als ihnen zugestanden hätte.
+- Bei 60 und verlangten 120 (oder mehr) bleibt 0.
+- Statistik: "Zurückverlangt (Geld)" ist das tatsächlich zurückgegebene Geld (hier 40 je Gewinner). "Unterm
+  Strich für die Gewinner" ist die Summe aus dem, was sie mehr oder (nach dem Zurückverlangen) weniger bekommen
+  haben als berechnet (hier −20 je Gewinner). Je Spieler: "Zurückgeben müssen" (Gewinner) und "Zurückverlangt
+  (zurückgeholt)" (Verlierer) in diesem Sinn.

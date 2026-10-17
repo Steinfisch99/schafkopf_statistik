@@ -471,8 +471,8 @@ pub fn StatsScreen(
                     Kv { label: "Zu wenig verlangt", value: count_share(stats.undercharged_games, stats.corrected_games) }
                     if stats.overcharge_cents > 0 {
                         Kv { label: "Zu viel verlangtes Geld", value: format_euro(stats.overcharge_cents) }
-                        Kv { label: "Davon zurückgeholt", value: format_euro(stats.reclaimed_cents) }
-                        Kv { label: "Davon geblieben", value: format_euro(stats.overcharge_cents - stats.reclaimed_cents) }
+                        Kv { label: "Zurückverlangt (Geld)", value: format_euro(stats.reclaimed_cents) }
+                        Kv { label: "Unterm Strich für die Gewinner", value: signed_euro(stats.overcharge_net_cents) }
                     }
                     if stats.reclaimed_games > 0 {
                         h4 { "Wer hat zurückverlangt?" }
@@ -616,10 +616,10 @@ pub(super) fn DemandNumbers(
 ) -> Element {
     let money = [
         ("Zu viel bekommen (nicht aufgefallen)", overcharge_gain),
-        ("Zurückgeben müssen (zurückverlangt)", reclaim_returned),
+        ("Zurückgeben müssen", reclaim_returned),
         ("Zu wenig bekommen", undercharge_missed),
         ("Zu viel gezahlt (nicht zurückverlangt)", overcharge_loss),
-        ("Durch Zurückverlangen gespart", reclaim_saved),
+        ("Zurückverlangt (zurückgeholt)", reclaim_saved),
         ("Weniger gezahlt als nötig", undercharge_benefit),
     ];
     if over_demands + under_demands + reclaims == 0 && money.iter().all(|(_, c)| *c == 0) {

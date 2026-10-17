@@ -316,8 +316,8 @@ fn OverallNumbers(stats: OverallStats) -> Element {
                 Kv { label: "Zu wenig verlangt", value: count_share(stats.undercharged_games, stats.corrected_games) }
                 if stats.overcharge_cents > 0 {
                     Kv { label: "Zu viel verlangtes Geld", value: format_euro(stats.overcharge_cents) }
-                    Kv { label: "Davon zurückgeholt", value: format_euro(stats.reclaimed_cents) }
-                    Kv { label: "Davon geblieben", value: format_euro(stats.overcharge_cents - stats.reclaimed_cents) }
+                    Kv { label: "Zurückverlangt (Geld)", value: format_euro(stats.reclaimed_cents) }
+                    Kv { label: "Unterm Strich für die Gewinner", value: signed_euro(stats.overcharge_net_cents) }
                 }
                 if stats.reclaimed_games > 0 {
                     h4 { "Wer hat zurückverlangt?" }

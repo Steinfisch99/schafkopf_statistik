@@ -27,7 +27,9 @@ pub use model::{
 };
 pub use money::parse_euro;
 pub use overall::{overall_stats, OverallPlayer, OverallStats};
-pub use scoring::{calculated_value, game_value, payouts, price_doublings, validate, Tariff};
+pub use scoring::{
+    calculated_value, game_value, payouts, price_doublings, reclaimed_value, validate, Tariff,
+};
 pub use stats::{
     balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
 };

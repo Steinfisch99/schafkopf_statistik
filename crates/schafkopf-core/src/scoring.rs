@@ -186,15 +186,24 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
 /// Wert des Spiels, den jeder Verlierer an jeden Gewinner zahlt (Einzelwert).
 ///
 /// Das ist der verlangte Preis, falls einer eingetragen wurde, sonst [`calculated_value`]. Wurde zu
-/// viel Verlangtes zurückverlangt, gilt der berechnete Preis.
+/// viel Verlangtes zurückverlangt, gilt [`reclaimed_value`].
 pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
-    if input.reclaimed {
-        return calculated_value(tariff, input);
+    let calculated = calculated_value(tariff, input);
+    match input.price_override {
+        Some(demanded) if input.reclaimed => reclaimed_value(calculated, demanded),
+        Some(demanded) => demanded,
+        None => calculated,
     }
-    input
-        .price_override
-        .unwrap_or_else(|| calculated_value(tariff, input))
 }
+
+/// Der Einzelwert, wenn die Verlierer zu viel Verlangtes zurückverlangen: Sie dürfen das Doppelte des
+/// Mehrbetrags zurückverlangen und tun es immer in voller Höhe. Kostet das Spiel 60 und wurden 80
+/// verlangt, ist der Mehrbetrag 20, sie holen 40 zurück, und es bleiben 40. Weniger als 0 wird es nie.
+pub fn reclaimed_value(calculated: Cents, demanded: Cents) -> Cents {
+    let extra = (demanded - calculated).max(0);
+    (demanded - 2 * extra).max(0)
+}
+
 /// Der nach Tarif berechnete Einzelwert.
 ///
 /// Grundtarif plus Schneider, Schwarz und Laufende, danach verdoppelt durch
