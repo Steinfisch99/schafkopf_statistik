@@ -76,11 +76,10 @@ Entscheidungen:
 - [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden); übersetzt am Desktop
 - [x] Prototyp auf dem Handy geprüft (Android 16): Eingabe, Diagramm, Darstellung und Laden nach Neustart
       klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-prototyp.md`](docs/android-prototyp.md)
-- [ ] CSV/JSON zum Teilen exportieren (die Datei liegt im privaten App-Ordner und ist nicht einsehbar)
+- [ ] CSV/JSON exportieren und importieren (die Dateien liegen im privaten App-Ordner und sind nicht einsehbar)
 - [ ] Diagramm bedienbar machen: Tippen zeigt die Werte, Pinch-Zoom, Verschieben, Zurücksetzen
-- [ ] Android-Build (NDK, `cargo-ndk` oder `xbuild`), APK auf dem Gerät testen
+- [x] Android-Build mit `dx` und APK auf dem Gerät (Anleitung in `docs/android-prototyp.md`)
 - [ ] Bildschirme: Tisch anlegen, Spiel eintragen, Statistik, Kontoverlauf
-- [ ] Speichern im App-Datenverzeichnis, Export/Import der JSON-Datei
 - [ ] Spätere Ideen: Schneider/Schwarz angesagt, Ramsch mit Jungfrau, Hochzeit-Details, Sup/Supra,
       mehrere Tische, Abendabrechnung teilen
 
