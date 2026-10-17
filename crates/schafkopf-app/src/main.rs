@@ -4,6 +4,7 @@
 mod android;
 mod draft;
 mod export;
+mod gestures;
 mod storage;
 mod summary;
 mod views;

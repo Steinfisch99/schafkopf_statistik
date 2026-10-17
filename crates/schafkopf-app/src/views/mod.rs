@@ -1,3 +1,4 @@
+mod balance_chart;
 mod common;
 mod export_screen;
 mod game_form;

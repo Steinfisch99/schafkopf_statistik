@@ -134,3 +134,12 @@ textarea {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
 }
 main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
+
+/* Diagramm zum Bedienen: senkrechtes Scrollen der Seite bleibt möglich, Ziehen und Zoomen gehören dem Diagramm. */
+.chart { touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.chart svg { display: block; }
+.chart svg * { pointer-events: none; }
+.range { margin: 0 0 0.4rem; }
+.range .chip { min-height: 2.4rem; padding: 0.3rem 0.9rem; }
+.chart-info { display: flex; gap: 0.6rem; justify-content: space-between; align-items: baseline; margin: 0.2rem 0 0.8rem; font-size: 0.9rem; }
+.legend-title { margin: 0 0 0.4rem; }

@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (48). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (73). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -159,7 +159,28 @@ auf dem Handy ausprobieren. Der Export am Desktop ist getestet.
 - [ ] "Text anzeigen und kopieren": Text markieren, kopieren und in einer Notiz einfügen geht.
 - [ ] Die Meldung unten verdeckt nichts Wichtiges, und beim Erscheinen springt nichts.
 
-### 6. Darstellung
+### 6. Diagramm bedienen
+Die Rechnung hinter den Gesten ist getestet, und am Desktop habe ich Tippen, Ziehen und die Knöpfe mit
+der Maus ausprobiert. **Der Zwei-Finger-Zoom und das Doppeltippen mit dem Finger sind nur simuliert**,
+das musst du auf dem Handy prüfen.
+
+- [ ] **Tippen** auf eine Stelle markiert das nächste Spiel: gestrichelte Linie, ein Punkt je Spieler,
+      darüber die Beschreibung des Spiels, in der Legende "Stand nach Spiel N".
+- [ ] Nochmal auf dasselbe Spiel tippen oder "Auswahl aufheben" nimmt die Markierung weg.
+- [ ] **Mit einem Finger nach links oder rechts ziehen** verschiebt den Ausschnitt. Nach oben oder
+      unten wischen scrollt weiterhin die ganze Seite.
+- [ ] **Zwei Finger auseinander** zoomen hinein, **zusammen** wieder heraus. Die Stelle zwischen den
+      Fingern bleibt, wo sie ist. Weiter als drei Spiele geht es nicht hinein.
+- [ ] Nach dem Zoomen **einen Finger anheben**, mit dem anderen weiterziehen: Der Ausschnitt springt nicht.
+- [ ] **Doppeltippen** zeigt wieder den ganzen Verlauf und nimmt die Markierung weg.
+- [ ] Die Knöpfe "Alles" und "Letzte 20 / 10 / 5" funktionieren (sie erscheinen nur, wenn es so viele
+      Spiele gibt).
+- [ ] Beim Hineinzoomen passt sich die Hochachse an, die Zahlen bleiben gut lesbar.
+- [ ] Nach dem **Drehen des Handys** trifft ein Tippen das richtige Spiel.
+- [ ] Nach einem neuen Spiel zeigt das Diagramm wieder den ganzen Verlauf.
+- [ ] Der Zoom läuft flüssig, auch bei vielen Spielen.
+
+### 7. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

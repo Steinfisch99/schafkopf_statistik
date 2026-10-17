@@ -79,7 +79,9 @@ Entscheidungen:
 - [x] CSV-Export in den Ordner Downloads (Excel mit Semikolon oder allgemein mit Komma), am Desktop
       getestet, auf dem Handy noch zu prüfen
 - [ ] JSON-Sicherung exportieren und wieder importieren
-- [ ] Diagramm bedienbar machen: Tippen zeigt die Werte, Pinch-Zoom, Verschieben, Zurücksetzen
+- [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
+      Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am
+      Desktop mit der Maus probiert, Zoom und Doppeltippen mit dem Finger noch nicht auf dem Handy
 - [x] Android-Build mit `dx` und APK auf dem Gerät (Anleitung in `docs/android-app.md`)
 - [x] Eintragen-Ablauf: Abend einrichten, Tarif, Spiel eintragen mit Preisvorschau und Korrekturfeld,
       Tischansicht mit Geldstand und Spieleliste, Rückgängig, Neuer Abend mit Archiv. Auf dem Handy

@@ -1,9 +1,10 @@
 //! Der Tisch: Geldstand, Spieleliste und die Wege zu Eingabe, Tarif und neuem Abend.
 
 use dioxus::prelude::*;
-use schafkopf_charts::{balance_chart_svg, format_euro, player_color};
-use schafkopf_core::{balance_history, Table};
 
+use schafkopf_core::Table;
+
+use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
 use crate::summary::{detail, signed_euro, title};
 use crate::{storage, Screen};
@@ -38,8 +39,6 @@ pub fn TableView(
     let Some(t) = guard.as_ref() else {
         return rsx! {};
     };
-    let svg = balance_chart_svg(&balance_history(t));
-    let balances = t.balances();
     let games = t.games();
 
     rsx! {
@@ -54,20 +53,7 @@ pub fn TableView(
             onclick: move |_| screen.set(Screen::Game),
             "Spiel eintragen"
         }
-        if games.is_empty() {
-            p { class: "hint empty", "Noch kein Spiel eingetragen. Sobald das erste Spiel gespeichert ist, erscheint hier der Geldstand." }
-        } else {
-            div { class: "chart", dangerous_inner_html: "{svg}" }
-        }
-        ul { class: "legend",
-            for (seat, name) in t.players.iter().enumerate() {
-                li { key: "{seat}",
-                    span { class: "dot", style: "background:{player_color(seat)}" }
-                    span { class: "name", "{name}" }
-                    span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
-                }
-            }
-        }
+        BalanceChart { table }
         if !games.is_empty() {
             details { class: "history", open: games.len() <= 5,
                 summary { "Spiele ({games.len()})" }
