@@ -6,15 +6,17 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik und Speichern haben Tests (43). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (48). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
-Tarif ändern (alte Spiele bleiben unverändert), Rückgängig und Neuer Abend mit Archiv.
+Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
+in beide Formate (Excel mit Semikolon und BOM, allgemein mit Komma).
 
 Auf dem Handy (Android 16) funktionierten beim ersten Prototyp der Build, die Installation, die
 Tastatur, das Diagramm und das Laden nach dem Schließen. **Neu und noch nicht auf dem Handy
 geprüft:** die Eingabemasken in echter Größe, die Bedienung mit dem Daumen, Dunkelmodus und große
-Schrift in den neuen Bildschirmen.
+Schrift in den neuen Bildschirmen. **Gar nicht geprüft** ist das Speichern in den Ordner Downloads auf
+Android, weil der JNI-Teil dort nur auf dem Handy läuft.
 
 ## Einmalig: Handy vorbereiten
 
@@ -139,9 +141,25 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
 - [ ] App komplett schließen und neu öffnen: Abend, Spiele und Diagramm sind noch da.
 - [ ] Auch nach einem Neustart des Handys.
 - [ ] Nach einem neuen Abend ist der alte weg, aber **archiviert** (im App-Ordner, ohne `adb` nicht
-      einsehbar). Ein Export zum Teilen steht noch aus.
+      einsehbar). Den Export gibt es als eigenen Punkt unten.
 
-### 5. Darstellung
+### 5. CSV-Export
+Das ist die am wenigsten geprüfte Stelle: Der Weg über Android (`MediaStore`, per JNI) lässt sich nur
+auf dem Handy ausprobieren. Der Export am Desktop ist getestet.
+
+- [ ] Tischansicht, "CSV exportieren": Dateiname mit dem Datum des Abends, Format "Für Excel" ist
+      vorgewählt.
+- [ ] "In Downloads speichern" zeigt unten eine Meldung `Gespeichert: Downloads/schafkopf-….csv` und
+      **keinen roten Fehler**. Ist es ein Fehler, schick mir den Wortlaut.
+- [ ] Dateien-App, Ordner Downloads: Die Datei liegt dort.
+- [ ] Die Datei lässt sich öffnen (Google Tabellen, Excel, Dateien-App). **Umlaute stimmen**, die
+      Spalten sind getrennt, jede Zeile ist ein Spiel. Beträge stehen in Cent.
+- [ ] Ein zweites Mal speichern überschreibt nichts, Android hängt eine Nummer an.
+- [ ] Format "Allgemein (Komma)" speichert auch und öffnet sich in einer Tabellenkalkulation.
+- [ ] "Text anzeigen und kopieren": Text markieren, kopieren und in einer Notiz einfügen geht.
+- [ ] Die Meldung unten verdeckt nichts Wichtiges, und beim Erscheinen springt nichts.
+
+### 6. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

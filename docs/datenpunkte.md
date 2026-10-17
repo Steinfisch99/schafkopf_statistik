@@ -74,3 +74,15 @@ Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
 werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.
+
+### Export
+
+"CSV exportieren" speichert die Spiele eines Abends im Ordner Downloads, in zwei Formaten:
+
+- **Für Excel:** Semikolon als Trennzeichen und UTF-8 mit Kennung (BOM). So öffnet das deutsche Excel
+  Spalten und Umlaute richtig.
+- **Allgemein:** Komma als Trennzeichen, ohne BOM, wie es Programme und Tabellenkalkulationen mit
+  englischen Einstellungen erwarten.
+
+Der Dateiname enthält das Datum des Abends (`schafkopf-2026-10-17.csv`). Eine bestehende Datei wird
+nie überschrieben, es kommt eine Nummer dazu.

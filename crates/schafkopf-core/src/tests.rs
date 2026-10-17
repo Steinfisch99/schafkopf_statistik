@@ -534,3 +534,38 @@ fn preview_does_not_save() {
     );
     assert_eq!(t.games().len(), 1);
 }
+
+#[test]
+fn csv_with_semicolon_for_german_excel() {
+    let mut t = Table::new(
+        "T",
+        vec![
+            "Anna".into(),
+            "Ben; Jr".into(),
+            "Cem, Sr".into(),
+            "Dora".into(),
+        ],
+        0,
+        Tariff::default(),
+    )
+    .unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let csv = t.to_csv_with(';');
+    let lines: Vec<&str> = csv.lines().collect();
+    assert_eq!(lines.len(), 2);
+    assert!(lines[0].starts_with("Nr;Zeit;Geber;Spielart;"));
+    // Semikolon im Namen und die Mitspielenden-Liste werden maskiert, das Komma im Namen nicht.
+    assert!(
+        lines[0].contains("\"Ben; Jr Gewinn_Cent\";\"Ben; Jr Stand_Cent\";Cem, Sr Gewinn_Cent;")
+    );
+    assert!(lines[1].starts_with("1;;Anna;Sauspiel;Eichel;\"Ben; Jr\";Dora;\""));
+    // Mit Komma als Trennzeichen bleibt alles wie bisher.
+    assert_eq!(t.to_csv(), t.to_csv_with(','));
+    assert!(t
+        .to_csv()
+        .lines()
+        .next()
+        .unwrap()
+        .contains("\"Cem, Sr Gewinn_Cent\""));
+    assert_eq!(t.csv_row(0), t.csv_row_with(0, ','));
+}

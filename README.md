@@ -76,7 +76,9 @@ Entscheidungen:
 - [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden)
 - [x] Prototyp auf dem Handy geprüft (Android 16): Eingabe, Diagramm, Darstellung und Laden nach Neustart
       klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-app.md`](docs/android-app.md)
-- [ ] CSV/JSON exportieren und importieren (die Dateien liegen im privaten App-Ordner und sind nicht einsehbar)
+- [x] CSV-Export in den Ordner Downloads (Excel mit Semikolon oder allgemein mit Komma), am Desktop
+      getestet, auf dem Handy noch zu prüfen
+- [ ] JSON-Sicherung exportieren und wieder importieren
 - [ ] Diagramm bedienbar machen: Tippen zeigt die Werte, Pinch-Zoom, Verschieben, Zurücksetzen
 - [x] Android-Build mit `dx` und APK auf dem Gerät (Anleitung in `docs/android-app.md`)
 - [x] Eintragen-Ablauf: Abend einrichten, Tarif, Spiel eintragen mit Preisvorschau und Korrekturfeld,

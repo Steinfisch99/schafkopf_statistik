@@ -1,19 +1,19 @@
 use crate::model::{Cents, Seat};
 use crate::table::Table;
 
-/// Maskiert ein Feld nach RFC 4180: Felder mit Komma, Anführungszeichen oder Zeilenumbruch
+/// Maskiert ein Feld nach RFC 4180: Felder mit Trennzeichen, Anführungszeichen oder Zeilenumbruch
 /// kommen in Anführungszeichen, enthaltene Anführungszeichen werden verdoppelt.
-fn field(value: &str) -> String {
-    if value.contains([',', '"', '\n', '\r']) {
+fn field(value: &str, separator: char) -> String {
+    if value.contains([separator, '"', '\n', '\r']) {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_owned()
     }
 }
 
-fn row(fields: impl IntoIterator<Item = String>) -> String {
-    let fields: Vec<String> = fields.into_iter().map(|f| field(&f)).collect();
-    fields.join(",")
+fn row(fields: impl IntoIterator<Item = String>, separator: char) -> String {
+    let fields: Vec<String> = fields.into_iter().map(|f| field(&f, separator)).collect();
+    fields.join(&separator.to_string())
 }
 
 fn yes_no(b: bool) -> String {
@@ -28,7 +28,7 @@ impl Table {
 
     /// Kopfzeile der CSV-Datei. Beträge stehen in Cent. Pro Spieler gibt es zwei Spalten:
     /// den Gewinn oder Verlust im Spiel und den Kontostand danach.
-    pub fn csv_header(&self) -> String {
+    pub fn csv_header_with(&self, separator: char) -> String {
         let fixed = [
             "Nr",
             "Zeit",
@@ -55,14 +55,17 @@ impl Table {
             .players
             .iter()
             .flat_map(|p| [format!("{p} Gewinn_Cent"), format!("{p} Stand_Cent")]);
-        row(fixed.into_iter().map(String::from).chain(players))
+        row(
+            fixed.into_iter().map(String::from).chain(players),
+            separator,
+        )
     }
 
     /// Eine Zeile pro Spiel. `index` ist die Position in [`Table::games`], beginnend bei 0.
     /// Gibt `None` zurück, wenn es das Spiel nicht gibt.
     ///
     /// Die App kann nach jedem Eintrag diese Zeile an die Datei anhängen.
-    pub fn csv_row(&self, index: usize) -> Option<String> {
+    pub fn csv_row_with(&self, index: usize, separator: char) -> Option<String> {
         let game = self.games().get(index)?;
         let g = &game.input;
         let opt = |v: Option<String>| v.unwrap_or_default();
@@ -99,17 +102,34 @@ impl Table {
             .iter()
             .zip(&standing)
             .flat_map(|(p, s)| [p.to_string(), s.to_string()]);
-        Some(row(fixed.into_iter().chain(per_player)))
+        Some(row(fixed.into_iter().chain(per_player), separator))
     }
 
     /// Die komplette CSV-Datei: Kopfzeile und alle Spiele.
-    pub fn to_csv(&self) -> String {
-        let mut out = self.csv_header();
+    pub fn to_csv_with(&self, separator: char) -> String {
+        let mut out = self.csv_header_with(separator);
         out.push('\n');
         for i in 0..self.games().len() {
-            out.push_str(&self.csv_row(i).expect("Index im Bereich"));
+            out.push_str(&self.csv_row_with(i, separator).expect("Index im Bereich"));
             out.push('\n');
         }
         out
+    }
+}
+
+impl Table {
+    /// Kopfzeile der CSV-Datei mit Komma als Trennzeichen, siehe [`Table::csv_header_with`].
+    pub fn csv_header(&self) -> String {
+        self.csv_header_with(',')
+    }
+
+    /// Eine Zeile pro Spiel mit Komma als Trennzeichen, siehe [`Table::csv_row_with`].
+    pub fn csv_row(&self, index: usize) -> Option<String> {
+        self.csv_row_with(index, ',')
+    }
+
+    /// Die komplette CSV-Datei mit Komma als Trennzeichen.
+    pub fn to_csv(&self) -> String {
+        self.to_csv_with(',')
     }
 }

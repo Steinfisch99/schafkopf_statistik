@@ -4479,6 +4479,8 @@ name = "schafkopf-app"
 version = "0.1.0"
 dependencies = [
  "dioxus",
+ "jni 0.21.1",
+ "ndk-context",
  "schafkopf-charts",
  "schafkopf-core",
 ]
