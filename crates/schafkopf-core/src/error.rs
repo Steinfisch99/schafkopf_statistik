@@ -1,0 +1,45 @@
+use crate::model::{GameKind, Seat};
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum Error {
+    #[error("Ein Tisch braucht 4 oder 5 Spieler, nicht {0}")]
+    PlayerCount(usize),
+    #[error("Spielernamen dürfen nicht leer sein")]
+    EmptyName,
+    #[error("Spielername kommt doppelt vor: {0}")]
+    DuplicateName(String),
+    #[error("Unbekannter Sitzplatz {0}")]
+    UnknownSeat(Seat),
+    #[error("Sitzplatz {0} sitzt in diesem Spiel aus")]
+    SeatNotActive(Seat),
+    #[error("{} braucht einen Mitspieler", .0.label())]
+    PartnerRequired(GameKind),
+    #[error("{} hat keinen Mitspieler", .0.label())]
+    PartnerNotAllowed(GameKind),
+    #[error("Mitspieler und Spieler müssen verschiedene Personen sein")]
+    PartnerIsDeclarer,
+    #[error("{} braucht eine Farbe", .0.label())]
+    SuitRequired(GameKind),
+    #[error("{} hat keine Farbe", .0.label())]
+    SuitNotAllowed(GameKind),
+    #[error("Auf die Herz-Sau kann man nicht rufen")]
+    HeartsAceCalled,
+    #[error("Sitzplatz {0} hat mehrfach geklopft")]
+    DuplicateKnock(Seat),
+    #[error("Kontra muss von einem Gegenspieler kommen")]
+    KontraFromOwnTeam,
+    #[error("Re ohne Kontra gibt es nicht")]
+    ReWithoutKontra,
+    #[error("Tout gibt es nur bei Solospielen (Wenz, Geier, Farbsolo, ...)")]
+    ToutNotAllowed,
+    #[error("Augen müssen zwischen 0 und 120 liegen, nicht {0}")]
+    InvalidPoints(u8),
+    #[error("Laufende müssen zwischen 0 und 8 liegen, nicht {0}")]
+    InvalidLaufende(u8),
+    #[error("JSON-Fehler: {0}")]
+    Json(String),
+    #[error("Nicht unterstützte Dateiversion {0}")]
+    UnsupportedVersion(u32),
+}

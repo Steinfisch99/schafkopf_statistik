@@ -1,0 +1,244 @@
+use std::collections::BTreeMap;
+
+use serde::{Deserialize, Serialize};
+
+use crate::model::{Cents, GameKind, Seat, Suit};
+use crate::table::Table;
+
+/// Spiele und Siege in einer Rolle, Position oder Kategorie.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RoleStats {
+    pub games: u32,
+    pub wins: u32,
+}
+
+impl RoleStats {
+    fn record(&mut self, won: bool) {
+        self.games += 1;
+        self.wins += u32::from(won);
+    }
+
+    /// Siegquote zwischen 0 und 1, `None` ohne Spiele.
+    pub fn win_rate(&self) -> Option<f64> {
+        (self.games > 0).then(|| f64::from(self.wins) / f64::from(self.games))
+    }
+}
+
+/// Pro Spielart. Beim Spieler: seine Spiele, Siege und sein Gewinn.
+/// Am Tisch: Anzahl, Siege der Spielerpartei und Summe der Einzelwerte.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct KindStats {
+    pub games: u32,
+    pub wins: u32,
+    pub balance: Cents,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PlayerStats {
+    pub seat: Seat,
+    pub name: String,
+    pub balance: Cents,
+    pub games_played: u32,
+    pub games_sat_out: u32,
+    pub games_dealt: u32,
+    pub as_declarer: RoleStats,
+    pub as_partner: RoleStats,
+    /// Gegenspieler (beim Ramsch alle, die nicht verloren haben).
+    pub as_defender: RoleStats,
+    /// Größter Gewinn und größter Verlust in einem einzelnen Spiel.
+    pub best_game: Cents,
+    pub worst_game: Cents,
+    /// Geklopft: wie oft, und in wie vielen dieser Spiele hat man gewonnen?
+    pub knocks: RoleStats,
+    pub kontra_given: RoleStats,
+    pub re_given: RoleStats,
+    pub schneider_wins: u32,
+    pub schwarz_wins: u32,
+    pub longest_win_streak: u32,
+    pub longest_loss_streak: u32,
+    /// Positiv = aktuelle Siegesserie, negativ = aktuelle Verlustserie.
+    pub current_streak: i32,
+    pub by_kind: BTreeMap<GameKind, KindStats>,
+    /// Ergebnis nach Platz relativ zum Geber: 0 = Vorhand (links vom Geber), dann Mittelhand,
+    /// Hinterhand, 3 = Geber bei vier Spielern bzw. der letzte Mitspielende bei fünf.
+    pub by_position: [RoleStats; 4],
+}
+
+impl PlayerStats {
+    fn new(seat: Seat, name: &str) -> Self {
+        PlayerStats {
+            seat,
+            name: name.to_owned(),
+            balance: 0,
+            games_played: 0,
+            games_sat_out: 0,
+            games_dealt: 0,
+            as_declarer: RoleStats::default(),
+            as_partner: RoleStats::default(),
+            as_defender: RoleStats::default(),
+            best_game: 0,
+            worst_game: 0,
+            knocks: RoleStats::default(),
+            kontra_given: RoleStats::default(),
+            re_given: RoleStats::default(),
+            schneider_wins: 0,
+            schwarz_wins: 0,
+            longest_win_streak: 0,
+            longest_loss_streak: 0,
+            current_streak: 0,
+            by_kind: BTreeMap::new(),
+            by_position: [RoleStats::default(); 4],
+        }
+    }
+
+    pub fn win_rate(&self) -> Option<f64> {
+        let wins = self.as_declarer.wins + self.as_partner.wins + self.as_defender.wins;
+        (self.games_played > 0).then(|| f64::from(wins) / f64::from(self.games_played))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TableStats {
+    pub games: u32,
+    /// Summe aller Gewinne, also das insgesamt bewegte Geld.
+    pub turnover: Cents,
+    /// Teuerstes Spiel als (Index in `Table::games`, Einzelwert).
+    pub most_expensive: Option<(usize, Cents)>,
+    pub by_kind: BTreeMap<GameKind, KindStats>,
+    /// Sauspiele nach gerufener Sau.
+    pub by_called_ace: BTreeMap<Suit, RoleStats>,
+    pub knocked_games: u32,
+    pub kontra_games: u32,
+    pub re_games: u32,
+    pub schneider_games: u32,
+    pub schwarz_games: u32,
+    pub players: Vec<PlayerStats>,
+    /// `partner_matrix[a][b]`: Sauspiele/Hochzeiten, in denen a und b zusammen gespielt haben.
+    pub partner_matrix: Vec<Vec<RoleStats>>,
+}
+
+/// Wertet einen ganzen Tisch aus.
+pub fn table_stats(table: &Table) -> TableStats {
+    let n = table.player_count();
+    let mut players: Vec<PlayerStats> = table
+        .players
+        .iter()
+        .enumerate()
+        .map(|(s, name)| PlayerStats::new(s, name))
+        .collect();
+    let mut stats = TableStats {
+        games: 0,
+        turnover: 0,
+        most_expensive: None,
+        by_kind: BTreeMap::new(),
+        by_called_ace: BTreeMap::new(),
+        knocked_games: 0,
+        kontra_games: 0,
+        re_games: 0,
+        schneider_games: 0,
+        schwarz_games: 0,
+        players: Vec::new(),
+        partner_matrix: vec![vec![RoleStats::default(); n]; n],
+    };
+
+    for (idx, game) in table.games().iter().enumerate() {
+        let g = &game.input;
+        let active = table.active_seats(g.dealer);
+        stats.games += 1;
+        stats.turnover += game.payouts.iter().filter(|&&p| p > 0).sum::<Cents>();
+        if stats.most_expensive.is_none_or(|(_, v)| game.value > v) {
+            stats.most_expensive = Some((idx, game.value));
+        }
+        let kind = stats.by_kind.entry(g.kind).or_default();
+        kind.games += 1;
+        kind.wins += u32::from(g.won);
+        kind.balance += game.value;
+        if let (GameKind::Sauspiel, Some(suit)) = (g.kind, g.suit) {
+            stats.by_called_ace.entry(suit).or_default().record(g.won);
+        }
+        stats.knocked_games += u32::from(!g.knockers.is_empty());
+        stats.kontra_games += u32::from(g.kontra_by.is_some());
+        stats.re_games += u32::from(g.re);
+        stats.schneider_games += u32::from(g.schneider || g.schwarz);
+        stats.schwarz_games += u32::from(g.schwarz);
+        if let Some(partner) = g.partner {
+            stats.partner_matrix[g.declarer][partner].record(g.won);
+            stats.partner_matrix[partner][g.declarer].record(g.won);
+        }
+
+        players[g.dealer].games_dealt += 1;
+        for (seat, p) in players.iter_mut().enumerate() {
+            if !active.contains(&seat) {
+                p.games_sat_out += 1;
+                continue;
+            }
+            // Wer im Team der Spielerpartei ist, gewinnt mit ihr; alle anderen gewinnen, wenn sie verliert.
+            let on_team = g.is_on_declarer_team(seat);
+            let won = on_team == g.won;
+            let payout = game.payouts[seat];
+
+            p.games_played += 1;
+            p.balance += payout;
+            p.best_game = p.best_game.max(payout);
+            p.worst_game = p.worst_game.min(payout);
+            if seat == g.declarer {
+                p.as_declarer.record(won);
+            } else if g.partner == Some(seat) {
+                p.as_partner.record(won);
+            } else {
+                p.as_defender.record(won);
+            }
+            if g.knockers.contains(&seat) {
+                p.knocks.record(won);
+            }
+            if g.kontra_by == Some(seat) {
+                p.kontra_given.record(won);
+            }
+            if g.re && seat == g.declarer {
+                p.re_given.record(won);
+            }
+            if won {
+                p.schneider_wins += u32::from(g.schneider || g.schwarz);
+                p.schwarz_wins += u32::from(g.schwarz);
+            }
+
+            let k = p.by_kind.entry(g.kind).or_default();
+            k.games += 1;
+            k.wins += u32::from(won);
+            k.balance += payout;
+
+            let position = (seat + n - g.dealer - 1) % n;
+            p.by_position[position.min(3)].record(won);
+
+            p.current_streak = match (won, p.current_streak) {
+                (true, s) if s > 0 => s + 1,
+                (true, _) => 1,
+                (false, s) if s < 0 => s - 1,
+                (false, _) => -1,
+            };
+            if won {
+                p.longest_win_streak = p.longest_win_streak.max(p.current_streak as u32);
+            } else {
+                p.longest_loss_streak = p.longest_loss_streak.max(p.current_streak.unsigned_abs());
+            }
+        }
+    }
+    stats.players = players;
+    stats
+}
+
+/// Kontostand pro Sitzplatz nach jedem Spiel, z. B. für einen Verlaufsgraphen.
+/// Der erste Eintrag ist der Stand nach dem ersten Spiel.
+pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
+    let mut sum = vec![0; table.player_count()];
+    table
+        .games()
+        .iter()
+        .map(|g| {
+            for (s, p) in sum.iter_mut().zip(&g.payouts) {
+                *s += p;
+            }
+            sum.clone()
+        })
+        .collect()
+}
