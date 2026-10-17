@@ -59,8 +59,9 @@ impl Tariff {
     }
 }
 
-/// Prüft eine Spieleingabe auf Plausibilität. `active` sind die Sitzplätze, die mitspielen.
-pub fn validate(input: &GameInput, player_count: usize, active: &[Seat]) -> Result<()> {
+/// Prüft eine Spieleingabe auf Plausibilität. Die Mitspielenden müssen gesetzt sein.
+pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
+    let active = &input.participants;
     let check_active = |seat: Seat| -> Result<()> {
         if seat >= player_count {
             Err(Error::UnknownSeat(seat))
@@ -73,9 +74,23 @@ pub fn validate(input: &GameInput, player_count: usize, active: &[Seat]) -> Resu
     if input.dealer >= player_count {
         return Err(Error::UnknownSeat(input.dealer));
     }
+    if !(2..=4).contains(&active.len()) {
+        return Err(Error::BadParticipantCount(active.len()));
+    }
+    for (i, &s) in active.iter().enumerate() {
+        if s >= player_count {
+            return Err(Error::UnknownSeat(s));
+        }
+        if active[..i].contains(&s) {
+            return Err(Error::DuplicateParticipant(s));
+        }
+    }
     check_active(input.declarer)?;
 
     let kind = input.kind;
+    if kind.is_team_game() && active.len() != 4 {
+        return Err(Error::TeamGameNeedsFour(kind));
+    }
     match (kind.is_team_game(), input.partner) {
         (true, None) => return Err(Error::PartnerRequired(kind)),
         (false, Some(_)) => return Err(Error::PartnerNotAllowed(kind)),
@@ -151,12 +166,8 @@ pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
 ///
 /// Bei Zweierteams bekommt jeder Gewinner den Einzelwert und jeder Verlierer zahlt ihn.
 /// Beim Solo bekommt oder zahlt der Spieler den Einzelwert von bzw. an jeden Gegner.
-pub fn payouts(
-    tariff: &Tariff,
-    input: &GameInput,
-    player_count: usize,
-    active: &[Seat],
-) -> Vec<Cents> {
+pub fn payouts(tariff: &Tariff, input: &GameInput, player_count: usize) -> Vec<Cents> {
+    let active = &input.participants;
     let value = game_value(tariff, input);
     let sign = if input.won { 1 } else { -1 };
     let mut result = vec![0; player_count];

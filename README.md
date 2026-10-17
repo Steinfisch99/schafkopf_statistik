@@ -9,7 +9,7 @@ liegt in einem Rust-Kern.
 
 ## Use Case
 
-Wir sitzen zu viert (oder zu fünft) am Tisch. **Einer trägt nach jedem Spiel ein**, was passiert ist:
+Wir sitzen zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. **Einer trägt nach jedem Spiel ein**, was passiert ist:
 
 - Was wurde gespielt (Sauspiel, Wenz, Solo, ...)?
 - Wer hat gespielt, wer war Mitspieler?
@@ -20,7 +20,10 @@ Wir sitzen zu viert (oder zu fünft) am Tisch. **Einer trägt nach jedem Spiel e
 
 Zu Beginn legt man einen **Tisch** an: Namen der Spieler, ihre **Sitzreihenfolge** (Spielrichtung, im
 Uhrzeigersinn) und den ersten **Geber**. Danach wandert der Geber automatisch von Spiel zu Spiel
-weiter, und die App schlägt ihn beim nächsten Eintrag vor. Bei fünf Spielern setzt der Geber aus.
+weiter, und die App schlägt ihn beim nächsten Eintrag vor. Gespielt wird immer zu viert (bei 2 oder 3
+Spielern mit allen); sitzen mehr Leute am Tisch, setzen die anderen aus. Wer mitspielt, schlägt die
+App vor (die vier links vom Geber), und es lässt sich pro Spiel ändern. Bei weniger als vier Spielern
+gibt es kein Sauspiel und keine Hochzeit, weil das Zweierteams sind.
 Der Tarif (Sauspiel, Solo, Schneider, Laufende, ...) ist pro Tisch einstellbar.
 
 Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](docs/datenpunkte.md).
@@ -30,7 +33,8 @@ Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](
 ```
 schafkopf/
 ├── crates/schafkopf-core/   Spiellogik, Abrechnung, Statistiken (reines Rust, keine UI)
-└── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
+├── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
+└── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
 ```
 
 `schafkopf-core` kennt weder Android noch eine UI, deshalb läuft es unverändert auf dem Handy und
@@ -54,9 +58,9 @@ Entscheidungen:
 ## Status
 
 - [x] Kern: Datenmodell, Abrechnung, Statistiken, JSON, Tests (`cargo test`)
-- [ ] UI-Technik wählen und Prototyp: Kandidaten sind [Slint](https://slint.dev) (native Oberfläche,
-      Android-Backend) und [Dioxus](https://dioxuslabs.com) (Rust, Oberfläche in WebView). Beides
-      nutzt den Kern unverändert.
+- [x] UI-Technik recherchiert: Empfehlung Dioxus 0.7 (Oberfläche in Rust, Graphen als SVG), siehe
+      [`docs/ui-entscheidung.md`](docs/ui-entscheidung.md)
+- [ ] Prototyp auf dem Gerät: Eingabefeld, ein SVG-Diagramm, Datei speichern
 - [ ] Android-Build (NDK, `cargo-ndk` oder `xbuild`), APK auf dem Gerät testen
 - [ ] Bildschirme: Tisch anlegen, Spiel eintragen, Statistik, Kontoverlauf
 - [ ] Speichern im App-Datenverzeichnis, Export/Import der JSON-Datei

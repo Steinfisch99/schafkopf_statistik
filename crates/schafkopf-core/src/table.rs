@@ -15,7 +15,7 @@ pub struct Game {
     pub payouts: Vec<Cents>,
 }
 
-/// Ein Tisch: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
+/// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Table {
     pub version: u32,
@@ -38,7 +38,7 @@ impl Table {
         first_dealer: Seat,
         tariff: Tariff,
     ) -> Result<Self> {
-        if !(4..=5).contains(&players.len()) {
+        if !(2..=10).contains(&players.len()) {
             return Err(Error::PlayerCount(players.len()));
         }
         let players: Vec<String> = players.into_iter().map(|p| p.trim().to_owned()).collect();
@@ -68,16 +68,17 @@ impl Table {
         &self.games
     }
 
-    /// Anzahl der Spieler am Tisch (4 oder 5).
+    /// Anzahl der Spieler am Tisch (2 bis 10).
     pub fn player_count(&self) -> usize {
         self.players.len()
     }
 
-    /// Mitspielende Sitzplätze bei diesem Geber. Bei fünf Spielern setzt der Geber aus.
-    pub fn active_seats(&self, dealer: Seat) -> Vec<Seat> {
-        (0..self.player_count())
-            .filter(|&s| self.player_count() == 4 || s != dealer)
-            .collect()
+    /// Voreinstellung, wer bei diesem Geber mitspielt: bis zu vier Plätze ab links vom Geber
+    /// (Vorhand zuerst). Bei fünf Spielern setzt der Geber aus, bei mehr rotieren die Aussetzer
+    /// mit dem Geber mit.
+    pub fn default_participants(&self, dealer: Seat) -> Vec<Seat> {
+        let n = self.player_count();
+        (1..=n.min(4)).map(|i| (dealer + i) % n).collect()
     }
 
     /// Geber des nächsten Spiels.
@@ -90,10 +91,13 @@ impl Table {
 
     /// Prüft die Eingabe, rechnet ab und hängt das Spiel an.
     pub fn add_game(&mut self, input: GameInput) -> Result<&Game> {
-        let active = self.active_seats(input.dealer);
-        validate(&input, self.player_count(), &active)?;
+        let mut input = input;
+        if input.participants.is_empty() && input.dealer < self.player_count() {
+            input.participants = self.default_participants(input.dealer);
+        }
+        validate(&input, self.player_count())?;
         let value = game_value(&self.tariff, &input);
-        let payouts = payouts(&self.tariff, &input, self.player_count(), &active);
+        let payouts = payouts(&self.tariff, &input, self.player_count());
         self.games.push(Game {
             input,
             value,

@@ -4,7 +4,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
-    #[error("Ein Tisch braucht 4 oder 5 Spieler, nicht {0}")]
+    #[error("Ein Tisch braucht 2 bis 10 Spieler, nicht {0}")]
     PlayerCount(usize),
     #[error("Spielernamen dürfen nicht leer sein")]
     EmptyName,
@@ -18,6 +18,12 @@ pub enum Error {
     PartnerRequired(GameKind),
     #[error("{} hat keinen Mitspieler", .0.label())]
     PartnerNotAllowed(GameKind),
+    #[error("{} geht nur mit genau vier Mitspielenden", .0.label())]
+    TeamGameNeedsFour(GameKind),
+    #[error("Ein Spiel braucht 2 bis 4 verschiedene Mitspielende, nicht {0}")]
+    BadParticipantCount(usize),
+    #[error("Sitzplatz {0} ist doppelt unter den Mitspielenden")]
+    DuplicateParticipant(Seat),
     #[error("Mitspieler und Spieler müssen verschiedene Personen sein")]
     PartnerIsDeclarer,
     #[error("{} braucht eine Farbe", .0.label())]

@@ -59,8 +59,8 @@ pub struct PlayerStats {
     /// Positiv = aktuelle Siegesserie, negativ = aktuelle Verlustserie.
     pub current_streak: i32,
     pub by_kind: BTreeMap<GameKind, KindStats>,
-    /// Ergebnis nach Platz relativ zum Geber: 0 = Vorhand (links vom Geber), dann Mittelhand,
-    /// Hinterhand, 3 = Geber bei vier Spielern bzw. der letzte Mitspielende bei fünf.
+    /// Ergebnis nach Platz unter den Mitspielenden, gezählt ab links vom Geber: 0 = Vorhand, dann
+    /// Mittelhand, Hinterhand und 3 = der Letzte (bei vier Spielern der Geber).
     pub by_position: [RoleStats; 4],
 }
 
@@ -143,7 +143,7 @@ pub fn table_stats(table: &Table) -> TableStats {
 
     for (idx, game) in table.games().iter().enumerate() {
         let g = &game.input;
-        let active = table.active_seats(g.dealer);
+        let active = &g.participants;
         stats.games += 1;
         stats.turnover += game.payouts.iter().filter(|&&p| p > 0).sum::<Cents>();
         if stats.most_expensive.is_none_or(|(_, v)| game.value > v) {
@@ -207,8 +207,9 @@ pub fn table_stats(table: &Table) -> TableStats {
             k.wins += u32::from(won);
             k.balance += payout;
 
-            let position = (seat + n - g.dealer - 1) % n;
-            p.by_position[position.min(3)].record(won);
+            let order = |s: Seat| (s + n - g.dealer - 1) % n;
+            let position = active.iter().filter(|&&s| order(s) < order(seat)).count();
+            p.by_position[position].record(won);
 
             p.current_streak = match (won, p.current_streak) {
                 (true, s) if s > 0 => s + 1,

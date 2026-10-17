@@ -87,7 +87,7 @@ fn five_players_dealer_sits_out() {
     let mut players = names();
     players.push("Emil".into());
     let mut t = Table::new("Fünf", players, 4, Tariff::default()).unwrap();
-    assert_eq!(t.active_seats(4), vec![0, 1, 2, 3]);
+    assert_eq!(t.default_participants(4), vec![0, 1, 2, 3]);
     let g = t.add_game(sauspiel(4, 0, 1)).unwrap();
     assert_eq!(g.payouts, vec![20, 20, -20, -20, 0]);
     assert_eq!(t.next_dealer(), 0);
@@ -166,7 +166,12 @@ fn table_validation() {
             Tariff::default(),
         )
     };
-    assert_eq!(t(vec!["a", "b", "c"]).unwrap_err(), Error::PlayerCount(3));
+    assert_eq!(t(vec!["a"]).unwrap_err(), Error::PlayerCount(1));
+    let eleven: Vec<String> = (0..11).map(|i| i.to_string()).collect();
+    assert_eq!(
+        Table::new("x", eleven, 0, Tariff::default()).unwrap_err(),
+        Error::PlayerCount(11)
+    );
     assert_eq!(t(vec!["a", "b", "c", " "]).unwrap_err(), Error::EmptyName);
     assert_eq!(
         t(vec!["a", "b", "c", "a"]).unwrap_err(),
@@ -186,10 +191,11 @@ fn payouts_always_sum_to_zero() {
                     schneider: true,
                     laufende: 4,
                     knockers: (0..doublings).collect(),
+                    participants: active.to_vec(),
                     partner: kind.is_team_game().then_some(2),
                     ..GameInput::new(3, kind, 1)
                 };
-                let p = payouts(&tariff, &input, 4, &active);
+                let p = payouts(&tariff, &input, 4);
                 assert_eq!(p.iter().sum::<i64>(), 0, "{kind:?} won={won}");
             }
         }
@@ -312,4 +318,108 @@ fn stats_roles_streaks_and_matrix() {
     let history = balance_history(&t);
     assert_eq!(history.len(), 3);
     assert_eq!(history.last().unwrap(), &t.balances());
+}
+
+fn table_of(n: usize) -> Table {
+    let players = (0..n).map(|i| format!("Spieler {i}")).collect();
+    Table::new("T", players, 0, Tariff::default()).unwrap()
+}
+
+#[test]
+fn every_player_count_from_two_to_ten_works() {
+    for n in 2..=10 {
+        let mut t = table_of(n);
+        // Wenz geht immer; Sauspiel nur mit genau vier Mitspielenden.
+        for _ in 0..n * 2 {
+            let dealer = t.next_dealer();
+            let declarer = t.default_participants(dealer)[0];
+            t.add_game(GameInput::new(dealer, GameKind::Wenz, declarer))
+                .unwrap();
+            let sau = GameInput {
+                suit: Some(Suit::Gras),
+                partner: t.default_participants(dealer).get(2).copied(),
+                ..GameInput::new(dealer, GameKind::Sauspiel, declarer)
+            };
+            let res = t.add_game(sau).map(|g| g.payouts.clone());
+            if n >= 4 {
+                assert_eq!(res.unwrap().iter().sum::<i64>(), 0, "n={n}");
+            } else {
+                assert!(res.is_err(), "n={n}");
+            }
+        }
+        assert_eq!(t.balances().iter().sum::<i64>(), 0, "n={n}");
+        let stats = table_stats(&t);
+        assert_eq!(stats.players.len(), n);
+        assert_eq!(stats.players.iter().map(|p| p.balance).sum::<i64>(), 0);
+    }
+}
+
+#[test]
+fn two_players_solo_is_one_against_one() {
+    let mut t = table_of(2);
+    let g = t.add_game(GameInput::new(0, GameKind::Wenz, 1)).unwrap();
+    assert_eq!(g.input.participants, vec![1, 0]);
+    assert_eq!(g.payouts, vec![-50, 50]);
+}
+
+#[test]
+fn three_players_solo_and_no_team_game() {
+    let mut t = table_of(3);
+    let g = t.add_game(GameInput::new(1, GameKind::Wenz, 2)).unwrap();
+    assert_eq!(g.payouts, vec![-50, -50, 100]);
+    let sau = GameInput {
+        suit: Some(Suit::Gras),
+        partner: Some(0),
+        ..GameInput::new(1, GameKind::Sauspiel, 2)
+    };
+    assert_eq!(
+        t.add_game(sau).unwrap_err(),
+        Error::TeamGameNeedsFour(GameKind::Sauspiel)
+    );
+}
+
+#[test]
+fn large_tables_rotate_who_sits_out() {
+    let mut t = table_of(10);
+    assert_eq!(t.default_participants(0), vec![1, 2, 3, 4]);
+    assert_eq!(t.default_participants(8), vec![9, 0, 1, 2]);
+    let mut played = [0u32; 10];
+    for _ in 0..10 {
+        let dealer = t.next_dealer();
+        let g = t
+            .add_game(GameInput::new(dealer, GameKind::Wenz, (dealer + 1) % 10))
+            .unwrap();
+        for &s in &g.input.participants {
+            played[s] += 1;
+        }
+        assert_eq!(g.payouts[dealer], 0);
+    }
+    assert!(played.iter().all(|&c| c == 4));
+    let stats = table_stats(&t);
+    assert!(stats
+        .players
+        .iter()
+        .all(|p| p.games_played == 4 && p.games_sat_out == 6));
+}
+
+#[test]
+fn explicit_participants_are_validated() {
+    let mut t = table_of(6);
+    let with = |participants: Vec<Seat>| GameInput {
+        participants,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    assert_eq!(
+        t.add_game(with(vec![1, 2, 3, 4, 5])).unwrap_err(),
+        Error::BadParticipantCount(5)
+    );
+    assert_eq!(
+        t.add_game(with(vec![1, 2, 2])).unwrap_err(),
+        Error::DuplicateParticipant(2)
+    );
+    assert_eq!(
+        t.add_game(with(vec![1, 2, 9])).unwrap_err(),
+        Error::UnknownSeat(9)
+    );
+    assert!(t.add_game(with(vec![1, 3, 5])).is_ok());
 }

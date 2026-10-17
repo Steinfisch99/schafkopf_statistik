@@ -108,8 +108,12 @@ impl GameKind {
 /// Das Geld wird nicht eingetragen, sondern aus diesen Angaben und dem Tarif des Tisches berechnet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameInput {
-    /// Wer hat gegeben? Bei fünf Spielern setzt der Geber aus.
+    /// Wer hat gegeben?
     pub dealer: Seat,
+    /// Wer spielt in diesem Spiel mit (2 bis 4 Plätze, die übrigen setzen aus)? Leer lassen, dann
+    /// setzt `Table::add_game` die Voreinstellung `Table::default_participants` ein.
+    #[serde(default)]
+    pub participants: Vec<Seat>,
     pub kind: GameKind,
     /// Beim Sauspiel die gerufene Sau, bei Farbsolo/-wenz/-geier die Trumpffarbe.
     #[serde(default)]
@@ -157,6 +161,7 @@ impl GameInput {
     pub fn new(dealer: Seat, kind: GameKind, declarer: Seat) -> Self {
         GameInput {
             dealer,
+            participants: Vec::new(),
             kind,
             suit: None,
             declarer,

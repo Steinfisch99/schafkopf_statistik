@@ -8,6 +8,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Datenpunkt | Beispiel | Pflicht |
 | --- | --- | --- |
 | Geber | Anna | ja |
+| Mitspielende | 2 bis 4 Plätze, die in diesem Spiel dabei sind (Voreinstellung: die vier links vom Geber) | nein |
 | Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Bettel, Ramsch | ja |
 | Farbe | beim Sauspiel die gerufene Sau (nicht Herz), beim Farbsolo die Trumpffarbe | je nach Spielart |
 | Spieler | Ben (beim Ramsch: der Verlierer) | ja |
@@ -29,7 +30,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 Einzelwert = (Grundtarif + Schneider + Schwarz + Laufende × Laufendensatz) × 2^(Klopfer + Kontra + Re + Tout)
 ```
 
-Beim Sauspiel bekommt jeder Gewinner den Einzelwert und jeder Verlierer zahlt ihn. Beim Solo bekommt
+Zweierteams (Sauspiel, Hochzeit) gibt es nur mit genau vier Mitspielenden. Beim Sauspiel bekommt jeder Gewinner den Einzelwert und jeder Verlierer zahlt ihn. Beim Solo bekommt
 oder zahlt der Spieler den Einzelwert von bzw. an alle drei Gegner. Die Summe aller Spieler ist
 immer null.
 
@@ -47,7 +48,7 @@ Schwarz +0,10 €, jedes Laufende +0,10 €.
 - Wie oft geklopft und wie oft danach gewonnen, Kontra und Re ebenso
 - Schneider- und Schwarz-Siege
 - Längste Sieges- und Verlustserie, aktuelle Serie
-- Ergebnis nach Platz relativ zum Geber (Vorhand, Mittelhand, Hinterhand, Geber)
+- Ergebnis nach Platz ab links vom Geber (Vorhand, Mittelhand, Hinterhand, Letzter)
 
 **Pro Tisch**
 
