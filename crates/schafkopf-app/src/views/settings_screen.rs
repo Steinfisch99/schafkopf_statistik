@@ -180,7 +180,7 @@ pub fn SettingsScreen(
                 class: "secondary",
                 r#type: "button",
                 onclick: move |_| screen.set(Screen::Library { from_setup: false }),
-                "Regelwerke und Tarife verwalten"
+                "Spieler, Regelwerke und Tarife verwalten"
             }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Table), "Zurück" }
         }

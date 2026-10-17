@@ -19,7 +19,7 @@ pub struct NamedTariff {
     pub tariff: Tariff,
 }
 
-/// Alle gespeicherten Regelwerke und Tarife, je mit einem Standard.
+/// Alle gespeicherten Regelwerke, Tarife und Spieler, Regelwerke und Tarife je mit einem Standard.
 ///
 /// Es gibt immer mindestens ein Regelwerk und einen Tarif, und Namen sind eindeutig, ohne auf
 /// Groß- und Kleinschreibung zu achten. Die Einträge ändern nie Abende, die schon laufen: Ein Tisch
@@ -31,6 +31,10 @@ pub struct Library {
     tariffs: Vec<NamedTariff>,
     default_rule_set: String,
     default_tariff: String,
+    /// Die Spieler, die man bei der Einrichtung eines Abends auswählen kann. Alte Dateien ohne
+    /// Spieler lesen sich als leere Liste.
+    #[serde(default)]
+    players: Vec<String>,
 }
 
 /// Spielarten in der üblichen Reihenfolge, ohne Doppelte.
@@ -84,6 +88,7 @@ impl Library {
             }],
             default_rule_set: "Unsere Runde".into(),
             default_tariff: "20/50".into(),
+            players: Vec::new(),
         }
     }
 
@@ -254,6 +259,61 @@ impl Library {
             .tariff(name)
             .ok_or_else(|| Error::UnknownEntry(name.to_owned()))?;
         self.default_tariff = tariff.name.clone();
+        Ok(())
+    }
+
+    /// Die gespeicherten Spielernamen, in der Reihenfolge, in der sie angelegt wurden.
+    pub fn players(&self) -> &[String] {
+        &self.players
+    }
+
+    /// Die Spielernamen alphabetisch (ohne Beachtung der Schreibweise), für Auswahllisten.
+    pub fn players_sorted(&self) -> Vec<String> {
+        let mut sorted = self.players.clone();
+        sorted.sort_by_key(|p| p.to_lowercase());
+        sorted
+    }
+
+    /// Speichert einen neuen Spielernamen. Namen sind eindeutig, ohne auf Groß- und
+    /// Kleinschreibung zu achten. Gibt den gespeicherten Namen zurück.
+    pub fn add_player(&mut self, name: &str) -> Result<String> {
+        let name = clean_name(name)?;
+        Self::check_name(&self.players, |p| p.as_str(), &name, None)?;
+        self.players.push(name.clone());
+        Ok(name)
+    }
+
+    /// Nimmt alle Namen auf, die noch fehlen, und überspringt leere und schon bekannte. Gibt die
+    /// Zahl der neu aufgenommenen Namen zurück. So merkt sich die App Namen, die beim Einrichten
+    /// eines Abends einmal getippt wurden.
+    pub fn ensure_players(&mut self, names: &[String]) -> usize {
+        let before = self.players.len();
+        for name in names {
+            let _ = self.add_player(name);
+        }
+        self.players.len() - before
+    }
+
+    /// Benennt einen Spieler um. Schon gespielte Abende behalten den alten Namen.
+    pub fn rename_player(&mut self, old: &str, new: &str) -> Result<String> {
+        let new = clean_name(new)?;
+        Self::check_name(&self.players, |p| p.as_str(), &new, Some(old))?;
+        let entry = self
+            .players
+            .iter_mut()
+            .find(|p| p.as_str() == old)
+            .ok_or_else(|| Error::UnknownEntry(old.to_owned()))?;
+        *entry = new.clone();
+        Ok(new)
+    }
+
+    pub fn remove_player(&mut self, name: &str) -> Result<()> {
+        let index = self
+            .players
+            .iter()
+            .position(|p| p == name)
+            .ok_or_else(|| Error::UnknownEntry(name.to_owned()))?;
+        self.players.remove(index);
         Ok(())
     }
 

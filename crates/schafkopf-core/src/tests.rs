@@ -989,3 +989,89 @@ fn wenz_and_geier_have_at_most_four_laufende() {
         );
     }
 }
+
+#[test]
+fn players_are_stored_once_and_sorted_for_lists() {
+    let mut lib = Library::with_defaults();
+    assert!(lib.players().is_empty());
+    assert_eq!(lib.add_player("  Zoë ").unwrap(), "Zoë");
+    lib.add_player("anna").unwrap();
+    lib.add_player("Ben").unwrap();
+    assert_eq!(
+        lib.players(),
+        ["Zoë", "anna", "Ben"],
+        "Reihenfolge des Anlegens"
+    );
+    assert_eq!(
+        lib.players_sorted(),
+        ["anna", "Ben", "Zoë"],
+        "alphabetisch ohne Schreibweise"
+    );
+    assert_eq!(
+        lib.add_player("ANNA").unwrap_err(),
+        Error::NameTaken("ANNA".into())
+    );
+    assert_eq!(lib.add_player("   ").unwrap_err(), Error::NameEmpty);
+    assert_eq!(lib.players().len(), 3);
+}
+
+#[test]
+fn ensure_players_adds_only_what_is_missing() {
+    let mut lib = Library::with_defaults();
+    lib.add_player("Anna").unwrap();
+    let names = ["anna", "Ben", "", "  ", "Ben", "Cem"]
+        .map(String::from)
+        .to_vec();
+    assert_eq!(lib.ensure_players(&names), 2);
+    assert_eq!(lib.players(), ["Anna", "Ben", "Cem"]);
+    assert_eq!(
+        lib.ensure_players(&names),
+        0,
+        "ein zweites Mal ändert nichts"
+    );
+}
+
+#[test]
+fn players_can_be_renamed_and_removed() {
+    let mut lib = Library::with_defaults();
+    lib.ensure_players(&["Anna".into(), "Ben".into()]);
+    assert_eq!(lib.rename_player("Ben", "Benedikt").unwrap(), "Benedikt");
+    assert_eq!(lib.players(), ["Anna", "Benedikt"]);
+    // Nur die Schreibweise des eigenen Namens zu ändern ist erlaubt.
+    assert_eq!(lib.rename_player("Anna", "ANNA").unwrap(), "ANNA");
+    assert_eq!(
+        lib.rename_player("ANNA", "benedikt").unwrap_err(),
+        Error::NameTaken("benedikt".into())
+    );
+    assert_eq!(
+        lib.rename_player("ANNA", " ").unwrap_err(),
+        Error::NameEmpty
+    );
+    assert_eq!(
+        lib.rename_player("Nobody", "X").unwrap_err(),
+        Error::UnknownEntry("Nobody".into())
+    );
+    lib.remove_player("ANNA").unwrap();
+    assert_eq!(lib.players(), ["Benedikt"]);
+    assert_eq!(
+        lib.remove_player("ANNA").unwrap_err(),
+        Error::UnknownEntry("ANNA".into())
+    );
+    lib.remove_player("Benedikt").unwrap();
+    assert!(
+        lib.players().is_empty(),
+        "anders als bei Regelwerken darf die Liste leer werden"
+    );
+}
+
+#[test]
+fn player_list_roundtrips_and_old_library_files_still_load() {
+    let mut lib = Library::with_defaults();
+    lib.ensure_players(&["Anna".into(), "Ben".into()]);
+    assert_eq!(Library::from_json(&lib.to_json().unwrap()).unwrap(), lib);
+    let mut json = serde_json::to_value(&lib).unwrap();
+    json.as_object_mut().unwrap().remove("players");
+    let old = Library::from_json(&json.to_string()).unwrap();
+    assert!(old.players().is_empty());
+    assert_eq!(old.rule_sets(), lib.rule_sets());
+}

@@ -11,8 +11,9 @@ liegt in einem Rust-Kern.
 
 Wir sitzen meist zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. Ein Abend läuft so:
 
-1. **Neuer Abend:** Die Mitspieler werden mit Namen in **Sitzreihenfolge** (Spielrichtung, im
-   Uhrzeigersinn) eingetragen.
+1. **Neuer Abend:** Die Mitspieler werden in **Sitzreihenfolge** (Spielrichtung, im
+   Uhrzeigersinn) **aus der Liste der gespeicherten Spieler gewählt**. Einen neuen Namen tippst du nur
+   einmal, danach steht er zur Auswahl. Die Spieler des letzten Abends sind vorbelegt.
 2. **Regelwerk und Tarif wählen.** Ein **Regelwerk** legt fest, welche Spielarten ihr spielt (zum
    Beispiel nur Sauspiel, Wenz, Geier, Farbsolo und Ramsch). Ein **Tarif** legt fest, was es kostet
    (Sauspiel, Solo, Schneider, Schwarz, Laufende). Beide legst du **mit Namen** in der Verwaltung an,
@@ -75,7 +76,8 @@ Entscheidungen:
     (`Table::to_json` / `from_json`, mit Versionsfeld).
   - `schafkopf-spiele.csv` ist das Journal, das die App nach jedem Spiel fortschreibt (`Table::csv_row`),
     Beträge in Cent, pro Spieler Gewinn und Kontostand.
-  - `schafkopf-bibliothek.json` enthält die benannten Regelwerke und Tarife mit ihren Standards.
+  - `schafkopf-bibliothek.json` enthält die gespeicherten Spieler und die benannten Regelwerke und Tarife
+    mit ihren Standards.
   Ein Abend **kopiert** Spielarten und Tarif beim Anlegen. Spätere Änderungen in der Bibliothek
   verändern deshalb nie einen laufenden oder schon gespielten Abend. Wird ein neuer Abend begonnen,
   kommen Tisch und CSV des alten ins Unterverzeichnis `archiv`.
@@ -94,6 +96,7 @@ Entscheidungen:
       getestet, auf dem Handy noch zu prüfen
 - [x] Spiele nachträglich bearbeiten und löschen
 - [x] Regelwerke (aktive Spielarten) und benannte Tarife mit Standard und Auswahl, Verwaltung in der App
+- [x] Spielerliste: Namen einmal eingeben und danach auswählen, neue Namen werden gemerkt, Verwaltung in der App
 - [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
       Durchmarsch-Knopf, Umlaute in beiden CSV-Formaten

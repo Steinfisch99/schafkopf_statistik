@@ -55,7 +55,7 @@ fn main() {
 fn App() -> Element {
     let table = use_signal(storage::load);
     let library = use_signal(storage::load_library);
-    let setup = use_setup_state(library);
+    let setup = use_setup_state(library, table);
     let mut screen = use_signal(|| {
         if table.peek().is_some() {
             Screen::Table

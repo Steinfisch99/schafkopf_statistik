@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (119). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (127). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -121,7 +121,9 @@ Daten.
 Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder sich umständlich anfühlt.
 
 ### 1. Abend einrichten
-- [ ] Vier Namen mit Umlauten eintragen, die Tastatur verdeckt das Feld nicht.
+- [ ] **Beim allerersten Mal** gibt es noch keine gespeicherten Spieler: Die Plätze sind Eingabefelder. Vier Namen mit Umlauten eintragen, die Tastatur verdeckt das Feld nicht.
+- [ ] Nach "Abend starten" meldet die App, dass neue Spieler gemerkt wurden. Beim **nächsten Abend** sind die Plätze Auswahllisten mit den gespeicherten Namen, die Spieler des letzten Abends sind vorbelegt.
+- [ ] In der Auswahl sind schon gewählte Namen ausgegraut, "+ Neuer Spieler …" öffnet ein Eingabefeld, "▾" daneben führt zurück zur Liste.
 - [ ] "+ Spieler" und "−" gehen von 2 bis 10 Spielern. Bei 2 ist "−" ausgegraut, bei 10 "+ Spieler".
 - [ ] Ein leerer Name ergibt einen roten Hinweis oben, kein Absturz. Ein doppelter Name auch.
 - [ ] Der erste Geber ist wählbar.
@@ -239,13 +241,14 @@ Kontostände, Diagramm und die CSV-Zeile.
 Am Desktop durchgeklickt: Regelwerk angelegt, zum Standard gemacht, mit ihm einen Abend begonnen,
 Tarif unter einem Namen gespeichert und übernommen. Die Dateien habe ich nachgesehen.
 
-- [ ] "Regelwerke und Tarife verwalten" (bei der Einrichtung und unter "Regeln und Tarif") zeigt
+- [ ] "Spieler, Regelwerke und Tarife verwalten" (bei der Einrichtung und unter "Regeln und Tarif") zeigt oben die **Spieler**, dann
       "Alle Spielarten" und "Unsere Runde" (Standard) sowie den Tarif "20/50" (Standard).
 - [ ] Ein **neues Regelwerk** lässt sich anlegen (Name, Spielarten antippen, "Anlegen") und erscheint
       in der Liste. Ein leerer oder doppelter Name und ein Regelwerk ohne Spielart ergeben einen roten Hinweis.
 - [ ] Ein bestehendes lässt sich ändern und umbenennen, "Als Standard" macht es zum Standard, "Löschen"
       fragt nach. Der letzte Eintrag lässt sich nicht löschen.
 - [ ] Das gilt genauso für **Tarife**.
+- [ ] **Spieler:** Ein neuer Name lässt sich anlegen, ein bestehender umbenennen oder löschen (mit Rückfrage). Ein leerer oder doppelter Name (auch in anderer Schreibweise) ergibt einen roten Hinweis. Schon gespielte Abende behalten ihre Namen.
 - [ ] Bei der Einrichtung ist das Standard-Regelwerk vorgewählt. Die Namen, die du schon getippt hast,
       sind noch da, wenn du aus der Verwaltung zurückkommst.
 - [ ] In der Tischansicht steht "Regelwerk: … · Tarif: …".

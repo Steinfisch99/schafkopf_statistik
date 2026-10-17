@@ -116,3 +116,12 @@ unterscheidbar).
 - **Pro Spieler:** Ring mit Siegen und Niederlagen und der Siegquote in der Mitte; Balken für die Rollen
   (Spieler, Mitspieler, Gegenspieler), Ansagen (Klopfen, Kontra, Re) und Plätze; Balken für die Bilanz je
   Spielart; eine Ergebnisreihe mit einem Kästchen je Spiel (Sieg, Niederlage, ausgesetzt).
+
+### Spieler
+
+- Die Bibliothek merkt sich die Spielernamen. Bei der Einrichtung eines Abends wählt man jeden Platz aus
+  dieser Liste. Ein Name, den man dort neu tippt, kommt beim Start des Abends automatisch in die Liste.
+- Namen sind eindeutig, ohne auf Groß- und Kleinschreibung zu achten. In der Verwaltung lassen sie sich
+  anlegen, umbenennen und löschen.
+- Ein Abend kopiert die Namen beim Anlegen. Umbenennen oder Löschen in der Liste ändert deshalb keinen
+  laufenden oder gespielten Abend. Beim Einrichten sind die Spieler des laufenden Abends vorbelegt.

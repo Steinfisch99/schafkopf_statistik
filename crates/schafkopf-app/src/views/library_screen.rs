@@ -253,6 +253,69 @@ fn TariffEditor(
     }
 }
 
+/// Einen Spieler anlegen (`original` ist `None`) oder einen bestehenden umbenennen oder löschen.
+#[component]
+fn PlayerEditor(
+    library: Signal<Library>,
+    notice: Signal<Option<Notice>>,
+    original: Option<String>,
+) -> Element {
+    let name0 = original.clone().unwrap_or_default();
+    let mut name = use_signal(|| name0.clone());
+    let is_new = original.is_none();
+
+    let save = {
+        let original = original.clone();
+        move |_| {
+            let result = change_library(library, |lib| {
+                let saved = match original.as_deref() {
+                    None => lib.add_player(&name.read()),
+                    Some(old) => lib.rename_player(old, &name.read()),
+                };
+                saved
+                    .map(|saved| format!("Spieler \"{saved}\" gespeichert"))
+                    .map_err(|e| e.to_string())
+            });
+            if result.is_ok() && original.is_none() {
+                name.set(String::new());
+            }
+            report(notice, result);
+        }
+    };
+    let delete = {
+        let original = original.clone();
+        move |_| {
+            let Some(own) = original.clone() else { return };
+            let result = change_library(library, |lib| {
+                lib.remove_player(&own)
+                    .map(|()| format!("Spieler \"{own}\" gelöscht"))
+                    .map_err(|e| e.to_string())
+            });
+            report(notice, result);
+        }
+    };
+
+    rsx! {
+        details { class: "player-detail",
+            summary {
+                span { class: "name", if is_new { "+ Neuer Spieler" } else { "{name0}" } }
+            }
+            TextField {
+                label: "Name".to_string(),
+                value: name(),
+                hint: "zum Beispiel Anna".to_string(),
+                oninput: move |v| name.set(v),
+            }
+            div { class: "actions",
+                button { class: "primary", r#type: "button", onclick: save, if is_new { "Anlegen" } else { "Speichern" } }
+                if !is_new {
+                    ConfirmButton { label: "Löschen", confirm_label: "Ja, löschen", onconfirm: delete }
+                }
+            }
+        }
+    }
+}
+
 #[component]
 pub fn LibraryScreen(
     screen: Signal<Screen>,
@@ -273,6 +336,7 @@ pub fn LibraryScreen(
         .iter()
         .map(|t| t.name.clone())
         .collect();
+    let players = library.read().players_sorted();
     let back = if from_setup {
         Screen::Setup
     } else {
@@ -280,9 +344,18 @@ pub fn LibraryScreen(
     };
 
     rsx! {
-        h2 { "Regelwerke und Tarife" }
+        h2 { "Spieler, Regelwerke und Tarife" }
         p { class: "hint",
-            "Hier legst du fest, was ihr spielt und was es kostet. Beim Start eines Abends wählst du aus, der Standard ist vorgewählt. Änderungen betreffen nur künftige Abende, ein laufender Abend behält seine Einstellungen."
+            "Hier legst du fest, wer mitspielt, was ihr spielt und was es kostet. Beim Start eines Abends wählst du aus, bei Regelwerk und Tarif ist der Standard vorgewählt. Änderungen betreffen nur künftige Abende, ein laufender oder gespielter Abend behält seine Einstellungen und Namen."
+        }
+
+        section {
+            h3 { "Spieler" }
+            p { class: "hint", "Bei der Einrichtung eines Abends wählst du die Mitspieler aus dieser Liste. Ein Name, den du dort neu tippst, wird automatisch hier gemerkt." }
+            for name in players {
+                PlayerEditor { key: "{name}", library, notice, original: Some(name.clone()) }
+            }
+            PlayerEditor { key: "neu", library, notice, original: None }
         }
 
         section {
