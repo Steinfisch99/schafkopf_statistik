@@ -2,15 +2,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::model::{Cents, GameInput, Seat};
-use crate::scoring::{game_value, payouts, validate, Tariff};
+use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Ein abgerechnetes Spiel. Beträge werden beim Eintragen festgeschrieben,
 /// damit eine spätere Tarifänderung die Historie nicht verändert.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Game {
     pub input: GameInput,
-    /// Einzelwert des Spiels in Cent.
+    /// Abgerechneter Einzelwert in Cent: der verlangte Preis, falls einer eingetragen wurde.
     pub value: Cents,
+    /// Einzelwert nach Tarif. Weicht von `value` ab, wenn am Tisch ein anderer Preis verlangt wurde.
+    pub calculated_value: Cents,
     /// Gewinn/Verlust pro Sitzplatz in Cent.
     pub payouts: Vec<Cents>,
 }
@@ -73,12 +75,23 @@ impl Table {
         self.players.len()
     }
 
-    /// Voreinstellung, wer bei diesem Geber mitspielt: bis zu vier Plätze ab links vom Geber
-    /// (Vorhand zuerst). Bei fünf Spielern setzt der Geber aus, bei mehr rotieren die Aussetzer
-    /// mit dem Geber mit.
+    /// Voreinstellung, wer bei diesem Geber mitspielt: der Geber, der Spieler vor ihm (er hebt ab)
+    /// und die zwei Spieler nach ihm. Bei weniger als vier Spielern spielen alle mit.
+    /// Die Reihenfolge ist die Spielreihenfolge: Vorhand, Mittelhand, der Abheber, der Geber.
     pub fn default_participants(&self, dealer: Seat) -> Vec<Seat> {
         let n = self.player_count();
-        (1..=n.min(4)).map(|i| (dealer + i) % n).collect()
+        let mut seats: Vec<Seat> = Vec::new();
+        for s in [dealer + 1, dealer + 2, dealer + n - 1, dealer] {
+            if !seats.contains(&(s % n)) {
+                seats.push(s % n);
+            }
+        }
+        seats
+    }
+
+    /// Ändert den Tarif für alle künftigen Spiele. Bereits eingetragene Spiele behalten ihre Beträge.
+    pub fn set_tariff(&mut self, tariff: Tariff) {
+        self.tariff = tariff;
     }
 
     /// Geber des nächsten Spiels.
@@ -96,11 +109,13 @@ impl Table {
             input.participants = self.default_participants(input.dealer);
         }
         validate(&input, self.player_count())?;
+        let calculated_value = calculated_value(&self.tariff, &input);
         let value = game_value(&self.tariff, &input);
         let payouts = payouts(&self.tariff, &input, self.player_count());
         self.games.push(Game {
             input,
             value,
+            calculated_value,
             payouts,
         });
         Ok(self.games.last().expect("gerade eingefügt"))

@@ -7,24 +7,29 @@ gerufen wird, wer mit wem gut zusammenspielt.
 **Ziel: so viel wie möglich in Rust.** Die App ist am Ende ein Android-Paket (APK), die gesamte Logik
 liegt in einem Rust-Kern.
 
-## Use Case
+## Use Case und Ablauf
 
-Wir sitzen zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. **Einer trägt nach jedem Spiel ein**, was passiert ist:
+Wir sitzen meist zu viert am Tisch, es können aber **2 bis 10 Spieler** sein. Ein Abend läuft so:
 
-- Was wurde gespielt (Sauspiel, Wenz, Solo, ...)?
-- Wer hat gespielt, wer war Mitspieler?
-- Wer hat geklopft (gedoppelt), wer hat Kontra oder Re gegeben?
-- Wer hat gewonnen? Schneider, Schwarz, Laufende, Augen?
-- Wie viel hat es gekostet? Das rechnet die App aus dem Tarif des Tisches aus.
-- Wer hat gegeben?
-
-Zu Beginn legt man einen **Tisch** an: Namen der Spieler, ihre **Sitzreihenfolge** (Spielrichtung, im
-Uhrzeigersinn) und den ersten **Geber**. Danach wandert der Geber automatisch von Spiel zu Spiel
-weiter, und die App schlägt ihn beim nächsten Eintrag vor. Gespielt wird immer zu viert (bei 2 oder 3
-Spielern mit allen); sitzen mehr Leute am Tisch, setzen die anderen aus. Wer mitspielt, schlägt die
-App vor (die vier links vom Geber), und es lässt sich pro Spiel ändern. Bei weniger als vier Spielern
-gibt es kein Sauspiel und keine Hochzeit, weil das Zweierteams sind.
-Der Tarif (Sauspiel, Solo, Schneider, Laufende, ...) ist pro Tisch einstellbar.
+1. **Neuer Abend:** Die Mitspieler werden mit Namen in **Sitzreihenfolge** (Spielrichtung, im
+   Uhrzeigersinn) eingetragen.
+2. **Tarif festlegen** (Sauspiel, Solo, Schneider, Schwarz, Laufende). Der Tarif ist **jederzeit
+   änderbar**. Neue Spiele rechnen mit dem neuen Tarif, bereits eingetragene Spiele behalten ihre
+   Beträge.
+3. **Spiel beginnt:** Der **Geber** wird angegeben. Es spielen mit: der Geber, der Spieler vor ihm
+   (entgegen der Spielrichtung, er hebt ab) und die zwei Spieler nach ihm. Bei 2 oder 3 Spielern
+   spielen alle mit; sitzen mehr als vier Leute am Tisch, setzen die übrigen aus. Die Auswahl lässt
+   sich pro Spiel ändern.
+4. **Nach dem Spiel eintragen:**
+   - Spielart aus einer Auswahlbox (Sauspiel, Wenz, Solo, ...).
+   - Eine Übersicht der vier Spieler: wer **gedoppelt** (geklopft) hat, wer **gewonnen** hat,
+     **Schneider**, **Schwarz** und wie viele **Laufende**.
+   - Der **Preis wird berechnet**. Wurde am Tisch etwas anderes verlangt, kann der **verlangte Preis
+     von Hand** eingetragen werden. Er ersetzt dann die Rechnung, und die App merkt sich beide Werte.
+5. **Speichern:** Das Spiel wird abgespeichert und **sofort in eine CSV-Datei geschrieben**.
+6. **Graphen aktualisieren:** Im Vordergrund steht der **Kontoverlauf aller Spieler**. Er beginnt bei
+   0 und kann ins Negative gehen.
+7. **Der Geber rückt um einen Platz weiter**, und es geht mit dem nächsten Spiel weiter.
 
 Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](docs/datenpunkte.md).
 
@@ -44,15 +49,20 @@ lässt sich mit `cargo test` auf jedem Rechner testen:
 | --- | --- |
 | `model` | Spielarten, Farben, `GameInput` (alles, was man pro Spiel einträgt) |
 | `scoring` | `Tariff`, Plausibilitätsprüfung, Spielwert und Gewinn/Verlust pro Spieler |
-| `table` | `Table` mit Spielern, Geber-Rotation, Spielen, Rückgängig und JSON-Speicherformat |
+| `table` | `Table` mit Spielern, Geber-Rotation, Spielen, Tarifänderung, Rückgängig und JSON-Speicherformat |
+| `csv` | CSV-Kopfzeile und eine Zeile pro Spiel (zum Anhängen an die Datei), Kontostände pro Spieler |
 | `stats` | Auswertung pro Spieler und pro Tisch, Kontoverlauf für Graphen |
 
 Entscheidungen:
 
 - **Geld in Cent als `i64`**, nie Fließkomma.
-- **Eingetragen wird, was am Tisch passiert ist, nicht der Betrag.** Der Betrag wird berechnet und
+- **Eingetragen wird, was am Tisch passiert ist.** Der Betrag wird berechnet (ein anderer verlangter
+  Preis lässt sich von Hand eintragen) und
   beim Eintragen im Spiel festgeschrieben, damit eine spätere Tarifänderung die Historie nicht ändert.
-- **Speicherformat ist JSON** (`Table::to_json` / `from_json`) mit Versionsfeld. Wo die App die Datei
+- **Zwei Dateien:** `Table::to_json` / `from_json` (mit Versionsfeld) speichert den ganzen Tisch samt
+  Tarif. Dazu schreibt die App nach jedem Spiel `Table::csv_row` an eine **CSV-Datei**, die sich in
+  Tabellenkalkulationen öffnen lässt (Beträge in Cent, pro Spieler Gewinn und Kontostand). Die CSV ist
+  das Journal, das JSON der vollständige Stand mit Tarif. Wo die App die Dateien
   ablegt, entscheidet später die UI-Schicht.
 
 ## Status

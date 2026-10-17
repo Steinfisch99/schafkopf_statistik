@@ -87,13 +87,14 @@ fn five_players_dealer_sits_out() {
     let mut players = names();
     players.push("Emil".into());
     let mut t = Table::new("Fünf", players, 4, Tariff::default()).unwrap();
-    assert_eq!(t.default_participants(4), vec![0, 1, 2, 3]);
+    // Geber 4, davor 3 (hebt ab), danach 0 und 1; Platz 2 setzt aus.
+    assert_eq!(t.default_participants(4), vec![0, 1, 3, 4]);
     let g = t.add_game(sauspiel(4, 0, 1)).unwrap();
-    assert_eq!(g.payouts, vec![20, 20, -20, -20, 0]);
+    assert_eq!(g.payouts, vec![20, 20, 0, -20, -20]);
     assert_eq!(t.next_dealer(), 0);
-    // der Geber kann nicht mitspielen
-    let err = t.add_game(sauspiel(0, 0, 1)).unwrap_err();
-    assert_eq!(err, Error::SeatNotActive(0));
+    // Wer aussetzt, kann nicht spielen: bei Geber 0 setzt Platz 3 aus.
+    let err = t.add_game(sauspiel(0, 3, 1)).unwrap_err();
+    assert_eq!(err, Error::SeatNotActive(3));
 }
 
 #[test]
@@ -316,7 +317,8 @@ fn stats_roles_streaks_and_matrix() {
     assert_eq!(ben.by_position[0], RoleStats { games: 1, wins: 1 });
 
     let history = balance_history(&t);
-    assert_eq!(history.len(), 3);
+    assert_eq!(history.len(), 4);
+    assert_eq!(history[0], vec![0, 0, 0, 0]);
     assert_eq!(history.last().unwrap(), &t.balances());
 }
 
@@ -381,8 +383,8 @@ fn three_players_solo_and_no_team_game() {
 #[test]
 fn large_tables_rotate_who_sits_out() {
     let mut t = table_of(10);
-    assert_eq!(t.default_participants(0), vec![1, 2, 3, 4]);
-    assert_eq!(t.default_participants(8), vec![9, 0, 1, 2]);
+    assert_eq!(t.default_participants(0), vec![1, 2, 9, 0]);
+    assert_eq!(t.default_participants(8), vec![9, 0, 7, 8]);
     let mut played = [0u32; 10];
     for _ in 0..10 {
         let dealer = t.next_dealer();
@@ -392,7 +394,16 @@ fn large_tables_rotate_who_sits_out() {
         for &s in &g.input.participants {
             played[s] += 1;
         }
-        assert_eq!(g.payouts[dealer], 0);
+        let mut seats = g.input.participants.clone();
+        seats.sort();
+        let mut expected = vec![
+            dealer,
+            (dealer + 1) % 10,
+            (dealer + 2) % 10,
+            (dealer + 9) % 10,
+        ];
+        expected.sort();
+        assert_eq!(seats, expected);
     }
     assert!(played.iter().all(|&c| c == 4));
     let stats = table_stats(&t);
@@ -422,4 +433,89 @@ fn explicit_participants_are_validated() {
         Error::UnknownSeat(9)
     );
     assert!(t.add_game(with(vec![1, 3, 5])).is_ok());
+}
+
+#[test]
+fn demanded_price_replaces_the_calculation() {
+    let mut t = table();
+    let g = t
+        .add_game(GameInput {
+            price_override: Some(30),
+            ..sauspiel(0, 1, 3)
+        })
+        .unwrap();
+    assert_eq!(g.value, 30);
+    assert_eq!(g.calculated_value, 20);
+    assert_eq!(g.payouts, vec![-30, 30, -30, 30]);
+    assert_eq!(table_stats(&t).corrected_games, 1);
+    assert_eq!(
+        t.add_game(GameInput {
+            price_override: Some(-1),
+            ..sauspiel(1, 1, 3)
+        })
+        .unwrap_err(),
+        Error::NegativePrice(-1)
+    );
+}
+
+#[test]
+fn changing_the_tariff_keeps_old_games() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.set_tariff(Tariff {
+        sauspiel: 50,
+        ..Tariff::default()
+    });
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    assert_eq!(t.games()[0].value, 20);
+    assert_eq!(t.games()[1].value, 50);
+    assert_eq!(t.balances(), vec![-70, 70, -70, 70]);
+    let back = Table::from_json(&t.to_json().unwrap()).unwrap();
+    assert_eq!(back.tariff.sauspiel, 50);
+}
+
+#[test]
+fn dealer_and_the_player_before_play_with_the_two_after() {
+    let t = table();
+    assert_eq!(t.default_participants(2), vec![3, 0, 1, 2]);
+}
+
+#[test]
+fn csv_has_header_and_one_row_per_game() {
+    let mut t = Table::new(
+        "T",
+        vec![
+            "Anna".into(),
+            "Ben, der Alte".into(),
+            "Cem".into(),
+            "Dora".into(),
+        ],
+        0,
+        Tariff::default(),
+    )
+    .unwrap();
+    t.add_game(GameInput {
+        knockers: vec![2],
+        note: Some("sagt \"Wenz\"".into()),
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        won: false,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    let csv = t.to_csv();
+    let lines: Vec<&str> = csv.lines().collect();
+    assert_eq!(lines.len(), 3);
+    assert!(lines[0].starts_with("Nr,Zeit,Geber,Spielart,"));
+    assert!(lines[0].ends_with("\"Ben, der Alte Gewinn_Cent\",\"Ben, der Alte Stand_Cent\",Cem Gewinn_Cent,Cem Stand_Cent,Dora Gewinn_Cent,Dora Stand_Cent"));
+    assert_eq!(t.csv_row(0).unwrap(), lines[1]);
+    assert!(t.csv_row(2).is_none());
+    // Spiel 1: Klopfen verdoppelt 20 auf 40; Ben und Dora gewinnen.
+    assert!(lines[1].starts_with("1,,Anna,Sauspiel,Eichel,\"Ben, der Alte\",Dora,"));
+    assert!(lines[1].contains("\"sagt \"\"Wenz\"\"\""));
+    assert!(lines[1].ends_with("-40,-40,40,40,-40,-40,40,40"));
+    // Spiel 2 verloren: Ben und Dora zahlen je 20, Stand danach -20, +20, -20, +20.
+    assert!(lines[2].ends_with("20,-20,-20,20,20,-20,-20,20"));
 }

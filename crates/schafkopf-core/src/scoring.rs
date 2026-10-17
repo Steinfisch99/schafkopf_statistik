@@ -135,6 +135,11 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
             return Err(Error::InvalidPoints(p));
         }
     }
+    if let Some(price) = input.price_override {
+        if price < 0 {
+            return Err(Error::NegativePrice(price));
+        }
+    }
     if input.laufende > 8 {
         return Err(Error::InvalidLaufende(input.laufende));
     }
@@ -143,9 +148,18 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
 
 /// Wert des Spiels, den jeder Verlierer an jeden Gewinner zahlt (Einzelwert).
 ///
+/// Das ist der verlangte Preis, falls einer eingetragen wurde, sonst [`calculated_value`].
+pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
+    input
+        .price_override
+        .unwrap_or_else(|| calculated_value(tariff, input))
+}
+
+/// Der nach Tarif berechnete Einzelwert.
+///
 /// Grundtarif plus Schneider, Schwarz und Laufende, danach verdoppelt durch
 /// Klopfen, Kontra, Re und Tout. Setzt eine gültige Eingabe voraus, siehe [`validate`].
-pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
+pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
     let kind = input.kind;
     let mut value = tariff.base(kind);
     if kind.has_extras() {

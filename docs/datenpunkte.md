@@ -8,7 +8,8 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Datenpunkt | Beispiel | Pflicht |
 | --- | --- | --- |
 | Geber | Anna | ja |
-| Mitspielende | 2 bis 4 Plätze, die in diesem Spiel dabei sind (Voreinstellung: die vier links vom Geber) | nein |
+| Mitspielende | 2 bis 4 Plätze, die in diesem Spiel dabei sind (Voreinstellung: Geber, der Spieler vor ihm und die zwei nach ihm) | nein |
+| Verlangter Preis | Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif ergibt | nein |
 | Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Bettel, Ramsch | ja |
 | Farbe | beim Sauspiel die gerufene Sau (nicht Herz), beim Farbsolo die Trumpffarbe | je nach Spielart |
 | Spieler | Ben (beim Ramsch: der Verlierer) | ja |
@@ -55,12 +56,21 @@ Schwarz +0,10 €, jedes Laufende +0,10 €.
 - Anzahl Spiele, bewegtes Geld, teuerstes Spiel
 - Verteilung der Spielarten und Siegquote je Spielart
 - Welche Sau am häufigsten gerufen wird und wie oft sie gewinnt
-- Anteil der Spiele mit Klopfen, Kontra, Re, Schneider, Schwarz
+- Anteil der Spiele mit Klopfen, Kontra, Re, Schneider, Schwarz und mit korrigiertem Preis
 - Mitspieler-Matrix: wer hat mit wem wie oft gewonnen
-- Kontoverlauf aller Spieler über die Spiele (für einen Graphen)
+- Kontoverlauf aller Spieler über die Spiele (für einen Graphen), beginnt bei 0 und kann negativ werden
 
 ## Noch nicht erfasst
 
 Schneider oder Schwarz angesagt, Sup/Supra (weitere Verdopplungen), Ramsch mit Jungfrau und
 Durchmarsch-Details, Legen/Stoß-Varianten. Das lässt sich im Datenmodell nachrüsten, ohne alte
 Dateien unlesbar zu machen, weil neue Felder mit Standardwerten gelesen werden.
+
+## CSV-Datei
+
+Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr`, `Zeit`, `Geber`,
+`Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Tout`,
+`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
+danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
+Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
+werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.

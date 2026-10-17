@@ -146,6 +146,10 @@ pub struct GameInput {
     /// Anzahl Laufende (Karten in Folge von oben), die die Siegerpartei hatte.
     #[serde(default)]
     pub laufende: u8,
+    /// Verlangter Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif
+    /// ergibt. Ersetzt dann die Berechnung.
+    #[serde(default)]
+    pub price_override: Option<Cents>,
     /// Augen der Spielerpartei, optional für die Statistik.
     #[serde(default)]
     pub points: Option<u8>,
@@ -174,6 +178,7 @@ impl GameInput {
             schneider: false,
             schwarz: false,
             laufende: 0,
+            price_override: None,
             points: None,
             played_at: None,
             note: None,

@@ -112,6 +112,8 @@ pub struct TableStats {
     pub re_games: u32,
     pub schneider_games: u32,
     pub schwarz_games: u32,
+    /// Spiele, in denen ein anderer Preis verlangt wurde, als der Tarif ergibt.
+    pub corrected_games: u32,
     pub players: Vec<PlayerStats>,
     /// `partner_matrix[a][b]`: Sauspiele/Hochzeiten, in denen a und b zusammen gespielt haben.
     pub partner_matrix: Vec<Vec<RoleStats>>,
@@ -137,6 +139,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         re_games: 0,
         schneider_games: 0,
         schwarz_games: 0,
+        corrected_games: 0,
         players: Vec::new(),
         partner_matrix: vec![vec![RoleStats::default(); n]; n],
     };
@@ -161,6 +164,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.re_games += u32::from(g.re);
         stats.schneider_games += u32::from(g.schneider || g.schwarz);
         stats.schwarz_games += u32::from(g.schwarz);
+        stats.corrected_games += u32::from(game.value != game.calculated_value);
         if let Some(partner) = g.partner {
             stats.partner_matrix[g.declarer][partner].record(g.won);
             stats.partner_matrix[partner][g.declarer].record(g.won);
@@ -228,18 +232,18 @@ pub fn table_stats(table: &Table) -> TableStats {
     stats
 }
 
-/// Kontostand pro Sitzplatz nach jedem Spiel, z. B. für einen Verlaufsgraphen.
-/// Der erste Eintrag ist der Stand nach dem ersten Spiel.
+/// Kontostand pro Sitzplatz für einen Verlaufsgraphen.
+///
+/// Der erste Eintrag ist der Start bei 0, danach folgt der Stand nach jedem Spiel. Der Graph hat
+/// also eine Position mehr als es Spiele gibt, und Kontostände können negativ sein.
 pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
     let mut sum = vec![0; table.player_count()];
-    table
-        .games()
-        .iter()
-        .map(|g| {
-            for (s, p) in sum.iter_mut().zip(&g.payouts) {
-                *s += p;
-            }
-            sum.clone()
-        })
-        .collect()
+    let mut history = vec![sum.clone()];
+    for g in table.games() {
+        for (s, p) in sum.iter_mut().zip(&g.payouts) {
+            *s += p;
+        }
+        history.push(sum.clone());
+    }
+    history
 }
