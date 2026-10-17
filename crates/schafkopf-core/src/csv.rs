@@ -72,7 +72,7 @@ impl Table {
         let game = self.games().get(index)?;
         let g = &game.input;
         let opt = |v: Option<String>| v.unwrap_or_default();
-        let mut standing: Vec<Cents> = vec![0; self.player_count()];
+        let mut standing: Vec<Cents> = vec![0; self.players.len()];
         for earlier in &self.games()[..=index] {
             for (s, p) in standing.iter_mut().zip(&earlier.payouts) {
                 *s += p;

@@ -1545,3 +1545,145 @@ fn bock_is_counted_in_the_statistics_and_the_csv() {
     assert_eq!((row0[at].as_str(), row0[at + 1].as_str()), ("nein", "ja"));
     assert_eq!((row1[at].as_str(), row1[at + 1].as_str()), ("ja", "nein"));
 }
+
+#[test]
+fn a_late_player_sits_where_chosen_and_owes_nothing_for_earlier_games() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    // Eva setzt sich zwischen Ben (1) und Cem (2).
+    let eva = t.add_player("Eva", Some(1)).unwrap();
+    assert_eq!(eva, 4);
+    assert_eq!(t.players.len(), 5);
+    assert_eq!(t.ring(), vec![0, 1, 4, 2, 3]);
+    assert_eq!(t.balances(), vec![-20, 20, -20, 20, 0]);
+    assert_eq!(t.games()[0].payouts, vec![-20, 20, -20, 20, 0]);
+    // Der Geber wandert in der neuen Reihenfolge weiter: nach Anna (0) kommt Ben (1), dann Eva.
+    assert_eq!(t.next_dealer(), 1);
+    t.add_game(sauspiel(1, 0, 2)).unwrap();
+    assert_eq!(t.next_dealer(), 4);
+    assert_eq!(t.default_participants(4), vec![2, 3, 1, 4]);
+    assert_eq!(t.default_participants(3), vec![0, 1, 2, 3]);
+}
+
+#[test]
+fn a_new_player_needs_a_fresh_name_and_a_free_seat() {
+    let mut t = table();
+    assert_eq!(
+        t.add_player("Anna", None),
+        Err(Error::DuplicateName("Anna".into()))
+    );
+    assert_eq!(t.add_player("  ", None), Err(Error::EmptyName));
+    assert_eq!(t.add_player("Eva", Some(9)), Err(Error::UnknownSeat(9)));
+    for name in ["E1", "E2", "E3", "E4", "E5", "E6"] {
+        t.add_player(name, None).unwrap();
+    }
+    assert_eq!(t.player_count(), 10);
+    assert_eq!(t.add_player("Zu viel", None), Err(Error::PlayerCount(11)));
+}
+
+#[test]
+fn a_player_who_leaves_is_skipped_and_can_return() {
+    let mut t = table();
+    t.add_player("Eva", None).unwrap();
+    t.add_game(sauspiel(0, 1, 2)).unwrap();
+    t.leave(1).unwrap();
+    assert_eq!(t.player_count(), 4);
+    assert_eq!(t.present_seats(), vec![0, 2, 3, 4]);
+    assert!(!t.is_present(1));
+    // Ben fehlt: nach Anna gibt Cem.
+    assert_eq!(t.next_dealer(), 2);
+    assert_eq!(t.default_participants(2), vec![3, 4, 0, 2]);
+    // Sein Stand bleibt stehen, die Spiele auch.
+    assert_eq!(t.balances()[1], 20);
+    assert_eq!(t.games().len(), 1);
+    t.rejoin(1).unwrap();
+    assert_eq!(t.present_seats(), vec![0, 1, 2, 3, 4]);
+    assert_eq!(t.next_dealer(), 1);
+}
+
+#[test]
+fn nobody_can_leave_below_two_and_only_present_players_can_play() {
+    let mut t = Table::new("Zu zweit", names()[..3].to_vec(), 0, Tariff::default()).unwrap();
+    t.leave(2).unwrap();
+    assert_eq!(t.leave(1), Err(Error::PlayerCount(1)));
+    assert_eq!(t.leave(2), Err(Error::UnknownSeat(2)));
+    let solo = GameInput::new(0, GameKind::Wenz, 1);
+    t.add_game(solo.clone()).unwrap();
+    let with_absent = GameInput {
+        participants: vec![0, 1, 2],
+        ..solo
+    };
+    assert_eq!(t.preview_game(with_absent), Err(Error::SeatNotAtTable(2)));
+}
+
+#[test]
+fn old_games_stay_editable_and_keep_who_sat_there() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_player("Eva", None).unwrap();
+    t.leave(3).unwrap();
+    let edited = GameInput {
+        won: false,
+        participants: vec![1, 2, 3, 0],
+        ..sauspiel(0, 1, 3)
+    };
+    t.replace_game(0, edited).unwrap();
+    assert_eq!(t.games()[0].payouts, vec![20, -20, 20, -20, 0]);
+    // Eva war beim ersten Spiel nicht dabei, Dora schon.
+    assert!(!t.was_at_table(&t.games()[0], 4));
+    assert!(t.was_at_table(&t.games()[0], 3));
+}
+
+#[test]
+fn sitting_out_only_counts_when_the_player_was_at_the_table() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_player("Eva", Some(3)).unwrap();
+    t.add_game(sauspiel(1, 0, 2)).unwrap();
+    let stats = table_stats(&t);
+    assert_eq!(stats.players[4].games_sat_out, 1);
+    assert_eq!(stats.players[4].games_played, 0);
+    assert_eq!(stats.players[0].games_sat_out, 0);
+}
+
+#[test]
+fn bock_round_length_follows_the_players_at_the_table() {
+    let mut t = bock_table(BockMode::NextRound);
+    t.add_player("Eva", None).unwrap();
+    t.add_game(GameInput {
+        starts_bock: true,
+        ..sauspiel(0, 1, 2)
+    })
+    .unwrap();
+    assert_eq!(t.bock_pending(), 5);
+    t.leave(2).unwrap();
+    // Das Spiel zählt mit den fünf, die dabei saßen.
+    assert_eq!(t.bock_pending(), 5);
+    t.add_game(GameInput {
+        starts_bock: true,
+        ..sauspiel(1, 0, 3)
+    })
+    .unwrap();
+    assert_eq!(t.bock_pending(), 5 + 4);
+}
+
+#[test]
+fn tables_with_players_coming_and_going_survive_json_and_old_files_load() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_player("Eva", Some(0)).unwrap();
+    t.leave(2).unwrap();
+    let back = Table::from_json(&t.to_json().unwrap()).unwrap();
+    assert_eq!(back, t);
+    assert_eq!(back.ring(), vec![0, 4, 1, 2, 3]);
+
+    let old = table().to_json().unwrap();
+    let old: String = old
+        .lines()
+        .filter(|l| !l.contains("\"seating\"") && !l.contains("\"absent\""))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let t = Table::from_json(&old).unwrap();
+    assert_eq!(t.present_seats(), vec![0, 1, 2, 3]);
+    assert_eq!(t.next_dealer(), 0);
+}

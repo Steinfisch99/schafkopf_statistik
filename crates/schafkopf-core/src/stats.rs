@@ -164,7 +164,9 @@ pub struct TableStats {
 
 /// Wertet einen ganzen Tisch aus.
 pub fn table_stats(table: &Table) -> TableStats {
-    let n = table.player_count();
+    let n = table.players.len();
+    let ring = table.ring();
+    let ring_pos = |s: Seat| ring.iter().position(|&r| r == s).unwrap_or(s);
     let mut players: Vec<PlayerStats> = table
         .players
         .iter()
@@ -239,6 +241,9 @@ pub fn table_stats(table: &Table) -> TableStats {
 
         players[g.dealer].games_dealt += 1;
         for (seat, p) in players.iter_mut().enumerate() {
+            if !table.was_at_table(game, seat) {
+                continue;
+            }
             if !active.contains(&seat) {
                 p.games_sat_out += 1;
                 continue;
@@ -286,7 +291,7 @@ pub fn table_stats(table: &Table) -> TableStats {
             k.wins += u32::from(won);
             k.balance += payout;
 
-            let order = |s: Seat| (s + n - g.dealer - 1) % n;
+            let order = |s: Seat| (ring_pos(s) + n - ring_pos(g.dealer) - 1) % n;
             let position = active.iter().filter(|&&s| order(s) < order(seat)).count();
             p.by_position[position].record(won);
 
@@ -312,7 +317,7 @@ pub fn table_stats(table: &Table) -> TableStats {
 /// Der erste Eintrag ist der Start bei 0, danach folgt der Stand nach jedem Spiel. Der Graph hat
 /// also eine Position mehr als es Spiele gibt, und Kontostände können negativ sein.
 pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
-    let mut sum = vec![0; table.player_count()];
+    let mut sum = vec![0; table.players.len()];
     let mut history = vec![sum.clone()];
     for g in table.games() {
         for (s, p) in sum.iter_mut().zip(&g.payouts) {

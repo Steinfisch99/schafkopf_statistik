@@ -5,6 +5,10 @@ use crate::library::RuleSet;
 use crate::model::{BockMode, Cents, GameInput, GameKind, Seat};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
+/// Am Tisch sitzen zwischen 2 und 10 Spieler.
+const MIN_PLAYERS: usize = 2;
+const MAX_PLAYERS: usize = 10;
+
 /// Ein abgerechnetes Spiel. Beträge werden beim Eintragen festgeschrieben,
 /// damit eine spätere Tarifänderung die Historie nicht verändert.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +25,10 @@ pub struct Game {
     /// werden dann mit dem aktuellen Tarif des Abends neu gerechnet.
     #[serde(default)]
     pub tariff: Option<Tariff>,
+    /// Wer bei diesem Spiel am Tisch saß (Sitzplätze, in Sitzreihenfolge). Leer in alten Dateien:
+    /// dann saßen alle da, für die das Spiel eine Auszahlung hat.
+    #[serde(default)]
+    pub at_table: Vec<Seat>,
 }
 
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
@@ -28,7 +36,16 @@ pub struct Game {
 pub struct Table {
     pub version: u32,
     pub name: String,
+    /// Alle Spieler des Abends, auch die, die schon gegangen sind. Wer dazukommt, wird hinten
+    /// angehängt, damit die Sitzplätze der früheren Spiele gleich bleiben.
     pub players: Vec<String>,
+    /// Die Sitzreihenfolge aller Sitzplätze (Spielrichtung). Leer in alten Dateien: dann die
+    /// Reihenfolge von `players`.
+    #[serde(default)]
+    pub seating: Vec<Seat>,
+    /// Sitzplätze, deren Spieler gerade nicht am Tisch sind.
+    #[serde(default)]
+    pub absent: Vec<Seat>,
     /// Wer gibt im ersten Spiel? Danach wandert der Geber jeweils einen Platz weiter.
     pub first_dealer: Seat,
     pub tariff: Tariff,
@@ -58,7 +75,7 @@ impl Table {
         first_dealer: Seat,
         tariff: Tariff,
     ) -> Result<Self> {
-        if !(2..=10).contains(&players.len()) {
+        if !(MIN_PLAYERS..=MAX_PLAYERS).contains(&players.len()) {
             return Err(Error::PlayerCount(players.len()));
         }
         let players: Vec<String> = players.into_iter().map(|p| p.trim().to_owned()).collect();
@@ -77,6 +94,8 @@ impl Table {
             version: Self::CURRENT_VERSION,
             name: name.into(),
             players,
+            seating: Vec::new(),
+            absent: Vec::new(),
             first_dealer,
             tariff,
             tariff_name: None,
@@ -92,23 +111,135 @@ impl Table {
         &self.games
     }
 
-    /// Anzahl der Spieler am Tisch (2 bis 10).
+    /// Anzahl der Spieler, die gerade am Tisch sitzen (2 bis 10).
     pub fn player_count(&self) -> usize {
-        self.players.len()
+        self.players.len() - self.absent.len()
+    }
+
+    /// Alle Sitzplätze, auch die der Gegangenen, in Sitzreihenfolge.
+    pub fn ring(&self) -> Vec<Seat> {
+        if self.seating.len() == self.players.len() {
+            self.seating.clone()
+        } else {
+            (0..self.players.len()).collect()
+        }
+    }
+
+    /// Die Sitzplätze der Spieler, die gerade am Tisch sitzen, in Sitzreihenfolge.
+    pub fn present_seats(&self) -> Vec<Seat> {
+        self.ring()
+            .into_iter()
+            .filter(|s| !self.absent.contains(s))
+            .collect()
+    }
+
+    /// Ob dieser Spieler gerade am Tisch sitzt.
+    pub fn is_present(&self, seat: Seat) -> bool {
+        seat < self.players.len() && !self.absent.contains(&seat)
+    }
+
+    /// Der nächste Sitzplatz nach `seat` in Spielrichtung, an dem jemand sitzt. Mit `inclusive`
+    /// zählt `seat` selbst, falls dort jemand sitzt.
+    fn next_present(&self, seat: Seat, inclusive: bool) -> Seat {
+        let ring = self.ring();
+        let start = ring.iter().position(|&s| s == seat).unwrap_or(0);
+        let len = ring.len();
+        for step in usize::from(!inclusive)..=len {
+            let s = ring[(start + step) % len];
+            if self.is_present(s) {
+                return s;
+            }
+        }
+        seat
     }
 
     /// Voreinstellung, wer bei diesem Geber mitspielt: der Geber, der Spieler vor ihm (er hebt ab)
     /// und die zwei Spieler nach ihm. Bei weniger als vier Spielern spielen alle mit.
     /// Die Reihenfolge ist die Spielreihenfolge: Vorhand, Mittelhand, der Abheber, der Geber.
+    /// Wer nicht am Tisch sitzt, wird übersprungen.
     pub fn default_participants(&self, dealer: Seat) -> Vec<Seat> {
-        let n = self.player_count();
+        let ring = self.present_seats();
+        let n = ring.len();
+        if n == 0 {
+            return Vec::new();
+        }
         let mut seats: Vec<Seat> = Vec::new();
-        for s in [dealer + 1, dealer + 2, dealer + n - 1, dealer] {
-            if !seats.contains(&(s % n)) {
-                seats.push(s % n);
+        match ring.iter().position(|&s| s == dealer) {
+            Some(d) => {
+                for s in [d + 1, d + 2, d + n - 1, d] {
+                    if !seats.contains(&ring[s % n]) {
+                        seats.push(ring[s % n]);
+                    }
+                }
+            }
+            None => {
+                let first = self.next_present(dealer, false);
+                let d = ring.iter().position(|&s| s == first).unwrap_or(0);
+                for i in 0..n.min(4) {
+                    seats.push(ring[(d + i) % n]);
+                }
             }
         }
         seats
+    }
+
+    /// Setzt einen neuen Spieler an den Tisch, hinter den Sitzplatz `after` (am Ende der Runde,
+    /// wenn `None`). Für die früheren Spiele zahlt er nichts. Gibt seinen Sitzplatz zurück.
+    pub fn add_player(&mut self, name: &str, after: Option<Seat>) -> Result<Seat> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(Error::EmptyName);
+        }
+        if self.players.iter().any(|p| p == name) {
+            return Err(Error::DuplicateName(name.to_owned()));
+        }
+        if self.player_count() >= MAX_PLAYERS {
+            return Err(Error::PlayerCount(self.player_count() + 1));
+        }
+        if let Some(a) = after {
+            if a >= self.players.len() {
+                return Err(Error::UnknownSeat(a));
+            }
+        }
+        let mut ring = self.ring();
+        let seat = self.players.len();
+        let index = after
+            .and_then(|a| ring.iter().position(|&s| s == a))
+            .map_or(ring.len(), |i| i + 1);
+        ring.insert(index, seat);
+        self.players.push(name.to_owned());
+        self.seating = ring;
+        for game in &mut self.games {
+            game.payouts.push(0);
+        }
+        Ok(seat)
+    }
+
+    /// Ein Spieler verlässt den Tisch. Seine Spiele und sein Stand bleiben erhalten.
+    pub fn leave(&mut self, seat: Seat) -> Result<()> {
+        if !self.is_present(seat) {
+            return Err(Error::UnknownSeat(seat));
+        }
+        if self.player_count() <= MIN_PLAYERS {
+            return Err(Error::PlayerCount(self.player_count() - 1));
+        }
+        self.absent.push(seat);
+        Ok(())
+    }
+
+    /// Ein Spieler, der gegangen war, setzt sich wieder an den Tisch, auf seinen alten Platz.
+    pub fn rejoin(&mut self, seat: Seat) -> Result<()> {
+        if seat >= self.players.len() {
+            return Err(Error::UnknownSeat(seat));
+        }
+        if self.is_present(seat) {
+            return Ok(());
+        }
+        if self.player_count() >= MAX_PLAYERS {
+            return Err(Error::PlayerCount(self.player_count() + 1));
+        }
+        self.absent.retain(|&s| s != seat);
+        Ok(())
     }
 
     /// Ändert den Tarif für alle künftigen Spiele (ohne Namen aus der Bibliothek). Bereits
@@ -176,7 +307,20 @@ impl Table {
 
     /// Wie viele Spieler bei diesem Spiel am Tisch saßen.
     fn players_at_table(&self, game: &Game) -> usize {
-        game.payouts.len()
+        if game.at_table.is_empty() {
+            game.payouts.len()
+        } else {
+            game.at_table.len()
+        }
+    }
+
+    /// Ob dieser Sitzplatz bei diesem Spiel am Tisch saß.
+    pub fn was_at_table(&self, game: &Game, seat: Seat) -> bool {
+        if game.at_table.is_empty() {
+            seat < game.payouts.len()
+        } else {
+            game.at_table.contains(&seat)
+        }
     }
 
     /// Ob diese Spielart in diesem Abend gespielt wird.
@@ -184,35 +328,42 @@ impl Table {
         self.enabled_kinds.contains(&kind)
     }
 
-    /// Geber des nächsten Spiels.
+    /// Geber des nächsten Spiels: der Nächste in Spielrichtung, der am Tisch sitzt.
     pub fn next_dealer(&self) -> Seat {
         match self.games.last() {
-            Some(g) => (g.input.dealer + 1) % self.player_count(),
-            None => self.first_dealer,
+            Some(g) => self.next_present(g.input.dealer, false),
+            None => self.next_present(self.first_dealer, true),
         }
     }
 
     /// Prüft die Eingabe und rechnet sie ab, ohne das Spiel zu speichern.
     /// Damit zeigt die App den Preis und die Auszahlung schon vor dem Eintragen.
     pub fn preview_game(&self, input: GameInput) -> Result<Game> {
-        self.settle(&self.tariff, input)
+        for seat in input.participants.iter().chain([&input.dealer]) {
+            if *seat < self.players.len() && !self.is_present(*seat) {
+                return Err(Error::SeatNotAtTable(*seat));
+            }
+        }
+        self.settle(&self.tariff, input, self.present_seats())
     }
 
-    fn settle(&self, tariff: &Tariff, input: GameInput) -> Result<Game> {
+    /// Rechnet ein Spiel ab. `at_table` sind die Sitzplätze, die dabei am Tisch saßen.
+    fn settle(&self, tariff: &Tariff, input: GameInput, at_table: Vec<Seat>) -> Result<Game> {
         let mut input = input;
-        if input.participants.is_empty() && input.dealer < self.player_count() {
+        if input.participants.is_empty() && input.dealer < self.players.len() {
             input.participants = self.default_participants(input.dealer);
         }
-        validate(&input, self.player_count())?;
+        validate(&input, self.players.len())?;
         let calculated_value = calculated_value(tariff, &input);
         let value = game_value(tariff, &input);
-        let payouts = payouts(tariff, &input, self.player_count());
+        let payouts = payouts(tariff, &input, self.players.len());
         Ok(Game {
             input,
             value,
             calculated_value,
             payouts,
             tariff: Some(tariff.clone()),
+            at_table,
         })
     }
 
@@ -225,7 +376,8 @@ impl Table {
     /// Rechnet eine geänderte Fassung eines bestehenden Spiels, ohne es zu speichern. Es gilt der
     /// Tarif, mit dem das Spiel ursprünglich abgerechnet wurde.
     pub fn preview_edit(&self, index: usize, input: GameInput) -> Result<Game> {
-        self.settle(&self.tariff_of(index)?, input)
+        let tariff = self.tariff_of(index)?;
+        self.settle(&tariff, input, self.games[index].at_table.clone())
     }
 
     /// Ersetzt ein bestehendes Spiel durch eine geänderte Fassung. Beträge werden mit dem Tarif
@@ -255,7 +407,7 @@ impl Table {
 
     /// Aktueller Kontostand pro Sitzplatz in Cent.
     pub fn balances(&self) -> Vec<Cents> {
-        let mut sum = vec![0; self.player_count()];
+        let mut sum = vec![0; self.players.len()];
         for g in &self.games {
             for (s, p) in sum.iter_mut().zip(&g.payouts) {
                 *s += p;
