@@ -190,16 +190,21 @@ pub fn game_value(tariff: &Tariff, input: &GameInput) -> Cents {
 /// Der nach Tarif berechnete Einzelwert.
 ///
 /// Grundtarif plus Schneider, Schwarz und Laufende, danach verdoppelt durch
-/// Klopfen, Kontra, Re und Tout. Setzt eine gültige Eingabe voraus, siehe [`validate`].
+/// Klopfen, Kontra, Re und Tout. Beim Tout zählen Schneider und Schwarz nicht zum Grundpreis.
+/// Setzt eine gültige Eingabe voraus, siehe [`validate`].
 pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
     let kind = input.kind;
     let mut value = tariff.base(kind);
     if kind.has_extras() {
-        if input.schneider || input.schwarz {
-            value += tariff.schneider;
-        }
-        if input.schwarz {
-            value += tariff.schwarz;
+        // Beim Tout muss der Spieler alle Stiche machen: Schneider und Schwarz sind darin schon
+        // enthalten und kommen nicht zum Preis. Sie bleiben im Spiel (für die Statistik).
+        if !input.tout {
+            if input.schneider || input.schwarz {
+                value += tariff.schneider;
+            }
+            if input.schwarz {
+                value += tariff.schwarz;
+            }
         }
         if input.laufende >= tariff.laufende_min(kind) {
             value += Cents::from(input.laufende) * tariff.laufende;

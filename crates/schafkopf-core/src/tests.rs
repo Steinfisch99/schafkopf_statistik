@@ -2214,3 +2214,52 @@ fn debug_evenings_are_a_flag_that_old_files_do_not_have() {
         .join("\n");
     assert!(!Table::from_json(&old).unwrap().debug);
 }
+
+#[test]
+fn schneider_and_schwarz_do_not_add_to_a_tout() {
+    let t = Tariff::default();
+    let solo = |tout, schneider, schwarz| GameInput {
+        tout,
+        schneider,
+        schwarz,
+        laufende: 3,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    // Ohne Tout: 50 + 10 Schneider + 10 Schwarz + 3 mal 10 Laufende.
+    assert_eq!(calculated_value(&t, &solo(false, true, true)), 100);
+    // Mit Tout bleiben nur Grundpreis und Laufende, danach mal 2.
+    assert_eq!(
+        calculated_value(&t, &solo(true, false, false)),
+        (50 + 30) * 2
+    );
+    assert_eq!(
+        calculated_value(&t, &solo(true, true, false)),
+        (50 + 30) * 2
+    );
+    assert_eq!(calculated_value(&t, &solo(true, true, true)), (50 + 30) * 2);
+}
+
+#[test]
+fn a_tout_still_records_schneider_and_schwarz_for_the_statistics() {
+    let mut t = table();
+    t.add_game(GameInput {
+        tout: true,
+        schneider: true,
+        schwarz: true,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    })
+    .unwrap();
+    let s = table_stats(&t);
+    assert_eq!((s.schneider_games, s.schwarz_games), (1, 1));
+    assert_eq!(t.games()[0].value, 100);
+}
+
+#[test]
+fn schneider_and_schwarz_can_be_forgotten_separately() {
+    assert_ne!(
+        PriceMistake::SchneiderMissed.label(),
+        PriceMistake::SchwarzMissed.label()
+    );
+    assert!(PriceMistake::ALL.contains(&PriceMistake::SchwarzMissed));
+    assert_eq!(PriceMistake::ALL.len(), 9);
+}

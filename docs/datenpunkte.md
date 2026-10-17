@@ -217,7 +217,8 @@ Spiele Bockspiele mit doppeltem Preis.
   **Wer hat falsch verlangt?** (ohne Wahl: der Spieler) und **Was wurde vergessen oder falsch gemacht?**
   (Mehrfachauswahl).
 - Fehlerarten: Falscher Grundtarif, Falsche Anzahl Doppler, Bockrunde vergessen, Laufende nicht alle oder
-  keine, Schneider / Schwarz nicht verlangt, Falsche Partei gewonnen, Verrechnet, Etwas anderes.
+  keine, Schneider nicht verlangt, Schwarz nicht verlangt (zwei getrennte Knöpfe), Falsche Partei gewonnen,
+  Verrechnet, Etwas anderes.
 - Stimmt der Preis am Ende doch, werden beide Angaben verworfen.
 - Statistik: Wie oft jeder falsch verlangt hat (Rangliste und Spielerkarte, je Fehlerart) und welche
   Fehlerarten am Abend vorkamen. CSV: "Falsch_verlangt_von" und "Fehlerarten" (mit Semikolon getrennt).
@@ -240,3 +241,11 @@ Spiele Bockspiele mit doppeltem Preis.
   schlechtester Abend, Ergebnis je Abend, bestes und schlechtestes Spiel, Serien, Siege nach Rolle,
   wie oft er selbst gedoppelt hat (Klopfen, Kontra, Re), in wie vielen gedoppelten und vervierfachten
   Spielen er saß, Schneider/Schwarz, Lauf, falsch verlangt, Ergebnis je Spielart.
+
+### Tout
+
+- Beim Tout zählen **Schneider und Schwarz nicht zum Preis**: Der Spieler muss ohnehin alle Stiche machen.
+  Der Preis ist Grundpreis plus Laufende, dann verdoppelt. Schneider und Schwarz lassen sich trotzdem
+  eintragen und gehen in die Statistik ein. Im Formular steht dazu ein Hinweis, sobald Tout an ist.
+- Ältere Spiele mit Tout und Schneider oder Schwarz, die schon gespeichert sind, behalten ihren
+  festgeschriebenen Preis. Beim Bearbeiten wird nach der neuen Regel gerechnet.

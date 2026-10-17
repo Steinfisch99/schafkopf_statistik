@@ -380,7 +380,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Ein früherer Abend hat "Als Testabend markieren" und "Testabend-Markierung entfernen". Testabende
       stehen mit "Test" in der Liste, fehlen aber in der Gesamtstatistik.
 
-### 18. Darstellung
+### 18. Korrekturen (Schneider, Schwarz, Tout, lange Texte)
+- [ ] Bei "Was wurde vergessen oder falsch gemacht?" gibt es **zwei** Knöpfe: "Schneider nicht verlangt" und
+      "Schwarz nicht verlangt". Beide lassen sich einzeln wählen.
+- [ ] Mit Tout ändern Schneider und Schwarz den Preis nicht (Vorschau prüfen), die Laufenden zählen weiter,
+      darunter steht ein Hinweis. Schneider und Schwarz stehen weiter in der Statistik.
+- [ ] In allen Statistik-Balken (zum Beispiel "Wie oft kam was vor?", "Bockrunden ausgelöst") ist nichts
+      abgeschnitten, lange Beschriftungen brechen in die nächste Zeile um.
+
+### 19. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

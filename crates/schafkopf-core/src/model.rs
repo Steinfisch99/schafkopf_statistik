@@ -70,8 +70,10 @@ pub enum PriceMistake {
     BockForgotten,
     /// Nicht alle Laufende oder gar keine verlangt, oder zu viele.
     WrongLaufende,
-    /// Schneider oder Schneider und Schwarz nicht verlangt, oder zu viel.
+    /// Schneider nicht verlangt, oder zu viel.
     SchneiderMissed,
+    /// Schwarz nicht verlangt (oder zu viel).
+    SchwarzMissed,
     /// Falsch gezählt: Die falsche Partei hat gewonnen.
     WrongWinner,
     /// Verrechnet.
@@ -81,12 +83,13 @@ pub enum PriceMistake {
 }
 
 impl PriceMistake {
-    pub const ALL: [PriceMistake; 8] = [
+    pub const ALL: [PriceMistake; 9] = [
         PriceMistake::WrongBase,
         PriceMistake::WrongDoublings,
         PriceMistake::BockForgotten,
         PriceMistake::WrongLaufende,
         PriceMistake::SchneiderMissed,
+        PriceMistake::SchwarzMissed,
         PriceMistake::WrongWinner,
         PriceMistake::Miscalculated,
         PriceMistake::Other,
@@ -98,7 +101,8 @@ impl PriceMistake {
             PriceMistake::WrongDoublings => "Falsche Anzahl Doppler",
             PriceMistake::BockForgotten => "Bockrunde vergessen",
             PriceMistake::WrongLaufende => "Laufende nicht alle oder keine",
-            PriceMistake::SchneiderMissed => "Schneider / Schwarz nicht verlangt",
+            PriceMistake::SchneiderMissed => "Schneider nicht verlangt",
+            PriceMistake::SchwarzMissed => "Schwarz nicht verlangt",
             PriceMistake::WrongWinner => "Falsche Partei gewonnen",
             PriceMistake::Miscalculated => "Verrechnet",
             PriceMistake::Other => "Etwas anderes",
