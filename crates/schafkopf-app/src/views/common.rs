@@ -127,7 +127,7 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
         p { class: "hint", "Laufende zählen ab dieser Anzahl:" }
         div { class: "grid3",
             TextField { label: "Sauspiel", value: d.min_sauspiel, mode: "numeric", oninput: move |v| draft.write().min_sauspiel = v }
-            TextField { label: "Wenz", value: d.min_wenz, mode: "numeric", oninput: move |v| draft.write().min_wenz = v }
+            TextField { label: "Wenz, Geier", value: d.min_wenz_geier, mode: "numeric", oninput: move |v| draft.write().min_wenz_geier = v }
             TextField { label: "Solo", value: d.min_solo, mode: "numeric", oninput: move |v| draft.write().min_solo = v }
         }
     }

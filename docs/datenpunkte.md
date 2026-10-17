@@ -77,12 +77,12 @@ werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der 
 
 ### Export
 
-"CSV exportieren" speichert die Spiele eines Abends im Ordner Downloads, in zwei Formaten:
+"CSV exportieren" speichert die Spiele eines Abends im Ordner Downloads, in zwei Formaten. Beide sind
+UTF-8 mit Kennung (BOM) am Dateianfang, damit Umlaute in Excel, Google Tabellen und auf dem Handy
+richtig erscheinen:
 
-- **Für Excel:** Semikolon als Trennzeichen und UTF-8 mit Kennung (BOM). So öffnet das deutsche Excel
-  Spalten und Umlaute richtig.
-- **Allgemein:** Komma als Trennzeichen, ohne BOM, wie es Programme und Tabellenkalkulationen mit
-  englischen Einstellungen erwarten.
+- **Semikolon (deutsches Excel):** Das deutsche Excel teilt die Spalten nur bei Semikolon auf.
+- **Komma (international):** Für Tabellenkalkulationen mit englischen Einstellungen und Programme.
 
 Der Dateiname enthält das Datum des Abends (`schafkopf-2026-10-17.csv`). Eine bestehende Datei wird
 nie überschrieben, es kommt eine Nummer dazu.

@@ -569,3 +569,43 @@ fn csv_with_semicolon_for_german_excel() {
         .contains("\"Cem, Sr Gewinn_Cent\""));
     assert_eq!(t.csv_row(0), t.csv_row_with(0, ','));
 }
+
+#[test]
+fn geier_counts_laufende_from_two_like_wenz() {
+    let t = Tariff::default();
+    for kind in [GameKind::Wenz, GameKind::Geier] {
+        let two = GameInput {
+            laufende: 2,
+            ..GameInput::new(0, kind, 1)
+        };
+        let one = GameInput {
+            laufende: 1,
+            ..GameInput::new(0, kind, 1)
+        };
+        assert_eq!(game_value(&t, &two), 50 + 2 * 10, "{kind:?}");
+        assert_eq!(game_value(&t, &one), 50, "{kind:?}");
+    }
+    let farbgeier = GameInput {
+        suit: Some(Suit::Gras),
+        laufende: 2,
+        ..GameInput::new(0, GameKind::Farbgeier, 1)
+    };
+    assert_eq!(game_value(&t, &farbgeier), 70);
+    // Farbsolo zählt weiter erst ab drei.
+    let solo = GameInput {
+        suit: Some(Suit::Gras),
+        laufende: 2,
+        ..GameInput::new(0, GameKind::Farbsolo, 1)
+    };
+    assert_eq!(game_value(&t, &solo), 50);
+}
+
+#[test]
+fn tariff_saved_with_the_old_field_name_still_loads() {
+    let mut json = serde_json::to_value(Tariff::default()).unwrap();
+    let object = json.as_object_mut().unwrap();
+    let value = object.remove("laufende_min_wenz_geier").unwrap();
+    object.insert("laufende_min_wenz".into(), value);
+    let loaded: Tariff = serde_json::from_value(json).unwrap();
+    assert_eq!(loaded, Tariff::default());
+}

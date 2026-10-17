@@ -147,7 +147,7 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
 Das ist die am wenigsten geprüfte Stelle: Der Weg über Android (`MediaStore`, per JNI) lässt sich nur
 auf dem Handy ausprobieren. Der Export am Desktop ist getestet.
 
-- [ ] Tischansicht, "CSV exportieren": Dateiname mit dem Datum des Abends, Format "Für Excel" ist
+- [ ] Tischansicht, "CSV exportieren": Dateiname mit dem Datum des Abends, Format "Semikolon" ist
       vorgewählt.
 - [ ] "In Downloads speichern" zeigt unten eine Meldung `Gespeichert: Downloads/schafkopf-….csv` und
       **keinen roten Fehler**. Ist es ein Fehler, schick mir den Wortlaut.
@@ -155,7 +155,7 @@ auf dem Handy ausprobieren. Der Export am Desktop ist getestet.
 - [ ] Die Datei lässt sich öffnen (Google Tabellen, Excel, Dateien-App). **Umlaute stimmen**, die
       Spalten sind getrennt, jede Zeile ist ein Spiel. Beträge stehen in Cent.
 - [ ] Ein zweites Mal speichern überschreibt nichts, Android hängt eine Nummer an.
-- [ ] Format "Allgemein (Komma)" speichert auch und öffnet sich in einer Tabellenkalkulation.
+- [ ] Format "Komma (international)" speichert auch. **Umlaute stimmen in beiden Formaten.**
 - [ ] "Text anzeigen und kopieren": Text markieren, kopieren und in einer Notiz einfügen geht.
 - [ ] Die Meldung unten verdeckt nichts Wichtiges, und beim Erscheinen springt nichts.
 

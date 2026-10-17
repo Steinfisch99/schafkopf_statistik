@@ -107,6 +107,15 @@ impl GameDraft {
         }
     }
 
+    /// Ramsch: umschalten zwischen "einer verliert" und Durchmarsch. Die Rolle der gewählten Person
+    /// wechselt dabei, also muss neu gewählt werden.
+    pub fn toggle_durchmarsch(&mut self) {
+        if self.kind == GameKind::Ramsch {
+            self.won = !self.won;
+            self.declarer = None;
+        }
+    }
+
     pub fn toggle_declarer(&mut self, seat: Seat) {
         if self.declarer == Some(seat) {
             self.declarer = None;
@@ -182,7 +191,12 @@ impl GameDraft {
         let kind = self.kind;
         if self.declarer.is_none() {
             return Some(if kind == GameKind::Ramsch {
-                "Verlierer wählen".into()
+                if self.won {
+                    "Durchmarschierer wählen"
+                } else {
+                    "Verlierer wählen"
+                }
+                .into()
             } else {
                 "Spieler wählen".into()
             });
@@ -251,7 +265,7 @@ pub struct TariffDraft {
     pub schwarz: String,
     pub laufende: String,
     pub min_sauspiel: String,
-    pub min_wenz: String,
+    pub min_wenz_geier: String,
     pub min_solo: String,
 }
 
@@ -266,7 +280,7 @@ impl TariffDraft {
             schwarz: format_amount(t.schwarz),
             laufende: format_amount(t.laufende),
             min_sauspiel: t.laufende_min_sauspiel.to_string(),
-            min_wenz: t.laufende_min_wenz.to_string(),
+            min_wenz_geier: t.laufende_min_wenz_geier.to_string(),
             min_solo: t.laufende_min_solo.to_string(),
         }
     }
@@ -289,7 +303,7 @@ impl TariffDraft {
             schwarz: money("Schwarz", &self.schwarz)?,
             laufende: money("Laufende", &self.laufende)?,
             laufende_min_sauspiel: count("Laufende ab (Sauspiel)", &self.min_sauspiel)?,
-            laufende_min_wenz: count("Laufende ab (Wenz)", &self.min_wenz)?,
+            laufende_min_wenz_geier: count("Laufende ab (Wenz und Geier)", &self.min_wenz_geier)?,
             laufende_min_solo: count("Laufende ab (Solo)", &self.min_solo)?,
         })
     }
@@ -391,6 +405,35 @@ mod tests {
     }
 
     #[test]
+    fn ramsch_switches_between_loser_and_durchmarsch() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.set_kind(GameKind::Ramsch);
+        assert!(!d.won);
+        assert_eq!(d.problem().as_deref(), Some("Verlierer wählen"));
+        d.toggle_declarer(2);
+        assert_eq!(d.problem(), None);
+        let loss = d.preview(&t).unwrap();
+        assert_eq!(loss.payouts[2], -60, "der Verlierer zahlt dreimal 0,20");
+        d.toggle_durchmarsch();
+        assert!(d.won);
+        assert_eq!(d.declarer, None, "die Rolle wechselt, neu wählen");
+        assert_eq!(d.problem().as_deref(), Some("Durchmarschierer wählen"));
+        d.toggle_declarer(2);
+        assert_eq!(
+            d.preview(&t).unwrap().payouts[2],
+            60,
+            "der Durchmarschierer bekommt dreimal 0,20"
+        );
+        d.toggle_durchmarsch();
+        assert!(!d.won);
+        // Bei anderen Spielarten tut der Umschalter nichts.
+        d.set_kind(GameKind::Wenz);
+        d.toggle_durchmarsch();
+        assert!(d.won);
+    }
+
+    #[test]
     fn schwarz_implies_schneider() {
         let t = table(4);
         let mut d = GameDraft::new(&t);
@@ -449,7 +492,7 @@ mod tests {
         bad.solo = "viel".into();
         assert!(bad.to_tariff().unwrap_err().starts_with("Solo"));
         let mut bad = draft;
-        bad.min_wenz = "0".into();
+        bad.min_wenz_geier = "0".into();
         assert!(bad.to_tariff().unwrap_err().contains("Wenz"));
     }
 }

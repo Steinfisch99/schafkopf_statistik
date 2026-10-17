@@ -16,7 +16,7 @@ pub fn ExportScreen(
 ) -> Element {
     let mut screen = screen;
     let mut notice = notice;
-    let mut format = use_signal(|| CsvFormat::Excel);
+    let mut format = use_signal(|| CsvFormat::Semicolon);
 
     let guard = table.read();
     let Some(t) = guard.as_ref() else {
@@ -52,7 +52,7 @@ pub fn ExportScreen(
         section {
             h3 { "Format" }
             div { class: "chips",
-                for f in [CsvFormat::Excel, CsvFormat::Standard] {
+                for f in [CsvFormat::Semicolon, CsvFormat::Comma] {
                     Chip {
                         key: "{f.label()}",
                         label: f.label().to_string(),
@@ -62,7 +62,7 @@ pub fn ExportScreen(
                 }
             }
             p { class: "hint",
-                "Das deutsche Excel braucht das Semikolon. Google Tabellen und LibreOffice erkennen beides. Beträge stehen in Cent."
+                "Das deutsche Excel braucht das Semikolon. Google Tabellen und LibreOffice erkennen beides. Beide Dateien sind UTF-8 mit Kennung, damit Umlaute stimmen. Beträge stehen in Cent."
             }
         }
 

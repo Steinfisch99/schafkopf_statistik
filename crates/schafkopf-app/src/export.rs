@@ -2,29 +2,35 @@
 
 use schafkopf_core::Table;
 
-/// Wie die CSV für andere Programme aufgebaut ist.
+/// UTF-8-Kennung (BOM) am Dateianfang. Ohne sie raten viele Programme die Zeichenkodierung und
+/// zeigen Umlaute falsch an.
+const UTF8_BOM: char = '\u{feff}';
+
+/// Wie die CSV für andere Programme aufgebaut ist. Beide Formate sind UTF-8 mit Kennung.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CsvFormat {
-    /// Semikolon und UTF-8 mit Kennung (BOM): so öffnet das deutsche Excel Umlaute und Spalten richtig.
-    Excel,
-    /// Komma, wie es Tabellenkalkulationen mit englischen Einstellungen und Programme erwarten.
-    Standard,
+    /// Semikolon als Trennzeichen: So teilt das deutsche Excel die Spalten richtig auf.
+    Semicolon,
+    /// Komma als Trennzeichen, wie es Tabellenkalkulationen mit englischen Einstellungen und
+    /// Programme erwarten.
+    Comma,
 }
 
 impl CsvFormat {
     pub fn label(self) -> &'static str {
         match self {
-            CsvFormat::Excel => "Für Excel (Semikolon)",
-            CsvFormat::Standard => "Allgemein (Komma)",
+            CsvFormat::Semicolon => "Semikolon (deutsches Excel)",
+            CsvFormat::Comma => "Komma (international)",
         }
     }
 
-    /// Der Dateiinhalt, bei [`CsvFormat::Excel`] mit der UTF-8-Kennung am Anfang.
+    /// Der Dateiinhalt mit der UTF-8-Kennung am Anfang.
     pub fn render(self, table: &Table) -> String {
-        match self {
-            CsvFormat::Excel => format!("\u{feff}{}", table.to_csv_with(';')),
-            CsvFormat::Standard => table.to_csv(),
-        }
+        let separator = match self {
+            CsvFormat::Semicolon => ';',
+            CsvFormat::Comma => ',',
+        };
+        format!("{UTF8_BOM}{}", table.to_csv_with(separator))
     }
 }
 
@@ -114,16 +120,33 @@ mod tests {
     }
 
     #[test]
-    fn excel_format_has_bom_and_semicolons() {
+    fn both_formats_are_utf8_with_bom_and_umlauts_survive() {
+        let players = ["Jürgen", "Zoë", "Ärmel", "Dora"]
+            .map(String::from)
+            .to_vec();
+        let mut t = Table::new("T", players, 0, Tariff::default()).unwrap();
+        t.add_game(GameInput::new(0, GameKind::Wenz, 1)).unwrap();
+        for format in [CsvFormat::Semicolon, CsvFormat::Comma] {
+            let text = format.render(&t);
+            let bytes = text.as_bytes();
+            assert_eq!(
+                &bytes[..3],
+                [0xEF, 0xBB, 0xBF],
+                "{format:?} beginnt mit der UTF-8-Kennung"
+            );
+            let decoded = std::str::from_utf8(bytes).unwrap();
+            assert!(decoded.contains("Jürgen Gewinn_Cent") && decoded.contains("Ärmel Stand_Cent"));
+        }
+    }
+
+    #[test]
+    fn formats_differ_only_in_the_separator() {
         let t = table();
-        let excel = CsvFormat::Excel.render(&t);
-        assert!(excel.starts_with("\u{feff}Nr;Zeit;"));
-        assert!(!CsvFormat::Standard.render(&t).starts_with('\u{feff}'));
-        assert!(CsvFormat::Standard.render(&t).starts_with("Nr,Zeit,"));
-        assert_eq!(
-            excel.trim_start_matches('\u{feff}').lines().count(),
-            CsvFormat::Standard.render(&t).lines().count()
-        );
+        let semicolon = CsvFormat::Semicolon.render(&t);
+        let comma = CsvFormat::Comma.render(&t);
+        assert!(semicolon.starts_with("\u{feff}Nr;Zeit;"));
+        assert!(comma.starts_with("\u{feff}Nr,Zeit,"));
+        assert_eq!(semicolon.lines().count(), comma.lines().count());
     }
 
     #[test]

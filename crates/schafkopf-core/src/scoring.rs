@@ -17,9 +17,12 @@ pub struct Tariff {
     pub schwarz: Cents,
     /// Aufschlag pro Laufendem.
     pub laufende: Cents,
-    /// Ab wie vielen Laufenden gezählt wird.
+    /// Ab wie vielen Laufenden gezählt wird: beim Sauspiel und der Hochzeit, beim Wenz und Geier
+    /// (auch mit Farbe) und beim Farbsolo.
     pub laufende_min_sauspiel: u8,
-    pub laufende_min_wenz: u8,
+    /// Früher `laufende_min_wenz`: Wenz und Geier zählen gleich, deshalb ein gemeinsames Feld.
+    #[serde(alias = "laufende_min_wenz")]
+    pub laufende_min_wenz_geier: u8,
     pub laufende_min_solo: u8,
 }
 
@@ -34,7 +37,7 @@ impl Default for Tariff {
             schwarz: 10,
             laufende: 10,
             laufende_min_sauspiel: 3,
-            laufende_min_wenz: 2,
+            laufende_min_wenz_geier: 2,
             laufende_min_solo: 3,
         }
     }
@@ -53,7 +56,9 @@ impl Tariff {
     fn laufende_min(&self, kind: GameKind) -> u8 {
         match kind {
             GameKind::Sauspiel | GameKind::Hochzeit => self.laufende_min_sauspiel,
-            GameKind::Wenz | GameKind::Farbwenz => self.laufende_min_wenz,
+            GameKind::Wenz | GameKind::Farbwenz | GameKind::Geier | GameKind::Farbgeier => {
+                self.laufende_min_wenz_geier
+            }
             _ => self.laufende_min_solo,
         }
     }

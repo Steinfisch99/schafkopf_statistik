@@ -37,10 +37,10 @@ pub fn GameForm(
     let kind = d.kind;
     let preview = table.read().as_ref().map(|t| d.preview(t));
     let problem = d.problem();
-    let declarer_label = if kind == GameKind::Ramsch {
-        "Verlierer"
-    } else {
-        "Spieler"
+    let declarer_label = match (kind, d.won) {
+        (GameKind::Ramsch, true) => "Durchmarsch",
+        (GameKind::Ramsch, false) => "Verlierer",
+        _ => "Spieler",
     };
 
     let save = move |_| {
@@ -203,12 +203,26 @@ pub fn GameForm(
 
         section {
             h3 { "Ergebnis" }
-            div { class: "chips",
-                Chip { label: "Gewonnen".to_string(), on: d.won, onclick: move |_| draft.write().won = true }
-                Chip { label: "Verloren".to_string(), on: !d.won, onclick: move |_| draft.write().won = false }
-            }
             if kind == GameKind::Ramsch {
-                p { class: "hint", "Beim Ramsch ist der Verlierer der Spieler mit den meisten Augen. \"Gewonnen\" gilt nur bei Durchmarsch." }
+                div { class: "chips",
+                    Chip {
+                        label: "Durchmarsch".to_string(),
+                        on: d.won,
+                        onclick: move |_| draft.write().toggle_durchmarsch(),
+                    }
+                }
+                p { class: "hint",
+                    if d.won {
+                        "Durchmarsch: Wähle oben den Spieler, der alle Stiche gemacht hat."
+                    } else {
+                        "Wähle oben den Verlierer, den Spieler mit den meisten Augen."
+                    }
+                }
+            } else {
+                div { class: "chips",
+                    Chip { label: "Gewonnen".to_string(), on: d.won, onclick: move |_| draft.write().won = true }
+                    Chip { label: "Verloren".to_string(), on: !d.won, onclick: move |_| draft.write().won = false }
+                }
             }
             if kind.has_extras() {
                 div { class: "chips",
