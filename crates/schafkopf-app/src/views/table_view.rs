@@ -77,6 +77,7 @@ pub fn TableView(
         }
         GameList { table, screen, editable: true }
         div { class: "actions stack",
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Seats), "Am Tisch: Spieler kommen und gehen" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats { player: None }), "Statistik" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Frühere Abende" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Settings), "Regeln und Tarif" }

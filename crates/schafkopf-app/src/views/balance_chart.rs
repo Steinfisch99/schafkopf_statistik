@@ -166,7 +166,7 @@ pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>
             for (seat, name) in t.players.iter().enumerate() {
                 li { key: "{seat}",
                     button {
-                        class: "legend-btn",
+                        class: if t.is_present(seat) { "legend-btn" } else { "legend-btn away" },
                         r#type: "button",
                         "aria-label": "Statistik von {name}",
                         onclick: move |_| on_player.call(seat),

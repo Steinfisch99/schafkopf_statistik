@@ -181,10 +181,14 @@ pub fn max_abs(values: impl IntoIterator<Item = Cents>) -> Cents {
 /// Pro Sitzplatz die Ergebnisse aller Spiele in Reihenfolge: `Some(true)` Sieg, `Some(false)`
 /// Niederlage, `None` ausgesetzt. Ein Spieler gewinnt, wenn seine Partei gewinnt.
 pub fn results_per_player(table: &Table) -> Vec<Vec<Option<bool>>> {
-    let mut rows = vec![Vec::new(); table.player_count()];
+    let mut rows = vec![Vec::new(); table.players.len()];
     for game in table.games() {
         let input = &game.input;
         for (seat, row) in rows.iter_mut().enumerate() {
+            // Wer noch nicht (oder nicht mehr) am Tisch saß, hat in dem Spiel keinen Eintrag.
+            if !table.was_at_table(game, seat) {
+                continue;
+            }
             row.push(
                 input
                     .participants

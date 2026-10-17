@@ -216,3 +216,9 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .chip .suit-icon { margin-right: 0.45em; width: 1.7em; height: 1.7em; }
 
 .bock-note { margin: 0.4rem 0 0; padding: 0.4rem 0.7rem; border-radius: 0.5rem; background: color-mix(in srgb, #e69f00 22%, transparent); border: 1px solid #e69f00; font-size: 0.92rem; }
+
+.seat-list { list-style: none; margin: 0.3rem 0 0.6rem; padding: 0; }
+.seat-list li { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0; border-bottom: 1px solid var(--line, rgba(128, 128, 128, 0.25)); }
+.seat-list .name { flex: 1 1 auto; font-weight: 600; }
+.seat-list .confirm { flex: 0 1 auto; }
+.legend-btn.away { opacity: 0.55; }

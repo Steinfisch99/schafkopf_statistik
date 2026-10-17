@@ -103,6 +103,10 @@ Entscheidungen:
 - [x] Spielerliste: Namen einmal eingeben und danach auswählen, neue Namen werden gemerkt, Verwaltung in der App
 - [x] Lauf und Gegenlauf eintragen, Statistik dazu (je Spielart und je Spieler)
 - [x] Frühere Abende ansehen (Diagramm, Statistik, Spiele), exportieren und löschen; Namen unter dem Diagramm
+- [x] Bock (kein Bock, nächstes Spiel, nächste Runde je Regelwerk; Bockspiel und Bockrunde-Knopf, Schwarz löst aus)
+- [x] Ramsch: Klopfen wirkt wahlweise nicht auf den Preis, wird aber erfasst
+- [x] Icons für Eichel, Gras, Herz und Schellen bei Sau und Farbsolos
+- [x] Spieler kommen und gehen im Laufe des Abends (neuer Platz nach Wahl, gehen, zurückkommen)
       führen zur Statistik des Spielers
 - [x] Korrekturen aus dem Handytest: Laufende bis 14 beim Sauspiel (Grenze je Spielart), Zurück-Taste
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit

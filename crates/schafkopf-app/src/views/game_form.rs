@@ -42,6 +42,18 @@ pub fn GameForm(
         .map(|t| t.players.clone())
         .unwrap_or_default();
     let d = draft();
+    // Wer zur Wahl steht: wer am Tisch sitzt, in Sitzreihenfolge. Beim Bearbeiten kommen die dazu,
+    // die damals dabei waren und inzwischen gegangen sind.
+    let seats: Vec<usize> = table
+        .read()
+        .as_ref()
+        .map(|t| {
+            t.ring()
+                .into_iter()
+                .filter(|&s| t.is_present(s) || d.dealer == s || d.participants.contains(&s))
+                .collect()
+        })
+        .unwrap_or_default();
     let kind = d.kind;
     let preview = table.read().as_ref().map(|t| match editing {
         Some(index) => d.preview_edit(t, index),
@@ -147,19 +159,19 @@ pub fn GameForm(
                             }
                         }
                     },
-                    for (i, name) in players.iter().enumerate() {
-                        option { key: "{i}", value: "{i}", selected: d.dealer == i, "{name}" }
+                    for &i in seats.iter() {
+                        option { key: "{i}", value: "{i}", selected: d.dealer == i, "{players[i]}" }
                     }
                 }
             }
-            if players.len() > 4 {
+            if seats.len() > 4 {
                 details {
-                    summary { "Wer spielt mit? ({d.participants.len()} von {players.len()})" }
+                    summary { "Wer spielt mit? ({d.participants.len()} von {seats.len()})" }
                     div { class: "chips",
-                        for (i, name) in players.iter().enumerate() {
+                        for &i in seats.iter() {
                             Chip {
                                 key: "{i}",
-                                label: name.clone(),
+                                label: players[i].clone(),
                                 on: d.participants.contains(&i),
                                 disabled: !d.participants.contains(&i) && d.participants.len() >= 4,
                                 onclick: move |_| {

@@ -41,6 +41,7 @@ pub fn back_target(screen: Screen, has_table: bool) -> Option<Screen> {
         Screen::Game
         | Screen::EditGame(_)
         | Screen::Settings
+        | Screen::Seats
         | Screen::Export
         | Screen::Stats { .. } => Some(Screen::Table),
         Screen::Library { from_setup: true } => Some(Screen::Setup),
@@ -94,6 +95,7 @@ mod tests {
             Screen::Game,
             Screen::EditGame(3),
             Screen::Settings,
+            Screen::Seats,
             Screen::Export,
             Screen::Stats { player: None },
         ] {
@@ -127,6 +129,7 @@ mod tests {
             Screen::Game,
             Screen::EditGame(0),
             Screen::Settings,
+            Screen::Seats,
             Screen::Library { from_setup: true },
             Screen::Library { from_setup: false },
             Screen::Export,

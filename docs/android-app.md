@@ -320,7 +320,21 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
       ("Bockspiel", "Bockrunde_ausgeloest"). Die Statistik zählt Bockspiele und ausgelöste Bockrunden.
 - [ ] Nach "Letztes Spiel rückgängig" stimmt die Zahl der offenen Bockspiele wieder.
 
-### 14. Darstellung
+### 14. Spieler kommen und gehen
+- [ ] In der Tischübersicht gibt es "Am Tisch: Spieler kommen und gehen".
+- [ ] Ein neuer Name (oder einer aus der Spielerliste) lässt sich "am Ende der Runde" oder hinter einem
+      bestimmten Spieler dazusetzen. Der Name wird für den nächsten Abend gemerkt.
+- [ ] Der Neue steht im Diagramm bei 0 € und wird erst ab dem nächsten Spiel gegeben und in der Statistik
+      gezählt, "ausgesetzt" zählt nicht für Spiele vor seiner Ankunft.
+- [ ] "Geht" (mit Rückfrage) nimmt jemanden vom Tisch. Er steht dann unter "Nicht am Tisch" und im Diagramm
+      blass. Mit "Kommt zurück" sitzt er wieder auf seinem Platz.
+- [ ] Der nächste Geber und die Mitspielenden überspringen Gegangene. Im Formular stehen nur Spieler am
+      Tisch zur Wahl.
+- [ ] Es bleiben mindestens zwei und höchstens zehn am Tisch.
+- [ ] Die Zurück-Taste führt vom Bildschirm "Am Tisch" zur Übersicht.
+- [ ] Die CSV hat auch Spalten für Gegangene und Dazugekommene. Die Statistik zeigt sie weiter.
+
+### 15. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

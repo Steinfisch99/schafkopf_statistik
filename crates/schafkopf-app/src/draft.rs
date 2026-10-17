@@ -130,14 +130,17 @@ impl GameDraft {
     /// Nimmt einen Spieler ins Spiel oder aus dem Spiel, wenn mehr als vier am Tisch sitzen.
     /// Es bleiben höchstens vier Mitspielende, und die Reihenfolge ist die Spielreihenfolge.
     pub fn set_participant(&mut self, table: &Table, seat: Seat, on: bool) {
-        let n = table.player_count();
+        let ring = table.ring();
+        let n = ring.len();
+        let pos = |s: Seat| ring.iter().position(|&r| r == s).unwrap_or(s);
         if on && !self.participants.contains(&seat) && self.participants.len() < 4 {
             self.participants.push(seat);
         } else if !on {
             self.participants.retain(|&s| s != seat);
         }
         let dealer = self.dealer;
-        self.participants.sort_by_key(|&s| (s + n - dealer - 1) % n);
+        self.participants
+            .sort_by_key(|&s| (pos(s) + n - pos(dealer) - 1) % n);
         self.prune();
     }
 

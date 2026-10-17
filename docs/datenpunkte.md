@@ -157,3 +157,17 @@ Spiele Bockspiele mit doppeltem Preis.
   Deshalb stimmt es auch nach Bearbeiten, Rückgängig und Löschen. Ein neuer Auslöser während einer
   Bockrunde verlängert sie.
 - Die Statistik zählt Bockspiele und ausgelöste Bockrunden, wenn es an dem Abend welche gab.
+
+### Spieler kommen und gehen
+
+- Ein **neuer Spieler** bekommt einen neuen Sitzplatz hinten in der Spielerliste, damit die Sitzplätze
+  der früheren Spiele gleich bleiben. Die **Sitzreihenfolge** (`seating`) ist getrennt davon gespeichert:
+  Der Neue wird hinter einem gewählten Spieler einsortiert. Für frühere Spiele hat er Auszahlung 0.
+- Wer **geht**, steht in `absent`. Sein Stand, seine Spiele und seine Statistik bleiben. Wer
+  **zurückkommt**, sitzt wieder auf dem alten Platz. Es bleiben immer 2 bis 10 am Tisch.
+- Jedes Spiel merkt sich, wer dabei am Tisch saß (`at_table`). Nur dafür zählt "ausgesetzt" in der
+  Statistik, und eine Bockrunde ist so lang wie die Zahl der Spieler von damals.
+- Geber und Voreinstellung der Mitspielenden springen über Gegangene hinweg. Neue Spiele gehen nur
+  mit Spielern am Tisch, alte lassen sich weiter bearbeiten.
+- Die CSV hat für jeden Spieler des Abends zwei Spalten, auch für Gegangene und Spät-Gekommene. Wer
+  dazukommt, schreibt die Datei samt Kopfzeile neu.
