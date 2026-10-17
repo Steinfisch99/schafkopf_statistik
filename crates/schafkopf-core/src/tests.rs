@@ -2036,17 +2036,21 @@ fn mistakes_are_kept_only_for_a_corrected_price() {
         vec![PriceMistake::BockForgotten, PriceMistake::Miscalculated],
         "sortiert, ohne Doppelte"
     );
-    assert_eq!(g.input.price_error_by, Some(1), "ohne Angabe der Spieler");
+    assert_eq!(
+        g.input.price_error_by,
+        vec![1, 3],
+        "ohne Angabe beide Gewinner"
+    );
 
     // Der verlangte Preis stimmt: Es gab nichts, was falsch war.
     let right = GameInput {
         price_override: Some(20),
         mistakes: vec![PriceMistake::Other],
-        price_error_by: Some(2),
+        price_error_by: vec![2],
         ..sauspiel(1, 0, 2)
     };
     let g = t.add_game(right).unwrap();
-    assert!(g.input.mistakes.is_empty() && g.input.price_error_by.is_none());
+    assert!(g.input.mistakes.is_empty() && g.input.price_error_by.is_empty());
     let none = t
         .add_game(GameInput {
             mistakes: vec![PriceMistake::Other],
@@ -2061,7 +2065,7 @@ fn only_a_participant_can_have_demanded_wrong() {
     let t = table();
     let input = GameInput {
         price_override: Some(30),
-        price_error_by: Some(9),
+        price_error_by: vec![9],
         ..sauspiel(0, 1, 3)
     };
     assert!(t.preview_game(input).is_err());
@@ -2081,7 +2085,7 @@ fn statistics_count_wrong_demands_per_player_and_kind() {
         t.add_game(GameInput {
             price_override: Some(30),
             mistakes: kinds,
-            price_error_by: Some(by),
+            price_error_by: vec![by],
             ..sauspiel(0, 1, 3)
         })
         .unwrap();
@@ -2395,4 +2399,112 @@ fn libraries_merge_without_touching_what_exists() {
         (2, 0, 0)
     );
     assert!(only_players.rule_set("Kneipe").is_none());
+}
+
+fn wrong_price(input: GameInput) -> GameInput {
+    GameInput {
+        price_override: Some(input.price_override.unwrap_or(999)),
+        ..input
+    }
+}
+
+#[test]
+fn only_the_winners_can_have_demanded_wrong() {
+    let mut t = table();
+    // Sauspiel gewonnen: Spieler 1 und Partner 3 haben falsch verlangt.
+    let g = t.add_game(wrong_price(sauspiel(0, 1, 3))).unwrap();
+    assert_eq!(g.input.winners(), vec![1, 3]);
+    assert_eq!(g.input.price_error_by, vec![1, 3]);
+
+    // Verloren: Es verlangen die Gegner, nicht der Spieler und sein Partner.
+    let lost = GameInput {
+        won: false,
+        ..sauspiel(1, 0, 2)
+    };
+    let g = t.add_game(wrong_price(lost)).unwrap();
+    assert_eq!(g.input.winners(), vec![3, 1]);
+    assert_eq!(g.input.price_error_by, vec![3, 1]);
+
+    // Eine Angabe zu einem Verlierer wird verworfen, die zum Gewinner bleibt.
+    let picked = GameInput {
+        price_error_by: vec![0, 2],
+        ..wrong_price(GameInput {
+            won: false,
+            ..sauspiel(2, 3, 1)
+        })
+    };
+    let g = t.add_game(picked).unwrap();
+    assert_eq!(g.input.winners(), vec![0, 2]);
+    assert_eq!(g.input.price_error_by, vec![0, 2]);
+    let only_one = GameInput {
+        price_error_by: vec![0, 3],
+        ..wrong_price(GameInput {
+            won: false,
+            ..sauspiel(3, 2, 0)
+        })
+    };
+    let g = t.add_game(only_one).unwrap();
+    assert_eq!(
+        g.input.price_error_by,
+        vec![3],
+        "der Verlierer 0 wird verworfen"
+    );
+}
+
+#[test]
+fn a_lost_solo_is_demanded_by_all_three_opponents_and_a_won_one_by_the_player() {
+    let mut t = table();
+    let lost = GameInput {
+        won: false,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    let g = t.add_game(wrong_price(lost)).unwrap();
+    assert_eq!(g.input.price_error_by.len(), 3);
+    assert!(!g.input.price_error_by.contains(&1));
+    let won = GameInput::new(1, GameKind::Wenz, 2);
+    let g = t.add_game(wrong_price(won)).unwrap();
+    assert_eq!(g.input.price_error_by, vec![2]);
+}
+
+#[test]
+fn in_a_ramsch_the_players_who_did_not_lose_are_the_winners() {
+    let mut t = table();
+    let g = t.add_game(wrong_price(ramsch(0, 1))).unwrap();
+    assert_eq!(g.input.winners().len(), 3);
+    assert!(!g.input.winners().contains(&1));
+}
+
+#[test]
+fn wrong_demands_count_for_every_winner_and_old_files_with_one_player_still_load() {
+    let mut t = table();
+    t.add_game(GameInput {
+        mistakes: vec![PriceMistake::Miscalculated],
+        ..wrong_price(sauspiel(0, 1, 3))
+    })
+    .unwrap();
+    let s = table_stats(&t);
+    assert_eq!(
+        (s.players[1].wrong_demands, s.players[3].wrong_demands),
+        (1, 1)
+    );
+    assert_eq!(s.players[0].wrong_demands + s.players[2].wrong_demands, 0);
+    assert!(t.to_csv().contains("Ben; Dora"));
+
+    // Alte Dateien: eine Zahl oder null statt einer Liste.
+    let json = t.to_json().unwrap();
+    let as_one = json.replace(
+        "\"price_error_by\": [\n          1,\n          3\n        ]",
+        "\"price_error_by\": 1",
+    );
+    assert_ne!(json, as_one, "die Ersetzung muss greifen");
+    let back = Table::from_json(&as_one).unwrap();
+    assert_eq!(back.games()[0].input.price_error_by, vec![1]);
+    let as_null = json.replace(
+        "\"price_error_by\": [\n          1,\n          3\n        ]",
+        "\"price_error_by\": null",
+    );
+    assert!(Table::from_json(&as_null).unwrap().games()[0]
+        .input
+        .price_error_by
+        .is_empty());
 }

@@ -60,8 +60,13 @@ pub fn detail(table: &Table, game: &Game) -> String {
     }
     if game.value != game.calculated_value {
         let mut text = "Preis korrigiert".to_owned();
-        if let Some(by) = input.price_error_by {
-            text.push_str(&format!(", falsch verlangt von {}", table.players[by]));
+        if !input.price_error_by.is_empty() {
+            let names: Vec<&str> = input
+                .price_error_by
+                .iter()
+                .map(|&s| table.players[s].as_str())
+                .collect();
+            text.push_str(&format!(", falsch verlangt von {}", names.join(" und ")));
         }
         if !input.mistakes.is_empty() {
             let kinds: Vec<&str> = input.mistakes.iter().map(|m| m.label()).collect();
@@ -196,7 +201,7 @@ mod tests {
         assert_eq!(title(&game), "Sauspiel Eichel");
         assert_eq!(
             detail(&t, &game),
-            "Ben mit Dora gewonnen · Schneider · 3 Laufende · 1× geklopft · Kontra, Re · Preis korrigiert, falsch verlangt von Ben"
+            "Ben mit Dora gewonnen · Schneider · 3 Laufende · 1× geklopft · Kontra, Re · Preis korrigiert, falsch verlangt von Ben und Dora"
         );
     }
 

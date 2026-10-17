@@ -28,6 +28,22 @@ impl BockStacking {
     }
 }
 
+/// Liest einen oder mehrere Sitzplätze: Alte Dateien haben hier `null` oder eine Zahl, neue eine Liste.
+fn seats_or_one<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<Seat>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        None(()),
+        One(Seat),
+        Many(Vec<Seat>),
+    }
+    Ok(match OneOrMany::deserialize(d)? {
+        OneOrMany::None(()) => Vec::new(),
+        OneOrMany::One(seat) => vec![seat],
+        OneOrMany::Many(seats) => seats,
+    })
+}
+
 /// So viele Bockrunden können in einem Spiel entstehen, und so oft kann ein Bockspiel gedoppelt sein.
 pub const MAX_BOCK: u8 = 4;
 
@@ -325,10 +341,11 @@ pub struct GameInput {
     /// Was beim Verlangen des Preises schiefging. Nur bei einem korrigierten Preis gespeichert.
     #[serde(default)]
     pub mistakes: Vec<PriceMistake>,
-    /// Wer den Preis falsch verlangt hat. Nur bei einem korrigierten Preis gespeichert, ohne Angabe
-    /// der Spieler.
-    #[serde(default)]
-    pub price_error_by: Option<Seat>,
+    /// Wer den Preis falsch verlangt hat. Nur die Gewinnerseite verlangt, denn der Verlierer nie, beim
+    /// Sauspiel sind es also beide Gewinner. Nur bei einem korrigierten Preis gespeichert, ohne Angabe
+    /// alle auf der Gewinnerseite.
+    #[serde(default, deserialize_with = "seats_or_one")]
+    pub price_error_by: Vec<Seat>,
     /// Augen der Spielerpartei, optional für die Statistik.
     #[serde(default)]
     pub points: Option<u8>,
@@ -364,7 +381,7 @@ impl GameInput {
             extra_bock_rounds: 0,
             price_override: None,
             mistakes: Vec::new(),
-            price_error_by: None,
+            price_error_by: Vec::new(),
             points: None,
             played_at: None,
             note: None,
@@ -380,6 +397,16 @@ impl GameInput {
 
     pub fn is_on_declarer_team(&self, seat: Seat) -> bool {
         seat == self.declarer || self.partner == Some(seat)
+    }
+
+    /// Die Gewinnerseite unter den Mitspielenden: die Spielerpartei, wenn sie gewonnen hat, sonst die
+    /// Gegner. Nur sie verlangt den Preis, der Verlierer nie.
+    pub fn winners(&self) -> Vec<Seat> {
+        self.participants
+            .iter()
+            .copied()
+            .filter(|&s| self.is_on_declarer_team(s) == self.won)
+            .collect()
     }
 
     /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout und Bock.

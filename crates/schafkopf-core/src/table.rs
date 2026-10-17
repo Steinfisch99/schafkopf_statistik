@@ -521,11 +521,18 @@ impl Table {
         if value == calculated_value {
             // Ohne korrigierten Preis gab es nichts, was falsch verlangt wurde.
             input.mistakes.clear();
-            input.price_error_by = None;
+            input.price_error_by.clear();
         } else {
             input.mistakes.sort();
             input.mistakes.dedup();
-            input.price_error_by = input.price_error_by.or(Some(input.declarer));
+            // Falsch verlangt hat nur die Gewinnerseite, ohne Angabe alle dort.
+            let winners = input.winners();
+            input.price_error_by.retain(|s| winners.contains(s));
+            input.price_error_by.sort_unstable();
+            input.price_error_by.dedup();
+            if input.price_error_by.is_empty() {
+                input.price_error_by = winners;
+            }
         }
         let payouts = payouts(tariff, &input, self.players.len());
         Ok(Game {

@@ -214,7 +214,7 @@ Spiele Bockspiele mit doppeltem Preis.
 ### Falsch verlangt
 
 - Weicht der verlangte Preis vom berechneten ab, erscheinen im Formular **erst dann** zwei Auswahlen:
-  **Wer hat falsch verlangt?** (ohne Wahl: der Spieler) und **Was wurde vergessen oder falsch gemacht?**
+  **Wer hat falsch verlangt?** (siehe unten) und **Was wurde vergessen oder falsch gemacht?**
   (Mehrfachauswahl).
 - Fehlerarten: Falscher Grundtarif, Falsche Anzahl Doppler, Bockrunde vergessen, Laufende nicht alle oder
   keine, Schneider nicht verlangt, Schwarz nicht verlangt (zwei getrennte Knöpfe), Falsche Partei gewonnen,
@@ -278,3 +278,14 @@ Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schaf
   gerade keiner läuft.
 - Die Datei wird geprüft: Es muss eine ZIP sein, unsichere Pfade werden ignoriert, ausgepackt darf sie
   höchstens 64 MB groß sein, und nicht lesbare Dateien werden gezählt und übersprungen.
+
+### Wer falsch verlangt hat
+
+- Falsch verlangen kann nur die **Gewinnerseite**, denn der Verlierer verlangt nie. Beim Sauspiel sind es also
+  beide, die zusammen spielen (Spieler und Mitspieler, bei verlorenem Spiel die beiden Gegner), beim
+  gewonnenen Solo der Spieler, beim verlorenen Solo die drei Gegner, beim Ramsch alle, die nicht verloren haben.
+- Sobald das Ergebnis eingetragen ist, sind **alle Gewinner automatisch** als falsch verlangt eingetragen und
+  folgen dem Ergebnis, wenn es sich ändert. Zur Wahl stehen nur die Gewinner, einzelne lassen sich
+  abwählen (mindestens einer bleibt).
+- In der Statistik zählt jeder der Eingetragenen einmal (und je Fehlerart). Die CSV-Spalte
+  "Falsch_verlangt_von" nennt alle, getrennt durch Semikolon. Alte Spiele mit nur einem Namen bleiben lesbar.

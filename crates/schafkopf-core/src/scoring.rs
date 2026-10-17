@@ -107,7 +107,7 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
         }
     }
     check_active(input.declarer)?;
-    if let Some(by) = input.price_error_by {
+    for &by in &input.price_error_by {
         check_active(by)?;
     }
 

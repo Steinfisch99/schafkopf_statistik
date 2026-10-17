@@ -403,7 +403,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Spielst du eine Sicherung zweimal ein, kommt nichts doppelt dazu.
 - [ ] Läuft schon ein Abend, ist "Laufenden Abend übernehmen" ausgegraut.
 
-### 20. Darstellung
+### 20. Falsch verlangt: Gewinnerseite
+- [ ] Gibst du einen abweichenden Preis ein, sind bei "Wer hat falsch verlangt?" nur die **Gewinner** zu sehen
+      und beide vorgewählt (beim Sauspiel Spieler und Mitspieler).
+- [ ] Wechselst du das Ergebnis auf "Verloren", stehen dort die Gegner statt der Spielerpartei.
+- [ ] Einen der beiden kannst du abwählen, der letzte lässt sich nicht abwählen.
+- [ ] In der Spieleliste steht "falsch verlangt von Anna und Dora", in der Statistik zählt jeder der beiden.
+- [ ] Beim Solo: gewonnen = der Spieler, verloren = die drei Gegner.
+
+### 21. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

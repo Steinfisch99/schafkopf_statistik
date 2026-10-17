@@ -42,8 +42,9 @@ pub struct GameDraft {
     pub bock_at_ramsch: BockAtRamsch,
     /// Was beim Verlangen des Preises schiefging. Zählt nur bei einem korrigierten Preis.
     pub mistakes: Vec<PriceMistake>,
-    /// Wer den Preis falsch verlangt hat, ohne Angabe der Spieler.
-    pub price_error_by: Option<Seat>,
+    /// Wer den Preis falsch verlangt hat, wenn es von Hand gewählt wurde. Sonst gilt die ganze
+    /// Gewinnerseite, sie ändert sich mit dem Ergebnis.
+    pub price_error_manual: Option<Vec<Seat>>,
     /// `starts_bock` wurde von Schwarz eingeschaltet, nicht von Hand.
     pub starts_bock_auto: bool,
     /// Gibt es an diesem Tisch Bock? Nur dann löst Schwarz die Bockrunde von selbst aus.
@@ -98,7 +99,7 @@ impl GameDraft {
                 .min(u32::from(MAX_BOCK) - 1) as u8,
             bock_at_ramsch: table.bock_at_ramsch,
             mistakes: Vec::new(),
-            price_error_by: None,
+            price_error_manual: None,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: String::new(),
@@ -139,7 +140,7 @@ impl GameDraft {
                 .min(u32::from(MAX_BOCK) - 1) as u8,
             bock_at_ramsch: table.bock_at_ramsch,
             mistakes: i.mistakes.clone(),
-            price_error_by: i.price_error_by,
+            price_error_manual: (!i.price_error_by.is_empty()).then(|| i.price_error_by.clone()),
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
@@ -155,8 +156,10 @@ impl GameDraft {
         self.declarer = self.declarer.filter(keep);
         self.partner = self.partner.filter(keep);
         self.kontra_by = self.kontra_by.filter(keep);
-        self.price_error_by = self.price_error_by.filter(keep);
         let participants = self.participants.clone();
+        if let Some(manual) = &mut self.price_error_manual {
+            manual.retain(|s| participants.contains(s));
+        }
         self.knockers.retain(|s| participants.contains(s));
         if self.kontra_by.is_none() {
             self.re = false;
@@ -356,9 +359,51 @@ impl GameDraft {
         }
     }
 
-    /// Wer den Preis falsch verlangt hat.
-    pub fn set_price_error_by(&mut self, seat: Seat) {
-        self.price_error_by = Some(seat);
+    /// Die Gewinnerseite: die Spielerpartei, wenn sie gewonnen hat, sonst die Gegner. Nur sie verlangt
+    /// den Preis, der Verlierer nie. Beim Sauspiel sind es also beide, die zusammen spielen.
+    pub fn winners(&self) -> Vec<Seat> {
+        let Some(declarer) = self.declarer else {
+            return Vec::new();
+        };
+        self.participants
+            .iter()
+            .copied()
+            .filter(|&s| (s == declarer || self.partner == Some(s)) == self.won)
+            .collect()
+    }
+
+    /// Wer den Preis falsch verlangt hat: von Hand gewählt (nur Gewinner), sonst die ganze
+    /// Gewinnerseite. Sie ändert sich von selbst, wenn das Ergebnis oder die Rollen sich ändern.
+    pub fn demanded_by(&self) -> Vec<Seat> {
+        let winners = self.winners();
+        match &self.price_error_manual {
+            Some(manual) => {
+                let picked: Vec<Seat> = winners
+                    .iter()
+                    .copied()
+                    .filter(|s| manual.contains(s))
+                    .collect();
+                if picked.is_empty() {
+                    winners
+                } else {
+                    picked
+                }
+            }
+            None => winners,
+        }
+    }
+
+    /// Nimmt einen Gewinner dazu oder heraus. Mindestens einer bleibt.
+    pub fn toggle_demander(&mut self, seat: Seat) {
+        let mut current = self.demanded_by();
+        if current.contains(&seat) {
+            if current.len() > 1 {
+                current.retain(|&s| s != seat);
+            }
+        } else if self.winners().contains(&seat) {
+            current.push(seat);
+        }
+        self.price_error_manual = Some(current);
     }
 
     pub fn set_laufende(&mut self, n: u8) {
@@ -447,7 +492,7 @@ impl GameDraft {
         input.played_at = self.played_at.or(played_at);
         input.points = self.points;
         input.mistakes = self.mistakes.clone();
-        input.price_error_by = self.price_error_by;
+        input.price_error_by = self.demanded_by();
         input.note = self.note.clone();
         Ok(input)
     }
@@ -663,7 +708,7 @@ mod tests {
             schneider: true,
             laufende: 3,
             price_override: Some(150),
-            price_error_by: Some(1),
+            price_error_by: vec![1, 3],
             points: Some(95),
             played_at: Some(1234),
             note: Some("Notiz".into()),
@@ -1006,16 +1051,29 @@ mod tests {
         d.toggle_mistake(PriceMistake::Miscalculated);
         d.toggle_mistake(PriceMistake::BockForgotten);
         d.toggle_mistake(PriceMistake::BockForgotten);
-        d.set_price_error_by(3);
+        assert_eq!(d.demanded_by(), vec![1, 3], "ohne Wahl beide Gewinner");
+        d.toggle_demander(3);
+        assert_eq!(d.demanded_by(), vec![1]);
         let input = d.to_input(None).unwrap();
         assert_eq!(input.mistakes, vec![PriceMistake::Miscalculated]);
-        assert_eq!(input.price_error_by, Some(3));
+        assert_eq!(input.price_error_by, vec![1]);
 
         let mut table = t;
         table.add_game(input).unwrap();
         let back = GameDraft::from_game(&table, 0).unwrap();
         assert_eq!(back.mistakes, vec![PriceMistake::Miscalculated]);
-        assert_eq!(back.price_error_by, Some(3));
+        assert_eq!(back.demanded_by(), vec![1]);
+        // Verliert die Spielerpartei, verlangen die Gegner, die Wahl von vorher gilt nicht mehr.
+        let mut lost = back.clone();
+        lost.won = false;
+        assert_eq!(lost.winners(), vec![2, 0]);
+        assert_eq!(lost.demanded_by(), vec![2, 0]);
+        // Es bleibt immer mindestens einer.
+        let mut one = back.clone();
+        one.toggle_demander(1);
+        assert_eq!(one.demanded_by(), vec![1]);
+        one.toggle_demander(3);
+        assert_eq!(one.demanded_by(), vec![1, 3]);
         // Ohne Korrektur des Preises bleibt davon nichts.
         let mut plain = back;
         plain.price_text.clear();

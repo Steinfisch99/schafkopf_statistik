@@ -421,14 +421,14 @@ pub fn GameForm(
             }
             p { class: "hint", "Der Preis gilt je Gegner. Beim Solo zahlt oder bekommt der Spieler ihn dreifach." }
             if price_corrected {
-                p { class: "hint", "Der verlangte Preis weicht vom berechneten ab. Wer hat falsch verlangt?" }
+                p { class: "hint", "Der verlangte Preis weicht vom berechneten ab. Wer hat falsch verlangt? Es verlangen nur die Gewinner, beim Sauspiel beide." }
                 div { class: "chips",
-                    for seat in d.participants.clone() {
+                    for seat in d.winners() {
                         Chip {
                             key: "{seat}",
                             label: players[seat].clone(),
-                            on: d.price_error_by.or(d.declarer) == Some(seat),
-                            onclick: move |_| draft.write().set_price_error_by(seat),
+                            on: d.demanded_by().contains(&seat),
+                            onclick: move |_| draft.write().toggle_demander(seat),
                         }
                     }
                 }

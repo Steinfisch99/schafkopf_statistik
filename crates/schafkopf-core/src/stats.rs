@@ -226,7 +226,7 @@ pub fn table_stats(table: &Table) -> TableStats {
             for &m in &g.mistakes {
                 *stats.mistake_counts.entry(m).or_default() += 1;
             }
-            if let Some(by) = g.price_error_by {
+            for &by in &g.price_error_by {
                 let p = &mut players[by];
                 p.wrong_demands += 1;
                 for &m in &g.mistakes {

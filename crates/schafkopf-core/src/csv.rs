@@ -107,7 +107,7 @@ impl Table {
             opt(g.points.map(|p| p.to_string())),
             game.value.to_string(),
             game.calculated_value.to_string(),
-            opt(g.price_error_by.map(|p| self.players[p].clone())),
+            self.names_of(&g.price_error_by),
             g.mistakes
                 .iter()
                 .map(|m| m.label())
