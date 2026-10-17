@@ -106,12 +106,55 @@ Daten.
 
 ## Checkliste auf dem Handy
 
-- [ ] Der Name lässt sich ändern, die Tastatur erscheint, Umlaute gehen.
-- [ ] "Tisch anlegen" zeigt das Diagramm und die Legende mit vier Spielern bei 0,00 €.
-- [ ] "Testspiel eintragen" bewegt die Linien, der Geldstand wird auch negativ dargestellt.
-- [ ] Der Hinweis unten zeigt einen Pfad und **keinen roten Fehler**. Merk dir den Pfad.
-- [ ] App komplett schließen und neu öffnen: Der Tisch ist noch da.
-- [ ] Das Diagramm passt in der Breite, auch im Dunkelmodus und quer.
+Der Prototyp soll drei Fragen beantworten: Funktioniert die **Eingabe**, sieht das **Diagramm** gut aus,
+und bleiben die **Daten** gespeichert? Alles andere ist Zugabe. Notiere bei jedem Punkt, ob es klappt,
+und schreib mir, was nicht passt.
+
+### 1. Eingabe und Tastatur
+- [ ] Das Namensfeld lässt sich antippen, die Tastatur erscheint, und das Feld wird nicht von ihr verdeckt.
+- [ ] Umlaute und Sonderzeichen gehen: `Müller, Jürgen, Ärmel, Zoë`.
+- [ ] Mit 4 Namen entsteht ein Tisch. Teste auch **2** Namen und **10** Namen.
+- [ ] **Fehlerfälle** zeigen einen roten Hinweis, ohne dass die App abstürzt: 1 Name, 11 Namen, ein
+      leerer Name (`Anna,,Ben,Cem`), ein doppelter Name (`Anna, Anna, Ben, Cem`).
+
+### 2. Diagramm und Legende
+- [ ] Direkt nach dem Anlegen steht in der Legende jeder Name mit eigener Farbe und `0,00 €`.
+- [ ] Nach "Testspiel eintragen" bewegen sich die Linien. Trag etwa 20 Spiele ein.
+- [ ] Negative Werte liegen **unter der dicken Nulllinie**, die Achse zeigt `−1,20` mit Komma und Minus.
+- [ ] Die Endpunkte der Linien passen zu den Beträgen in der Legende.
+- [ ] Die Beträge in der Legende ergeben zusammen **0,00 €** (rechne nach). Das muss immer stimmen.
+- [ ] Bei **10 Spielern** sind die Linien und Farben noch zu unterscheiden. Welche sind schwer zu trennen?
+- [ ] "Nächster Geber" wandert nach jedem Spiel zum nächsten Namen in deiner Reihenfolge.
+
+### 3. Darstellung
+- [ ] Hochformat und Querformat sehen brauchbar aus, das Diagramm passt in die Breite.
+- [ ] Dunkelmodus (Systemeinstellung) ist lesbar: Text, Achsen, Linien, Eingabefeld.
+- [ ] Größere Systemschrift (Einstellungen, Anzeige, Schriftgröße) bricht nichts.
+- [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste unten.
+- [ ] Die Knöpfe sind mit dem Daumen gut zu treffen.
+
+### 4. Speichern und Laden (das Wichtigste)
+- [ ] Unten steht nach dem Anlegen und nach jedem Spiel ein **Pfad und kein roter Fehler**. Schick mir
+      den Pfad.
+- [ ] App **komplett schließen** (in der Übersicht wegwischen) und neu öffnen: Tisch, Spiele und
+      Diagramm sind noch da.
+- [ ] Auch nach einem **Neustart des Handys** sind die Daten noch da.
+- [ ] "Neuer Tisch" legt einen leeren Tisch an. Danach überschreibt der nächste Tisch die alten
+      Dateien. Das ist im Prototyp so gewollt, ein Archiv gibt es noch nicht.
+
+Die CSV-Datei kannst du ohne `adb` (also ohne Kabel oder Wireless Debugging) noch nicht ansehen, sie
+liegt im privaten App-Ordner. Ein
+Export zum Teilen ist eine Aufgabe für die richtige App. Geprüft wird hier nur, dass kein Fehler kommt.
+
+### 5. Stabilität
+- [ ] Der Start dauert nur wenige Sekunden und die App stürzt nicht ab.
+- [ ] Zwischen Apps wechseln und zurückkehren behält den Zustand.
+- [ ] Das Gerät drehen, während Text im Feld steht, verliert den Text nicht.
+- [ ] Im **Flugmodus** verhält sich alles genauso. Die App braucht kein Netz.
+
+### Was du mir mitteilst
+Handymodell und Android-Version, was nicht geklappt hat (gern mit Screenshot) und was dich beim
+Benutzen gestört hat, auch wenn es nur ein Gefühl ist ("zu klein", "zu träge").
 
 Die gespeicherten Dateien lassen sich bei einem Debug-Build so ansehen:
 
