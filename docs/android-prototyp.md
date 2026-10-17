@@ -22,7 +22,7 @@ Versuch etwas nachgebessert werden muss. Schick mir dann die Fehlermeldung.
 
 ## Einmalig: Handy vorbereiten
 
-1. Entwickleroptionen einschalten (Einstellungen, Über das Telefon, mehrmals auf die Build-Nummer tippen).
+1. Entwickleroptionen einschalten (Einstellungen, Über das Telefon, mehrmals auf die Build-Nummer tippen). Das ist nur für den Weg mit `adb` nötig, nicht für die APK.
 2. **USB-Debugging** einschalten und das Handy per USB anschließen.
 3. Die Abfrage "USB-Debugging zulassen" auf dem Handy bestätigen.
 
@@ -56,6 +56,43 @@ Prüft nur die Oberfläche, nicht Android. Die WebView braucht unter Nix eventue
 cd ~/git-repos/sandbox/schafkopf
 nix develop .#desktop -c cargo run -p schafkopf-app --features desktop
 ```
+
+
+## Ohne Kabel und ohne WLAN-Verbindung zum PC: APK installieren
+
+Wenn weder USB-Kabel noch stabiles WLAN zwischen PC und Handy möglich sind, bauen wir eine APK und
+bringen sie als Datei aufs Handy. Nachteil: Es gibt kein Hot-Patching, jede Änderung heißt neu bauen
+und neu übertragen. Für den ersten Prototyp-Test reicht das.
+
+Ein Debug-Build wird von Gradle automatisch mit einem Debug-Schlüssel signiert und lässt sich
+deshalb ohne eigenes Zertifikat installieren. Er ist nur für den eigenen Gebrauch gedacht.
+
+Auf dem Host bauen und die APK suchen:
+
+```sh
+cd ~/git-repos/sandbox/schafkopf
+nix develop .#android
+cd crates/schafkopf-app
+dx build --platform android
+find ../../target -name '*.apk'
+```
+
+Der genaue Ordner hängt von der `dx`-Version ab, deshalb die Suche. Laut Issues auf GitHub liegt sie
+unter `target/dx/schafkopf-app/debug/android/app/` in `build/outputs/apk/debug/app-debug.apk`.
+
+Aufs Handy bringen: Die APK in einen Cloud-Ordner legen, per E-Mail oder Messenger an dich selbst
+schicken, oder auf einen USB-Stick kopieren (am Handy mit OTG-Adapter). Der Upload verträgt auch
+schlechtes WLAN, weil er nicht in Echtzeit laufen muss.
+
+Auf dem Handy:
+
+1. Die APK-Datei antippen (Dateien-App oder Download-Benachrichtigung).
+2. Android fragt, ob diese App Apps installieren darf. Das für diese eine Quelle erlauben.
+3. Erscheint die Warnung von Google Play Protect, "Trotzdem installieren" wählen.
+4. Die App "schafkopf-app" öffnen und die Checkliste oben durchgehen.
+
+Wurde die App schon installiert, ersetzt eine neue APK mit gleicher Kennung die alte und behält ihre
+Daten.
 
 ## Checkliste auf dem Handy
 
