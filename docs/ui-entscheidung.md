@@ -49,3 +49,10 @@ Deshalb gilt die Empfehlung unter dem Vorbehalt: **erst ein kleiner Prototyp auf
 - [Slint-Issue: Tastatur auf Android 12](https://github.com/slint-ui/slint/issues/11791)
 - [egui_keyboard](https://docs.rs/egui_keyboard)
 - [Plotters](https://github.com/plotters-rs/plotters)
+
+## Ergebnis des Prototyps
+
+Der Prototyp lief auf einem Android-16-Handy: Eingabe mit Tastatur und Umlauten, SVG-Diagramm,
+Darstellung und das Laden gespeicherter Daten nach dem Schließen der App funktionierten. Damit bleibt
+**Dioxus** die Wahl. Offen blieben: Die gespeicherten Dateien ließen sich nicht einsehen (kein
+Export), und das Diagramm ist noch nicht bedienbar (Zoom, Werte antippen).

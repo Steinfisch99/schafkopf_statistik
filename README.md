@@ -74,7 +74,10 @@ Entscheidungen:
 - [x] UI-Technik recherchiert: Empfehlung Dioxus 0.7 (Oberfläche in Rust, Graphen als SVG), siehe
       [`docs/ui-entscheidung.md`](docs/ui-entscheidung.md)
 - [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden); übersetzt am Desktop
-- [ ] Prototyp auf dem Handy prüfen, siehe [`docs/android-prototyp.md`](docs/android-prototyp.md)
+- [x] Prototyp auf dem Handy geprüft (Android 16): Eingabe, Diagramm, Darstellung und Laden nach Neustart
+      klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-prototyp.md`](docs/android-prototyp.md)
+- [ ] CSV/JSON zum Teilen exportieren (die Datei liegt im privaten App-Ordner und ist nicht einsehbar)
+- [ ] Diagramm bedienbar machen: Tippen zeigt die Werte, Pinch-Zoom, Verschieben, Zurücksetzen
 - [ ] Android-Build (NDK, `cargo-ndk` oder `xbuild`), APK auf dem Gerät testen
 - [ ] Bildschirme: Tisch anlegen, Spiel eintragen, Statistik, Kontoverlauf
 - [ ] Speichern im App-Datenverzeichnis, Export/Import der JSON-Datei
