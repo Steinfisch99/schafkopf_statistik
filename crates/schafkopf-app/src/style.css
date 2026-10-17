@@ -194,3 +194,4 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .strip .l { background: var(--lose); }
 .strip .off { border: 1px dashed var(--line); background: transparent; }
 .legend-note { font-size: 0.8rem; opacity: 0.75; margin: 0 0 0.4rem; }
+.bar-seg { height: 100%; }

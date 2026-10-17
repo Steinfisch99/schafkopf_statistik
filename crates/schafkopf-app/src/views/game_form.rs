@@ -306,6 +306,14 @@ pub fn GameForm(
                         "+"
                     }
                 }
+                div { class: "chips",
+                    Chip {
+                        label: "Gegenlauf (die Gegner hatten sie)".to_string(),
+                        on: d.gegenlauf,
+                        disabled: d.laufende == 0,
+                        onclick: move |_| draft.write().toggle_gegenlauf(),
+                    }
+                }
             }
         }
 

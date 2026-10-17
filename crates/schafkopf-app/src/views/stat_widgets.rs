@@ -140,3 +140,29 @@ pub fn ResultStrip(results: Vec<Option<bool>>) -> Element {
         }
     }
 }
+
+/// Farben für Lauf, Gegenlauf und "ohne Lauf": Blau und Gelb aus der Okabe/Ito-Palette, dazu ein Grau.
+pub const LAUF_COLOR: &str = "#0072B2";
+pub const GEGENLAUF_COLOR: &str = "#E69F00";
+pub const NO_LAUF_COLOR: &str = "#9AA0A6";
+
+/// Balken aus mehreren Stücken hintereinander, jedes mit eigener Farbe. `max` ist die Länge der
+/// längsten Zeile in Spielen, damit die Zeilen untereinander vergleichbar sind.
+#[component]
+pub fn SegmentBar(label: String, segments: Vec<(u32, String)>, max: u32, value: String) -> Element {
+    rsx! {
+        div { class: "bar-row",
+            span { class: "bar-label", "{label}" }
+            div { class: "bar-track",
+                for (index, (count, color)) in segments.into_iter().enumerate() {
+                    div {
+                        key: "{index}",
+                        class: "bar-seg",
+                        style: "width:{bar_percent(count, max)}%;background:{color}",
+                    }
+                }
+            }
+            span { class: "bar-value", "{value}" }
+        }
+    }
+}

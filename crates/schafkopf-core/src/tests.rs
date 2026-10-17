@@ -1075,3 +1075,189 @@ fn player_list_roundtrips_and_old_library_files_still_load() {
     assert!(old.players().is_empty());
     assert_eq!(old.rule_sets(), lib.rule_sets());
 }
+
+#[test]
+fn gegenlauf_needs_laufende_and_does_not_change_the_price() {
+    let mut t = table();
+    let lauf = GameInput {
+        laufende: 4,
+        ..sauspiel(0, 1, 3)
+    };
+    let gegen = GameInput {
+        laufende: 4,
+        gegenlauf: true,
+        ..sauspiel(1, 1, 3)
+    };
+    let a = t.add_game(lauf).unwrap().clone();
+    let b = t.add_game(gegen).unwrap().clone();
+    assert_eq!(
+        (a.value, a.payouts.clone()),
+        (b.value, b.payouts.clone()),
+        "Geld ist gleich"
+    );
+    let none = GameInput {
+        gegenlauf: true,
+        ..sauspiel(2, 1, 3)
+    };
+    assert_eq!(
+        t.add_game(none).unwrap_err(),
+        Error::GegenlaufWithoutLaufende
+    );
+    assert_eq!(t.games().len(), 2);
+}
+
+#[test]
+fn gegenlauf_roundtrips_and_old_games_default_to_lauf() {
+    let mut t = table();
+    t.add_game(GameInput {
+        laufende: 3,
+        gegenlauf: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    assert_eq!(Table::from_json(&t.to_json().unwrap()).unwrap(), t);
+    let mut json = serde_json::to_value(&t).unwrap();
+    json["games"][0]["input"]
+        .as_object_mut()
+        .unwrap()
+        .remove("gegenlauf");
+    let old = Table::from_json(&json.to_string()).unwrap();
+    assert!(!old.games()[0].input.gegenlauf);
+}
+
+#[test]
+fn csv_has_a_gegenlauf_column() {
+    let mut t = table();
+    t.add_game(GameInput {
+        laufende: 3,
+        gegenlauf: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let header: Vec<String> = t.csv_header().split(',').map(String::from).collect();
+    let row: Vec<String> = t.csv_row(0).unwrap().split(',').map(String::from).collect();
+    let at = header.iter().position(|h| h == "Laufende").unwrap();
+    assert_eq!(header[at + 1], "Gegenlauf");
+    assert_eq!((row[at].as_str(), row[at + 1].as_str()), ("3", "ja"));
+}
+
+fn lauf_stats(t: &Table, kind: GameKind) -> LaufendeStats {
+    table_stats(t).laufende_by_kind[&kind]
+}
+
+#[test]
+fn lauf_and_gegenlauf_are_counted_per_kind_above_the_minimum() {
+    let mut t = table();
+    // Sauspiel zählt ab 3: Lauf mit 4, Gegenlauf mit 3, 2 Laufende zählen nicht, eines ohne.
+    t.add_game(GameInput {
+        laufende: 4,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        laufende: 3,
+        gegenlauf: true,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        laufende: 2,
+        ..sauspiel(2, 1, 3)
+    })
+    .unwrap();
+    t.add_game(sauspiel(3, 1, 3)).unwrap();
+    let s = lauf_stats(&t, GameKind::Sauspiel);
+    assert_eq!((s.games, s.lauf, s.gegenlauf, s.without()), (4, 1, 1, 2));
+    assert_eq!((s.lauf_sum, s.gegenlauf_sum), (4, 3));
+    assert_eq!(
+        (s.average_lauf(), s.average_gegenlauf()),
+        (Some(4.0), Some(3.0))
+    );
+
+    // Wenz zählt ab 2.
+    t.add_game(GameInput {
+        laufende: 2,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        laufende: 1,
+        ..GameInput::new(1, GameKind::Wenz, 1)
+    })
+    .unwrap();
+    let w = lauf_stats(&t, GameKind::Wenz);
+    assert_eq!((w.games, w.lauf, w.gegenlauf), (2, 1, 0));
+    assert_eq!(w.average_gegenlauf(), None);
+}
+
+#[test]
+fn kinds_without_extras_have_no_lauf_stats() {
+    let mut t = table();
+    t.add_game(GameInput::new(0, GameKind::Ramsch, 1)).unwrap();
+    t.add_game(GameInput::new(1, GameKind::Bettel, 1)).unwrap();
+    assert!(table_stats(&t).laufende_by_kind.is_empty());
+}
+
+#[test]
+fn the_games_own_tariff_decides_what_counts_as_a_lauf() {
+    let mut t = table();
+    t.set_tariff(Tariff {
+        laufende_min_sauspiel: 2,
+        ..Tariff::default()
+    });
+    t.add_game(GameInput {
+        laufende: 2,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    t.set_tariff(Tariff {
+        laufende_min_sauspiel: 5,
+        ..Tariff::default()
+    });
+    t.add_game(GameInput {
+        laufende: 2,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    let s = lauf_stats(&t, GameKind::Sauspiel);
+    assert_eq!(
+        (s.games, s.lauf),
+        (2, 1),
+        "nur das Spiel nach dem Tarif mit Grenze 2 zählt"
+    );
+}
+
+#[test]
+fn players_know_which_side_had_the_laufende() {
+    let mut t = table();
+    // Spiel 1: Ben und Dora spielen, sie haben den Lauf. Spiel 2: Gegenlauf, also Anna und Cem.
+    t.add_game(GameInput {
+        laufende: 3,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        laufende: 3,
+        gegenlauf: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let stats = table_stats(&t);
+    let own = |seat: usize| {
+        (
+            stats.players[seat].lauf_own_side,
+            stats.players[seat].lauf_other_side,
+        )
+    };
+    assert_eq!(
+        own(1),
+        (1, 1),
+        "Ben: im ersten Spiel Lauf, im zweiten Gegenlauf gegen sich"
+    );
+    assert_eq!(own(3), (1, 1));
+    assert_eq!(
+        own(0),
+        (1, 1),
+        "Anna: im ersten Spiel hatten ihre Gegner den Lauf, im zweiten sie selbst"
+    );
+}

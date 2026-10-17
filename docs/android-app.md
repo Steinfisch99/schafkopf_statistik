@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (127). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (138). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -136,6 +136,7 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
       ihm und die zwei danach.
 - [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
 - [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
+- [ ] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
 - [ ] **Laufende:** Beim Sauspiel, der Hochzeit und dem Farbsolo gehen sie bis **14**, beim Wenz und Geier bis 4, beim Farbwenz und Farbgeier bis 11. Wechselst du die Spielart, kürzt sich ein zu hoher Wert.
 - [ ] Bei Spieler und Mitspieler ist "Kontra" ausgegraut.
 - [ ] Der Preis ändert sich sofort. Rechenprobe beim Sauspiel: 0,20 €, Schneider +0,10 €, ab 3 Laufenden
@@ -213,6 +214,8 @@ Grafiken, die Zahlen stehen aber immer daneben.
       oft die Spielerpartei gewann. Darunter Balken für die Anteile mit Klopfen, Kontra, Re, Schneider,
       Schwarz und korrigiertem Preis.
 - [ ] **Spielarten:** Ring mit der Verteilung, Balken (grün gewonnen, orange verloren) und die Tabelle.
+- [ ] **Lauf und Gegenlauf:** Ring über alle Spielarten, Balken je Spielart (blau Lauf, gelb Gegenlauf, grau ohne) und eine Tabelle mit Spielen, Lauf, Gegenlauf und durchschnittlicher Zahl Laufende. Die Zahlen passen zu dem, was du eingetragen hast.
+- [ ] In der Karte jedes Spielers stehen "Lauf auf der eigenen Seite" und "auf der Gegenseite".
 - [ ] **Gerufene Sau** und **Wer mit wem** haben Balken. Sie sind untereinander vergleichbar, ein längerer
       Balken heißt mehr Spiele.
 - [ ] **Die Spieler im Detail:** Antippen klappt einen Spieler auf.

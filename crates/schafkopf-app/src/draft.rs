@@ -20,6 +20,8 @@ pub struct GameDraft {
     pub schneider: bool,
     pub schwarz: bool,
     pub laufende: u8,
+    /// Hatten die Gegner die Laufenden (Gegenlauf)?
+    pub gegenlauf: bool,
     pub price_text: String,
     /// Beim Bearbeiten: Angaben des ursprünglichen Spiels, die das Formular nicht zeigt, aber nicht
     /// verlieren darf.
@@ -55,6 +57,7 @@ impl GameDraft {
             schneider: false,
             schwarz: false,
             laufende: 0,
+            gegenlauf: false,
             price_text: String::new(),
             played_at: None,
             points: None,
@@ -81,6 +84,7 @@ impl GameDraft {
             schneider: i.schneider || i.schwarz,
             schwarz: i.schwarz,
             laufende: i.laufende,
+            gegenlauf: i.gegenlauf,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
             played_at: i.played_at,
             points: i.points,
@@ -136,6 +140,9 @@ impl GameDraft {
             self.laufende = 0;
         }
         self.laufende = self.laufende.min(kind.max_laufende());
+        if self.laufende == 0 {
+            self.gegenlauf = false;
+        }
         self.won = kind != GameKind::Ramsch;
     }
 
@@ -227,6 +234,17 @@ impl GameDraft {
 
     pub fn set_laufende(&mut self, n: u8) {
         self.laufende = n.min(self.kind.max_laufende());
+        if self.laufende == 0 {
+            self.gegenlauf = false;
+        }
+    }
+
+    /// Hatten die Gegner die Laufenden (Gegenlauf) statt der Spielerpartei (Lauf)? Ohne Laufende
+    /// gibt es keinen Gegenlauf.
+    pub fn toggle_gegenlauf(&mut self) {
+        if self.laufende > 0 {
+            self.gegenlauf = !self.gegenlauf;
+        }
     }
 
     /// Was noch fehlt, damit das Spiel eingetragen werden kann.
@@ -285,6 +303,7 @@ impl GameDraft {
         input.schneider = self.schneider || self.schwarz;
         input.schwarz = self.schwarz;
         input.laufende = self.laufende;
+        input.gegenlauf = self.gegenlauf && self.laufende > 0;
         input.price_override = parse_euro(&self.price_text);
         input.played_at = self.played_at.or(played_at);
         input.points = self.points;
@@ -565,6 +584,48 @@ mod tests {
         assert_eq!(d.laufende, 11);
         d.set_kind(GameKind::Farbsolo);
         assert_eq!(d.laufende, 11, "Farbsolo erlaubt 14, der Wert bleibt");
+    }
+
+    #[test]
+    fn gegenlauf_needs_laufende_and_follows_them() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.toggle_declarer(1);
+        d.toggle_partner(2);
+        d.suit = Some(Suit::Gras);
+        d.toggle_gegenlauf();
+        assert!(!d.gegenlauf, "ohne Laufende kein Gegenlauf");
+        d.set_laufende(4);
+        d.toggle_gegenlauf();
+        assert!(d.gegenlauf);
+        let input = d.to_input(None).unwrap();
+        assert!(input.gegenlauf && input.laufende == 4);
+        d.set_laufende(0);
+        assert!(!d.gegenlauf, "ohne Laufende fällt der Gegenlauf weg");
+        assert!(!d.to_input(None).unwrap().gegenlauf);
+        d.set_laufende(5);
+        d.toggle_gegenlauf();
+        d.set_kind(GameKind::Bettel);
+        assert!(
+            !d.gegenlauf && d.laufende == 0,
+            "ohne Zuschläge fällt alles weg"
+        );
+    }
+
+    #[test]
+    fn editing_keeps_the_gegenlauf() {
+        let mut t = table(4);
+        let input = GameInput {
+            suit: Some(Suit::Gras),
+            partner: Some(3),
+            laufende: 3,
+            gegenlauf: true,
+            ..GameInput::new(0, GameKind::Sauspiel, 1)
+        };
+        t.add_game(input).unwrap();
+        let draft = GameDraft::from_game(&t, 0).unwrap();
+        assert!(draft.gegenlauf);
+        assert!(draft.to_input(None).unwrap().gegenlauf);
     }
 
     #[test]

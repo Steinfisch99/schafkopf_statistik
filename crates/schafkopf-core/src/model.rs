@@ -156,9 +156,13 @@ pub struct GameInput {
     /// Hat die Siegerpartei Schwarz erreicht (alle Stiche)? Schwarz zählt immer auch als Schneider.
     #[serde(default)]
     pub schwarz: bool,
-    /// Anzahl Laufende (Karten in Folge von oben), die die Siegerpartei hatte.
+    /// Anzahl Laufende (Karten in Folge von oben), die eine der beiden Parteien hatte.
     #[serde(default)]
     pub laufende: u8,
+    /// Hatte die Gegenpartei die Laufende (Gegenlauf) statt der Spielerpartei (Lauf)? Der Preis ist
+    /// in beiden Fällen derselbe, es zählt für die Statistik.
+    #[serde(default)]
+    pub gegenlauf: bool,
     /// Verlangter Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif
     /// ergibt. Ersetzt dann die Berechnung.
     #[serde(default)]
@@ -191,6 +195,7 @@ impl GameInput {
             schneider: false,
             schwarz: false,
             laufende: 0,
+            gegenlauf: false,
             price_override: None,
             points: None,
             played_at: None,

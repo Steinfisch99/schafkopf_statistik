@@ -3,14 +3,17 @@
 
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
-use schafkopf_core::{table_stats, Cents, PlayerStats, RoleStats, Suit, Table};
+use schafkopf_core::{
+    table_stats, Cents, GameKind, LaufendeStats, PlayerStats, RoleStats, Suit, Table,
+};
 
 use super::stat_widgets::{
-    DivergingRow, DonutWithLegend, ResultStrip, ShareBar, StackedBar, WinDonut,
+    DivergingRow, DonutWithLegend, ResultStrip, SegmentBar, ShareBar, StackedBar, WinDonut,
+    GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
 };
 use crate::stats_text::{
-    average_per_game, declarer_rate, kind_rows, max_abs, overall, pair_rows, percent,
-    position_label, ranking, results_per_player, share, streak,
+    average_laufende, average_per_game, declarer_rate, kind_rows, max_abs, overall, pair_rows,
+    percent, position_label, ranking, results_per_player, share, streak,
 };
 use crate::summary::{detail, signed_euro, title};
 use crate::Screen;
@@ -121,6 +124,8 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>) -> Element {
             }
             Kv { label: "Siege mit Schneider", value: p.schneider_wins.to_string() }
             Kv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string() }
+            Kv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string() }
+            Kv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string() }
 
             h4 { "Serien" }
             p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt." }
@@ -221,6 +226,39 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
         .collect();
     let ace_scale = aces.iter().map(|(_, r)| r.games).max().unwrap_or(0);
     let pairs = pair_rows(&stats);
+    let lauf_rows: Vec<(GameKind, LaufendeStats)> = GameKind::ALL
+        .into_iter()
+        .filter_map(|k| {
+            stats
+                .laufende_by_kind
+                .get(&k)
+                .filter(|s| s.games > 0)
+                .map(|s| (k, *s))
+        })
+        .collect();
+    let lauf_scale = lauf_rows.iter().map(|(_, s)| s.games).max().unwrap_or(0);
+    let lauf_total = lauf_rows
+        .iter()
+        .fold(LaufendeStats::default(), |acc, (_, s)| LaufendeStats {
+            games: acc.games + s.games,
+            lauf: acc.lauf + s.lauf,
+            gegenlauf: acc.gegenlauf + s.gegenlauf,
+            lauf_sum: acc.lauf_sum + s.lauf_sum,
+            gegenlauf_sum: acc.gegenlauf_sum + s.gegenlauf_sum,
+        });
+    let lauf_parts: Vec<(String, u32, String)> = vec![
+        ("Lauf".to_string(), lauf_total.lauf, LAUF_COLOR.to_string()),
+        (
+            "Gegenlauf".to_string(),
+            lauf_total.gegenlauf,
+            GEGENLAUF_COLOR.to_string(),
+        ),
+        (
+            "ohne Lauf".to_string(),
+            lauf_total.without(),
+            NO_LAUF_COLOR.to_string(),
+        ),
+    ];
     let pair_scale = pairs.iter().map(|r| r.stats.games).max().unwrap_or(0);
     let declarers = declarer_rate(&stats);
     let results = results_per_player(t);
@@ -340,6 +378,50 @@ pub fn StatsScreen(table: Signal<Option<Table>>, screen: Signal<Screen>) -> Elem
                     }
                 }
                 p { class: "hint", "Gewonnen heißt: Die Spielerpartei hat gewonnen. Beim Ramsch zählt das nur bei Durchmarsch." }
+            }
+
+            if !lauf_rows.is_empty() {
+                section {
+                    h3 { "Lauf und Gegenlauf" }
+                    p { class: "hint",
+                        "Lauf: Die Spielerpartei hatte die Laufenden. Gegenlauf: Die Gegner hatten sie. Gezählt wird ab der Mindestzahl Laufende des Tarifs, in der Regel beim Sauspiel ab 3, beim Wenz und Geier ab 2."
+                    }
+                    DonutWithLegend {
+                        parts: lauf_parts,
+                        center: (lauf_total.lauf + lauf_total.gegenlauf).to_string(),
+                        sub: "Läufe".to_string(),
+                        label: "Läufe und Gegenläufe aller Spielarten".to_string(),
+                    }
+                    p { class: "legend-note", "Blau Lauf, gelb Gegenlauf, grau ohne Lauf. Rechts steht: Lauf · Gegenlauf." }
+                    for (kind, row) in lauf_rows.iter().copied() {
+                        SegmentBar {
+                            key: "{kind.label()}",
+                            label: kind.label().to_string(),
+                            segments: vec![
+                                (row.lauf, LAUF_COLOR.to_string()),
+                                (row.gegenlauf, GEGENLAUF_COLOR.to_string()),
+                                (row.without(), "var(--line)".to_string()),
+                            ],
+                            max: lauf_scale,
+                            value: format!("{} · {}", row.lauf, row.gegenlauf),
+                        }
+                    }
+                    table { class: "stat-table",
+                        thead { tr { th { "Spielart" } th { "Spiele" } th { "Lauf" } th { "Gegenl." } th { "Ø Lfd." } } }
+                        tbody {
+                            for (kind, row) in lauf_rows {
+                                tr { key: "{kind.label()}",
+                                    td { "{kind.label()}" }
+                                    td { "{row.games}" }
+                                    td { "{row.lauf}" }
+                                    td { "{row.gegenlauf}" }
+                                    td { "{average_laufende(&row)}" }
+                                }
+                            }
+                        }
+                    }
+                    p { class: "hint", "Ø Lfd.: durchschnittliche Zahl Laufende in den Spielen mit Lauf oder Gegenlauf." }
+                }
             }
 
             if !aces.is_empty() {

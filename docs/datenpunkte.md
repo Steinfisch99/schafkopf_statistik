@@ -22,6 +22,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
 | Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier | nein |
+| Gegenlauf | Ja, wenn die **Gegner** die Laufenden hatten (Gegenlauf) statt der Spielerpartei (Lauf). Der Preis ist in beiden Fällen derselbe, es zählt für die Statistik | nein |
 | Augen | Augen der Spielerpartei, daraus lassen sich Sieg und Schneider ableiten | nein |
 | Zeitpunkt, Notiz | frei | nein |
 
@@ -49,6 +50,7 @@ Schwarz +0,10 €, jedes Laufende +0,10 €.
 - Wie oft geklopft und wie oft danach gewonnen, Kontra und Re ebenso
 - Schneider- und Schwarz-Siege
 - Längste Sieges- und Verlustserie, aktuelle Serie
+- In wie vielen Spielen die eigene Seite die Laufenden hatte (Lauf oder Gegenlauf) und in wie vielen die andere
 - Ergebnis nach Platz ab links vom Geber (Vorhand, Mittelhand, Hinterhand, Letzter)
 
 **Pro Tisch**
@@ -58,6 +60,7 @@ Schwarz +0,10 €, jedes Laufende +0,10 €.
 - Welche Sau am häufigsten gerufen wird und wie oft sie gewinnt
 - Anteil der Spiele mit Klopfen, Kontra, Re, Schneider, Schwarz und mit korrigiertem Preis
 - Mitspieler-Matrix: wer hat mit wem wie oft gewonnen
+- **Lauf und Gegenlauf** je Spielart: wie oft die Spielerpartei die Laufenden hatte, wie oft die Gegner, wie oft keine, und die durchschnittliche Zahl Laufende. Gezählt wird ab der Mindestzahl Laufende des Tarifs, mit dem das Spiel abgerechnet wurde
 - Kontoverlauf aller Spieler über die Spiele (für einen Graphen), beginnt bei 0 und kann negativ werden
 
 ## Noch nicht erfasst
@@ -70,7 +73,7 @@ Dateien unlesbar zu machen, weil neue Felder mit Standardwerten gelesen werden.
 
 Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr`, `Zeit`, `Geber`,
 `Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Tout`,
-`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
+`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
 werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.
@@ -109,6 +112,7 @@ aussagt. Grün steht für gewonnen und Orange für verloren (Okabe/Ito, auch bei
 unterscheidbar).
 
 - **Rangliste:** Balken für den Geldstand, von einer Mittellinie aus (Gewinn rechts, Verlust links).
+- **Lauf und Gegenlauf:** Ring über alle Spielarten und ein mehrfarbiger Balken je Spielart (Lauf, Gegenlauf, ohne), dazu eine Tabelle.
 - **Dieser Abend:** Ring, wie oft die Spielerpartei gewann; Balken für die Anteile mit Klopfen, Kontra,
   Re, Schneider, Schwarz und korrigiertem Preis.
 - **Spielarten:** Ring mit der Verteilung; Balken für gewonnen und verloren je Spielart.

@@ -53,7 +53,9 @@ impl Tariff {
         }
     }
 
-    fn laufende_min(&self, kind: GameKind) -> u8 {
+    /// Ab wie vielen Laufenden in dieser Spielart gezählt wird, also ab wann es einen Lauf oder
+    /// Gegenlauf gibt.
+    pub fn laufende_min(&self, kind: GameKind) -> u8 {
         match kind {
             GameKind::Sauspiel | GameKind::Hochzeit => self.laufende_min_sauspiel,
             GameKind::Wenz | GameKind::Farbwenz | GameKind::Geier | GameKind::Farbgeier => {
@@ -151,6 +153,9 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
             got: input.laufende,
             max: kind.max_laufende(),
         });
+    }
+    if input.gegenlauf && input.laufende == 0 {
+        return Err(Error::GegenlaufWithoutLaufende);
     }
     Ok(())
 }

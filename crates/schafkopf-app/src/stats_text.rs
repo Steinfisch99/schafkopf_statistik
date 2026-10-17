@@ -1,6 +1,8 @@
 //! Aufbereitung der Statistik für die Anzeige: Texte und Sortierungen ohne Oberfläche.
 
-use schafkopf_core::{Cents, GameKind, KindStats, PlayerStats, RoleStats, Table, TableStats};
+use schafkopf_core::{
+    Cents, GameKind, KindStats, LaufendeStats, PlayerStats, RoleStats, Table, TableStats,
+};
 
 /// Prozent als ganze Zahl mit geschütztem Leerzeichen, "–" ohne Spiele.
 pub fn percent(wins: u32, games: u32) -> String {
@@ -130,6 +132,20 @@ pub fn pair_rows(stats: &TableStats) -> Vec<PairRow> {
         ))
     });
     rows
+}
+
+/// Eine Kommazahl mit einer Nachkommastelle und deutschem Komma: `3.5` wird zu `3,5`.
+pub fn decimal(value: f64) -> String {
+    format!("{value:.1}").replace('.', ",")
+}
+
+/// Durchschnittliche Zahl Laufende über alle Läufe und Gegenläufe einer Spielart, "–" ohne.
+pub fn average_laufende(stats: &LaufendeStats) -> String {
+    let count = stats.lauf + stats.gegenlauf;
+    if count == 0 {
+        return "–".to_owned();
+    }
+    decimal(f64::from(stats.lauf_sum + stats.gegenlauf_sum) / f64::from(count))
 }
 
 /// Breite eines Balkens in Prozent der Spur, zwischen 0 und 100 (auf eine Stelle gerundet).
@@ -364,6 +380,28 @@ mod tests {
             [Some(true), Some(true), Some(false), Some(true), None]
         );
         assert!(results_per_player(&table()).iter().all(Vec::is_empty));
+    }
+
+    #[test]
+    fn decimals_and_average_laufende() {
+        assert_eq!(decimal(3.0), "3,0");
+        assert_eq!(decimal(3.46), "3,5");
+        assert_eq!(decimal(0.04), "0,0");
+        let stats = LaufendeStats {
+            games: 5,
+            lauf: 2,
+            gegenlauf: 1,
+            lauf_sum: 7,
+            gegenlauf_sum: 3,
+        };
+        assert_eq!(average_laufende(&stats), "3,3", "(7 + 3) von 3 Spielen");
+        assert_eq!(
+            average_laufende(&LaufendeStats {
+                games: 2,
+                ..Default::default()
+            }),
+            "–"
+        );
     }
 
     #[test]

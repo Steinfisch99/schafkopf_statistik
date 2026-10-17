@@ -48,6 +48,8 @@ pub enum Error {
     InvalidPoints(u8),
     #[error("Beim {} gibt es höchstens {max} Laufende, nicht {got}", .kind.label())]
     InvalidLaufende { kind: GameKind, got: u8, max: u8 },
+    #[error("Ein Gegenlauf braucht mindestens eine Laufende")]
+    GegenlaufWithoutLaufende,
     #[error("Der Name darf nicht leer sein")]
     NameEmpty,
     #[error("Es gibt schon einen Eintrag namens \"{0}\"")]

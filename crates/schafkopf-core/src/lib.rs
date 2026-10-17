@@ -17,7 +17,9 @@ pub use library::{Library, NamedTariff, RuleSet};
 pub use model::{outcome_from_points, Cents, GameInput, GameKind, Outcome, Seat, Suit};
 pub use money::parse_euro;
 pub use scoring::{calculated_value, game_value, payouts, validate, Tariff};
-pub use stats::{balance_history, table_stats, KindStats, PlayerStats, RoleStats, TableStats};
+pub use stats::{
+    balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
+};
 pub use table::{Game, Table};
 
 #[cfg(test)]

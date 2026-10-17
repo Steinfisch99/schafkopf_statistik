@@ -34,7 +34,8 @@ pub fn detail(table: &Table, game: &Game) -> String {
             parts.push("Schneider".into());
         }
         if input.laufende > 0 {
-            parts.push(format!("{} Laufende", input.laufende));
+            let side = if input.gegenlauf { " (Gegenlauf)" } else { "" };
+            parts.push(format!("{} Laufende{side}", input.laufende));
         }
     }
     if !input.knockers.is_empty() {
@@ -90,6 +91,23 @@ mod tests {
         assert_eq!(
             detail(&t, &game),
             "Ben mit Dora gewonnen · Schneider · 3 Laufende · 1× geklopft · Kontra, Re · Preis korrigiert"
+        );
+    }
+
+    #[test]
+    fn marks_a_gegenlauf() {
+        let mut t = table();
+        let input = GameInput {
+            suit: Some(Suit::Gras),
+            partner: Some(3),
+            laufende: 4,
+            gegenlauf: true,
+            ..GameInput::new(0, GameKind::Sauspiel, 1)
+        };
+        let game = t.add_game(input).unwrap().clone();
+        assert_eq!(
+            detail(&t, &game),
+            "Ben mit Dora gewonnen · 4 Laufende (Gegenlauf)"
         );
     }
 

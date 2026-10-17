@@ -33,6 +33,38 @@ pub struct KindStats {
     pub balance: Cents,
 }
 
+/// Läufe und Gegenläufe einer Spielart. Gezählt wird nur, was nach dem Tarif des Spiels ein Lauf
+/// ist, also ab der Mindestzahl an Laufenden dieser Spielart.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LaufendeStats {
+    /// Alle Spiele dieser Art.
+    pub games: u32,
+    /// Spiele, in denen die Spielerpartei die Laufenden hatte (Lauf).
+    pub lauf: u32,
+    /// Spiele, in denen die Gegenpartei sie hatte (Gegenlauf).
+    pub gegenlauf: u32,
+    /// Summe der Laufenden in den Lauf- und in den Gegenlauf-Spielen.
+    pub lauf_sum: u32,
+    pub gegenlauf_sum: u32,
+}
+
+impl LaufendeStats {
+    /// Spiele ohne Lauf und ohne Gegenlauf.
+    pub fn without(&self) -> u32 {
+        self.games - self.lauf - self.gegenlauf
+    }
+
+    /// Durchschnittliche Zahl Laufende in den Lauf-Spielen.
+    pub fn average_lauf(&self) -> Option<f64> {
+        (self.lauf > 0).then(|| f64::from(self.lauf_sum) / f64::from(self.lauf))
+    }
+
+    /// Durchschnittliche Zahl Laufende in den Gegenlauf-Spielen.
+    pub fn average_gegenlauf(&self) -> Option<f64> {
+        (self.gegenlauf > 0).then(|| f64::from(self.gegenlauf_sum) / f64::from(self.gegenlauf))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PlayerStats {
     pub seat: Seat,
@@ -54,6 +86,10 @@ pub struct PlayerStats {
     pub re_given: RoleStats,
     pub schneider_wins: u32,
     pub schwarz_wins: u32,
+    /// Spiele mit einem Lauf oder Gegenlauf, bei denen die eigene Seite die Laufenden hatte, und
+    /// solche, bei denen die andere Seite sie hatte.
+    pub lauf_own_side: u32,
+    pub lauf_other_side: u32,
     pub longest_win_streak: u32,
     pub longest_loss_streak: u32,
     /// Positiv = aktuelle Siegesserie, negativ = aktuelle Verlustserie.
@@ -83,6 +119,8 @@ impl PlayerStats {
             re_given: RoleStats::default(),
             schneider_wins: 0,
             schwarz_wins: 0,
+            lauf_own_side: 0,
+            lauf_other_side: 0,
             longest_win_streak: 0,
             longest_loss_streak: 0,
             current_streak: 0,
@@ -114,6 +152,8 @@ pub struct TableStats {
     pub schwarz_games: u32,
     /// Spiele, in denen ein anderer Preis verlangt wurde, als der Tarif ergibt.
     pub corrected_games: u32,
+    /// Läufe und Gegenläufe je Spielart, nur für Spielarten mit Zuschlägen.
+    pub laufende_by_kind: BTreeMap<GameKind, LaufendeStats>,
     pub players: Vec<PlayerStats>,
     /// `partner_matrix[a][b]`: Sauspiele/Hochzeiten, in denen a und b zusammen gespielt haben.
     pub partner_matrix: Vec<Vec<RoleStats>>,
@@ -140,6 +180,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         schneider_games: 0,
         schwarz_games: 0,
         corrected_games: 0,
+        laufende_by_kind: BTreeMap::new(),
         players: Vec::new(),
         partner_matrix: vec![vec![RoleStats::default(); n]; n],
     };
@@ -169,6 +210,25 @@ pub fn table_stats(table: &Table) -> TableStats {
             stats.partner_matrix[g.declarer][partner].record(g.won);
             stats.partner_matrix[partner][g.declarer].record(g.won);
         }
+        let lauf_counted = g.kind.has_extras()
+            && g.laufende > 0
+            && g.laufende
+                >= game
+                    .tariff
+                    .as_ref()
+                    .unwrap_or(&table.tariff)
+                    .laufende_min(g.kind);
+        if g.kind.has_extras() {
+            let entry = stats.laufende_by_kind.entry(g.kind).or_default();
+            entry.games += 1;
+            if lauf_counted && g.gegenlauf {
+                entry.gegenlauf += 1;
+                entry.gegenlauf_sum += u32::from(g.laufende);
+            } else if lauf_counted {
+                entry.lauf += 1;
+                entry.lauf_sum += u32::from(g.laufende);
+            }
+        }
 
         players[g.dealer].games_dealt += 1;
         for (seat, p) in players.iter_mut().enumerate() {
@@ -180,6 +240,14 @@ pub fn table_stats(table: &Table) -> TableStats {
             let on_team = g.is_on_declarer_team(seat);
             let won = on_team == g.won;
             let payout = game.payouts[seat];
+            if lauf_counted {
+                // Die Seite, die die Laufende hatte: die Spielerpartei bei einem Lauf, sonst die Gegner.
+                if on_team != g.gegenlauf {
+                    p.lauf_own_side += 1;
+                } else {
+                    p.lauf_other_side += 1;
+                }
+            }
 
             p.games_played += 1;
             p.balance += payout;
