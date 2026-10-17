@@ -214,7 +214,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.schwarz_games += u32::from(g.schwarz);
         stats.corrected_games += u32::from(game.value != game.calculated_value);
         stats.bock_games += u32::from(g.bock);
-        stats.bock_started += u32::from(g.starts_bock);
+        stats.bock_started += g.bock_triggers();
         if let Some(partner) = g.partner {
             stats.partner_matrix[g.declarer][partner].record(g.won);
             stats.partner_matrix[partner][g.declarer].record(g.won);

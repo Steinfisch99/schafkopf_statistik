@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::library::RuleSet;
-use crate::model::{BockMode, Cents, GameInput, GameKind, Seat};
+use crate::model::{BockMode, BockStacking, Cents, GameInput, GameKind, Seat};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Am Tisch sitzen zwischen 2 und 10 Spieler.
@@ -29,6 +29,46 @@ pub struct Game {
     /// dann saßen alle da, für die das Spiel eine Auszahlung hat.
     #[serde(default)]
     pub at_table: Vec<Seat>,
+}
+
+/// Was am Tisch passiert ist, außer den Spielen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EventKind {
+    /// Ein neuer Spieler setzt sich dazu.
+    Joined,
+    /// Ein Spieler geht.
+    Left,
+    /// Ein Spieler, der gegangen war, kommt zurück.
+    Returned,
+    /// Ein Spieler setzt sich um.
+    Moved,
+}
+
+impl EventKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            EventKind::Joined => "Kommt dazu",
+            EventKind::Left => "Geht",
+            EventKind::Returned => "Kommt zurück",
+            EventKind::Moved => "Setzt sich um",
+        }
+    }
+}
+
+/// Ein Kommen, Gehen oder Umsetzen im Lauf des Abends.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TableEvent {
+    /// Zeitpunkt in Unix-Sekunden, falls bekannt.
+    #[serde(default)]
+    pub at: Option<i64>,
+    pub kind: EventKind,
+    pub seat: Seat,
+    /// Hinter wem der Spieler saß oder sich hingesetzt hat, bei Dazukommen und Umsetzen.
+    #[serde(default)]
+    pub behind: Option<Seat>,
+    /// Wie viele Spiele zu dem Zeitpunkt schon gespielt waren.
+    #[serde(default)]
+    pub after_games: usize,
 }
 
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
@@ -61,6 +101,18 @@ pub struct Table {
     /// Ob und wie lange nach einem Auslöser Bockspiele folgen. Alte Dateien: kein Bock.
     #[serde(default)]
     pub bock_mode: BockMode,
+    /// Ob sich mehrere Bockrunden hintereinander reihen oder überlagern. Alte Dateien: hintereinander.
+    #[serde(default)]
+    pub bock_stacking: BockStacking,
+    /// Abweichung der Ortszeit von UTC in Minuten, damit Uhrzeiten lesbar sind (Deutschland: 60/120).
+    #[serde(default)]
+    pub utc_offset_min: i32,
+    /// Wann der Abend beendet wurde (Unix-Sekunden). `None`: noch offen.
+    #[serde(default)]
+    pub ended_at: Option<i64>,
+    /// Wer im Lauf des Abends kam, ging oder sich umsetzte.
+    #[serde(default)]
+    pub events: Vec<TableEvent>,
     #[serde(default)]
     pub created_at: Option<i64>,
     games: Vec<Game>,
@@ -102,6 +154,10 @@ impl Table {
             enabled_kinds: GameKind::ALL.to_vec(),
             rule_set_name: None,
             bock_mode: BockMode::Off,
+            bock_stacking: BockStacking::Sequential,
+            utc_offset_min: 0,
+            ended_at: None,
+            events: Vec::new(),
             created_at: None,
             games: Vec::new(),
         })
@@ -183,9 +239,21 @@ impl Table {
         seats
     }
 
+    /// Hält fest, dass etwas am Tisch passiert ist.
+    fn record(&mut self, at: Option<i64>, kind: EventKind, seat: Seat, behind: Option<Seat>) {
+        self.events.push(TableEvent {
+            at,
+            kind,
+            seat,
+            behind,
+            after_games: self.games.len(),
+        });
+    }
+
     /// Setzt einen neuen Spieler an den Tisch, hinter den Sitzplatz `after` (am Ende der Runde,
-    /// wenn `None`). Für die früheren Spiele zahlt er nichts. Gibt seinen Sitzplatz zurück.
-    pub fn add_player(&mut self, name: &str, after: Option<Seat>) -> Result<Seat> {
+    /// wenn `None`). Für die früheren Spiele zahlt er nichts. `at` ist der Zeitpunkt in
+    /// Unix-Sekunden für das Protokoll. Gibt seinen Sitzplatz zurück.
+    pub fn add_player(&mut self, name: &str, after: Option<Seat>, at: Option<i64>) -> Result<Seat> {
         let name = name.trim();
         if name.is_empty() {
             return Err(Error::EmptyName);
@@ -212,11 +280,20 @@ impl Table {
         for game in &mut self.games {
             game.payouts.push(0);
         }
+        let behind = self.ring_before(seat);
+        self.record(at, EventKind::Joined, seat, behind);
         Ok(seat)
     }
 
+    /// Wer in der Sitzreihenfolge direkt vor diesem Platz sitzt, unabhängig davon, ob er da ist.
+    fn ring_before(&self, seat: Seat) -> Option<Seat> {
+        let ring = self.ring();
+        let i = ring.iter().position(|&s| s == seat)?;
+        (ring.len() > 1).then(|| ring[(i + ring.len() - 1) % ring.len()])
+    }
+
     /// Ein Spieler verlässt den Tisch. Seine Spiele und sein Stand bleiben erhalten.
-    pub fn leave(&mut self, seat: Seat) -> Result<()> {
+    pub fn leave(&mut self, seat: Seat, at: Option<i64>) -> Result<()> {
         if !self.is_present(seat) {
             return Err(Error::UnknownSeat(seat));
         }
@@ -224,11 +301,12 @@ impl Table {
             return Err(Error::PlayerCount(self.player_count() - 1));
         }
         self.absent.push(seat);
+        self.record(at, EventKind::Left, seat, None);
         Ok(())
     }
 
     /// Ein Spieler, der gegangen war, setzt sich wieder an den Tisch, auf seinen alten Platz.
-    pub fn rejoin(&mut self, seat: Seat) -> Result<()> {
+    pub fn rejoin(&mut self, seat: Seat, at: Option<i64>) -> Result<()> {
         if seat >= self.players.len() {
             return Err(Error::UnknownSeat(seat));
         }
@@ -239,7 +317,49 @@ impl Table {
             return Err(Error::PlayerCount(self.player_count() + 1));
         }
         self.absent.retain(|&s| s != seat);
+        self.record(at, EventKind::Returned, seat, None);
         Ok(())
+    }
+
+    /// Ein Spieler setzt sich um: Er sitzt danach direkt hinter dem Sitzplatz `after`. Der Geber
+    /// wandert ab dem nächsten Spiel in der neuen Reihenfolge weiter.
+    pub fn move_player(&mut self, seat: Seat, after: Seat, at: Option<i64>) -> Result<()> {
+        for s in [seat, after] {
+            if s >= self.players.len() {
+                return Err(Error::UnknownSeat(s));
+            }
+        }
+        if seat == after {
+            return Err(Error::UnknownSeat(after));
+        }
+        let mut ring = self.ring();
+        ring.retain(|&s| s != seat);
+        let i = ring
+            .iter()
+            .position(|&s| s == after)
+            .map_or(ring.len(), |i| i + 1);
+        ring.insert(i, seat);
+        if ring == self.ring() {
+            return Ok(());
+        }
+        self.seating = ring;
+        self.record(at, EventKind::Moved, seat, Some(after));
+        Ok(())
+    }
+
+    /// Beendet den Abend zum Zeitpunkt `at` (Unix-Sekunden).
+    pub fn finish(&mut self, at: i64) {
+        self.ended_at = Some(at);
+    }
+
+    /// Der späteste bekannte Zeitpunkt am Abend: ein Spiel, ein Kommen oder Gehen, sonst der Beginn.
+    pub fn last_activity(&self) -> Option<i64> {
+        self.games
+            .iter()
+            .filter_map(|g| g.input.played_at)
+            .chain(self.events.iter().filter_map(|e| e.at))
+            .chain(self.created_at)
+            .max()
     }
 
     /// Ändert den Tarif für alle künftigen Spiele (ohne Namen aus der Bibliothek). Bereits
@@ -275,6 +395,7 @@ impl Table {
     pub fn use_rule_set(&mut self, rules: &RuleSet) -> Result<()> {
         self.use_rules(Some(rules.name.clone()), &rules.kinds)?;
         self.bock_mode = rules.bock;
+        self.bock_stacking = rules.stacking;
         Ok(())
     }
 
@@ -284,25 +405,54 @@ impl Table {
     }
 
     /// Wie viele Spiele vor dem Spiel mit dieser Nummer (ab 0) noch Bockspiele sein sollen.
-    ///
-    /// Das wird aus den Spielen abgeleitet, nicht mitgezählt: Jedes Bockspiel verbraucht eines, jeder
-    /// Auslöser bringt neue (eines oder so viele, wie Spieler am Tisch saßen, je nach Modus). So bleibt
-    /// die Zahl nach Bearbeiten, Rückgängig und Löschen von Spielen richtig.
     pub fn bock_pending_before(&self, index: usize) -> u32 {
-        let mut remaining: u32 = 0;
+        let layers = self.bock_layers_before(index);
+        match self.bock_stacking {
+            BockStacking::Sequential => layers.first().copied().unwrap_or(0),
+            BockStacking::Stacked => layers.into_iter().max().unwrap_or(0),
+        }
+    }
+
+    /// Wie oft das nächste Spiel gedoppelt ist, wenn jetzt das nächste Spiel beginnt.
+    pub fn bock_level(&self) -> u32 {
+        self.bock_level_before(self.games.len())
+    }
+
+    /// Wie oft das Spiel mit dieser Nummer (ab 0) durch Bock gedoppelt wäre: 0 ohne offenen Bock,
+    /// sonst 1, bei überlagerten Bockrunden so viele, wie gerade laufen.
+    pub fn bock_level_before(&self, index: usize) -> u32 {
+        self.bock_layers_before(index).len() as u32
+    }
+
+    /// Die laufenden Bockrunden vor dem Spiel mit dieser Nummer, je mit den Spielen, die sie noch
+    /// dauern. Hintereinander gibt es höchstens eine (sie wird länger), überlagert eine je Auslöser.
+    ///
+    /// Das wird aus den Spielen abgeleitet, nicht mitgezählt: Jedes Bockspiel verbraucht ein Spiel
+    /// jeder laufenden Runde, jeder Auslöser bringt eine neue (ein Spiel oder so viele, wie Spieler
+    /// am Tisch saßen, je nach Modus). So bleibt alles nach Bearbeiten, Rückgängig und Löschen richtig.
+    fn bock_layers_before(&self, index: usize) -> Vec<u32> {
+        let mut layers: Vec<u32> = Vec::new();
         for game in self.games.iter().take(index) {
             if game.input.bock {
-                remaining = remaining.saturating_sub(1);
+                for l in &mut layers {
+                    *l -= 1;
+                }
+                layers.retain(|&l| l > 0);
             }
-            if game.input.starts_bock {
-                remaining += match self.bock_mode {
-                    BockMode::Off => 0,
-                    BockMode::NextGame => 1,
-                    BockMode::NextRound => self.players_at_table(game) as u32,
-                };
+            let length = match self.bock_mode {
+                BockMode::Off => 0,
+                BockMode::NextGame => 1,
+                BockMode::NextRound => self.players_at_table(game) as u32,
+            };
+            for _ in 0..game.input.bock_triggers() {
+                match (self.bock_stacking, layers.first_mut()) {
+                    (BockStacking::Sequential, Some(first)) => *first += length,
+                    _ if length > 0 => layers.push(length),
+                    _ => {}
+                }
             }
         }
-        remaining
+        layers
     }
 
     /// Wie viele Spieler bei diesem Spiel am Tisch saßen.

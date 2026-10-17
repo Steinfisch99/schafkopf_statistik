@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{Cents, GameInput, GameKind, Seat, Suit};
+use crate::model::{Cents, GameInput, GameKind, Seat, Suit, MAX_BOCK};
 
 /// Tarif eines Tisches in Cent. Die Voreinstellung ist ein verbreiteter 20/50-Tarif,
 /// er unterscheidet sich aber von Runde zu Runde und ist deshalb pro Tisch einstellbar.
@@ -95,6 +95,11 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
         }
         if active[..i].contains(&s) {
             return Err(Error::DuplicateParticipant(s));
+        }
+    }
+    for extra in [input.bock_extra, input.extra_bock_rounds] {
+        if extra >= MAX_BOCK {
+            return Err(Error::TooManyBock(extra + 1));
         }
     }
     check_active(input.declarer)?;

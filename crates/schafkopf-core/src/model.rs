@@ -6,6 +6,31 @@ pub type Seat = usize;
 /// Geldbeträge in Cent, damit nie mit Fließkomma gerechnet wird. Negativ = verloren.
 pub type Cents = i64;
 
+/// Was passiert, wenn eine Bockrunde entsteht, während schon eine läuft (oder zwei in einem Spiel
+/// entstehen)? Ein Regelwerk legt es fest.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BockStacking {
+    /// Sie reihen sich hintereinander: Bei zwei Bockrunden sind die nächsten zwei Runden gedoppelt.
+    #[default]
+    Sequential,
+    /// Sie überlagern sich: Bei zwei Bockrunden zugleich ist der Preis vervierfacht.
+    Stacked,
+}
+
+impl BockStacking {
+    pub const ALL: [BockStacking; 2] = [BockStacking::Sequential, BockStacking::Stacked];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            BockStacking::Sequential => "Hintereinander",
+            BockStacking::Stacked => "Übereinander (Preis mal 4, 8, ...)",
+        }
+    }
+}
+
+/// So viele Bockrunden können in einem Spiel entstehen, und so oft kann ein Bockspiel gedoppelt sein.
+pub const MAX_BOCK: u8 = 4;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Suit {
     Eichel,
@@ -206,6 +231,14 @@ pub struct GameInput {
     /// sind dann Bockspiele, wie viele, bestimmt der Bock-Modus des Regelwerks.
     #[serde(default)]
     pub starts_bock: bool,
+    /// Wie oft ein Bockspiel zusätzlich gedoppelt ist (überlagerte Bockrunden): 1 heißt mal 4.
+    /// Zählt nur bei `bock`.
+    #[serde(default)]
+    pub bock_extra: u8,
+    /// Wie viele Bockrunden zusätzlich zur ersten durch dieses Spiel entstanden sind (sehr selten).
+    /// Zählt nur bei `starts_bock`.
+    #[serde(default)]
+    pub extra_bock_rounds: u8,
     /// Verlangter Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif
     /// ergibt. Ersetzt dann die Berechnung.
     #[serde(default)]
@@ -241,6 +274,8 @@ impl GameInput {
             gegenlauf: false,
             bock: false,
             starts_bock: false,
+            bock_extra: 0,
+            extra_bock_rounds: 0,
             price_override: None,
             points: None,
             played_at: None,
@@ -265,7 +300,25 @@ impl GameInput {
             + u32::from(self.kontra_by.is_some())
             + u32::from(self.re)
             + u32::from(self.tout)
-            + u32::from(self.bock)
+            + self.bock_doublings()
+    }
+
+    /// Verdopplungen durch Bock: keine, eine oder bei überlagerten Bockrunden mehrere.
+    pub fn bock_doublings(&self) -> u32 {
+        if self.bock {
+            1 + u32::from(self.bock_extra)
+        } else {
+            0
+        }
+    }
+
+    /// Wie viele Bockrunden dieses Spiel ausgelöst hat.
+    pub fn bock_triggers(&self) -> u32 {
+        if self.starts_bock {
+            1 + u32::from(self.extra_bock_rounds)
+        } else {
+            0
+        }
     }
 }
 

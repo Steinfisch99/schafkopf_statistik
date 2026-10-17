@@ -1551,7 +1551,7 @@ fn a_late_player_sits_where_chosen_and_owes_nothing_for_earlier_games() {
     let mut t = table();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
     // Eva setzt sich zwischen Ben (1) und Cem (2).
-    let eva = t.add_player("Eva", Some(1)).unwrap();
+    let eva = t.add_player("Eva", Some(1), None).unwrap();
     assert_eq!(eva, 4);
     assert_eq!(t.players.len(), 5);
     assert_eq!(t.ring(), vec![0, 1, 4, 2, 3]);
@@ -1569,24 +1569,30 @@ fn a_late_player_sits_where_chosen_and_owes_nothing_for_earlier_games() {
 fn a_new_player_needs_a_fresh_name_and_a_free_seat() {
     let mut t = table();
     assert_eq!(
-        t.add_player("Anna", None),
+        t.add_player("Anna", None, None),
         Err(Error::DuplicateName("Anna".into()))
     );
-    assert_eq!(t.add_player("  ", None), Err(Error::EmptyName));
-    assert_eq!(t.add_player("Eva", Some(9)), Err(Error::UnknownSeat(9)));
+    assert_eq!(t.add_player("  ", None, None), Err(Error::EmptyName));
+    assert_eq!(
+        t.add_player("Eva", Some(9), None),
+        Err(Error::UnknownSeat(9))
+    );
     for name in ["E1", "E2", "E3", "E4", "E5", "E6"] {
-        t.add_player(name, None).unwrap();
+        t.add_player(name, None, None).unwrap();
     }
     assert_eq!(t.player_count(), 10);
-    assert_eq!(t.add_player("Zu viel", None), Err(Error::PlayerCount(11)));
+    assert_eq!(
+        t.add_player("Zu viel", None, None),
+        Err(Error::PlayerCount(11))
+    );
 }
 
 #[test]
 fn a_player_who_leaves_is_skipped_and_can_return() {
     let mut t = table();
-    t.add_player("Eva", None).unwrap();
+    t.add_player("Eva", None, None).unwrap();
     t.add_game(sauspiel(0, 1, 2)).unwrap();
-    t.leave(1).unwrap();
+    t.leave(1, None).unwrap();
     assert_eq!(t.player_count(), 4);
     assert_eq!(t.present_seats(), vec![0, 2, 3, 4]);
     assert!(!t.is_present(1));
@@ -1596,7 +1602,7 @@ fn a_player_who_leaves_is_skipped_and_can_return() {
     // Sein Stand bleibt stehen, die Spiele auch.
     assert_eq!(t.balances()[1], 20);
     assert_eq!(t.games().len(), 1);
-    t.rejoin(1).unwrap();
+    t.rejoin(1, None).unwrap();
     assert_eq!(t.present_seats(), vec![0, 1, 2, 3, 4]);
     assert_eq!(t.next_dealer(), 1);
 }
@@ -1604,9 +1610,9 @@ fn a_player_who_leaves_is_skipped_and_can_return() {
 #[test]
 fn nobody_can_leave_below_two_and_only_present_players_can_play() {
     let mut t = Table::new("Zu zweit", names()[..3].to_vec(), 0, Tariff::default()).unwrap();
-    t.leave(2).unwrap();
-    assert_eq!(t.leave(1), Err(Error::PlayerCount(1)));
-    assert_eq!(t.leave(2), Err(Error::UnknownSeat(2)));
+    t.leave(2, None).unwrap();
+    assert_eq!(t.leave(1, None), Err(Error::PlayerCount(1)));
+    assert_eq!(t.leave(2, None), Err(Error::UnknownSeat(2)));
     let solo = GameInput::new(0, GameKind::Wenz, 1);
     t.add_game(solo.clone()).unwrap();
     let with_absent = GameInput {
@@ -1620,8 +1626,8 @@ fn nobody_can_leave_below_two_and_only_present_players_can_play() {
 fn old_games_stay_editable_and_keep_who_sat_there() {
     let mut t = table();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
-    t.add_player("Eva", None).unwrap();
-    t.leave(3).unwrap();
+    t.add_player("Eva", None, None).unwrap();
+    t.leave(3, None).unwrap();
     let edited = GameInput {
         won: false,
         participants: vec![1, 2, 3, 0],
@@ -1638,7 +1644,7 @@ fn old_games_stay_editable_and_keep_who_sat_there() {
 fn sitting_out_only_counts_when_the_player_was_at_the_table() {
     let mut t = table();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
-    t.add_player("Eva", Some(3)).unwrap();
+    t.add_player("Eva", Some(3), None).unwrap();
     t.add_game(sauspiel(1, 0, 2)).unwrap();
     let stats = table_stats(&t);
     assert_eq!(stats.players[4].games_sat_out, 1);
@@ -1649,14 +1655,14 @@ fn sitting_out_only_counts_when_the_player_was_at_the_table() {
 #[test]
 fn bock_round_length_follows_the_players_at_the_table() {
     let mut t = bock_table(BockMode::NextRound);
-    t.add_player("Eva", None).unwrap();
+    t.add_player("Eva", None, None).unwrap();
     t.add_game(GameInput {
         starts_bock: true,
         ..sauspiel(0, 1, 2)
     })
     .unwrap();
     assert_eq!(t.bock_pending(), 5);
-    t.leave(2).unwrap();
+    t.leave(2, None).unwrap();
     // Das Spiel zählt mit den fünf, die dabei saßen.
     assert_eq!(t.bock_pending(), 5);
     t.add_game(GameInput {
@@ -1671,8 +1677,8 @@ fn bock_round_length_follows_the_players_at_the_table() {
 fn tables_with_players_coming_and_going_survive_json_and_old_files_load() {
     let mut t = table();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
-    t.add_player("Eva", Some(0)).unwrap();
-    t.leave(2).unwrap();
+    t.add_player("Eva", Some(0), None).unwrap();
+    t.leave(2, None).unwrap();
     let back = Table::from_json(&t.to_json().unwrap()).unwrap();
     assert_eq!(back, t);
     assert_eq!(back.ring(), vec![0, 4, 1, 2, 3]);
@@ -1686,4 +1692,210 @@ fn tables_with_players_coming_and_going_survive_json_and_old_files_load() {
     let t = Table::from_json(&old).unwrap();
     assert_eq!(t.present_seats(), vec![0, 1, 2, 3]);
     assert_eq!(t.next_dealer(), 0);
+}
+
+fn bock_table_with(mode: BockMode, stacking: BockStacking) -> Table {
+    let mut t = table();
+    t.bock_mode = mode;
+    t.bock_stacking = stacking;
+    t
+}
+
+fn trigger(dealer: Seat, declarer: Seat, partner: Seat, extra: u8) -> GameInput {
+    GameInput {
+        starts_bock: true,
+        extra_bock_rounds: extra,
+        ..sauspiel(dealer, declarer, partner)
+    }
+}
+
+#[test]
+fn two_bock_rounds_in_a_row_make_the_next_two_games_bock() {
+    let mut t = bock_table_with(BockMode::NextGame, BockStacking::Sequential);
+    t.add_game(trigger(0, 1, 3, 1)).unwrap();
+    assert_eq!(t.bock_pending(), 2);
+    assert_eq!(t.bock_level(), 1);
+    for dealer in [1, 2] {
+        let g = GameInput {
+            bock: true,
+            ..sauspiel(dealer, 0, (dealer + 1) % 4)
+        };
+        let g = if dealer == 1 { sauspiel(1, 2, 0) } else { g };
+        t.add_game(GameInput { bock: true, ..g }).unwrap();
+    }
+    assert_eq!(t.bock_pending(), 0);
+    assert_eq!(table_stats(&t).bock_started, 2);
+}
+
+#[test]
+fn stacked_bock_rounds_multiply_the_price_while_they_overlap() {
+    let mut t = bock_table_with(BockMode::NextRound, BockStacking::Stacked);
+    t.add_game(trigger(0, 1, 3, 1)).unwrap();
+    // Zwei Runden zu je vier Spielen laufen zugleich.
+    assert_eq!(t.bock_pending(), 4);
+    assert_eq!(t.bock_level(), 2);
+    let game = GameInput {
+        bock: true,
+        bock_extra: 1,
+        ..sauspiel(1, 2, 0)
+    };
+    let g = t.add_game(game).unwrap();
+    assert_eq!(g.value, 80, "20 mal 4");
+    assert_eq!(t.bock_pending(), 3);
+    assert_eq!(t.bock_level(), 2);
+}
+
+#[test]
+fn a_new_trigger_during_a_running_round_stacks_or_queues_by_the_rule() {
+    for (stacking, pending, level) in [
+        (BockStacking::Sequential, 4 + 3, 1),
+        (BockStacking::Stacked, 4, 2),
+    ] {
+        let mut t = bock_table_with(BockMode::NextRound, stacking);
+        t.add_game(trigger(0, 1, 3, 0)).unwrap();
+        t.add_game(GameInput {
+            bock: true,
+            starts_bock: true,
+            ..sauspiel(1, 2, 0)
+        })
+        .unwrap();
+        // Erste Runde: 4 - 1 = 3 übrig. Zweite Runde: 4 dazu.
+        assert_eq!(
+            t.bock_pending(),
+            if stacking == BockStacking::Stacked {
+                4
+            } else {
+                pending
+            },
+            "{stacking:?}"
+        );
+        assert_eq!(t.bock_level(), level, "{stacking:?}");
+    }
+}
+
+#[test]
+fn too_many_bock_rounds_are_rejected() {
+    let mut t = bock_table_with(BockMode::NextGame, BockStacking::Sequential);
+    assert_eq!(
+        t.add_game(trigger(0, 1, 3, MAX_BOCK)).unwrap_err(),
+        Error::TooManyBock(MAX_BOCK + 1)
+    );
+}
+
+#[test]
+fn rule_sets_keep_their_stacking() {
+    let mut lib = Library::with_defaults();
+    lib.save_rule_set_full(
+        None,
+        "Kneipe",
+        &[GameKind::Wenz],
+        BockMode::NextRound,
+        BockStacking::Stacked,
+    )
+    .unwrap();
+    assert_eq!(
+        lib.rule_set("Kneipe").unwrap().stacking,
+        BockStacking::Stacked
+    );
+    lib.save_rule_set_with(
+        Some("Kneipe"),
+        "Kneipe",
+        &[GameKind::Wenz],
+        BockMode::NextGame,
+    )
+    .unwrap();
+    assert_eq!(
+        lib.rule_set("Kneipe").unwrap().stacking,
+        BockStacking::Stacked
+    );
+    let mut t = table();
+    t.use_rule_set(lib.rule_set("Kneipe").unwrap()).unwrap();
+    assert_eq!(t.bock_stacking, BockStacking::Stacked);
+}
+
+#[test]
+fn the_evening_log_records_who_came_left_and_moved() {
+    let mut t = table();
+    t.created_at = Some(1_000_000_000);
+    t.utc_offset_min = 120;
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let eva = t.add_player("Eva", Some(0), Some(1_000_000_600)).unwrap();
+    t.leave(2, Some(1_000_001_200)).unwrap();
+    t.move_player(eva, 3, Some(1_000_001_800)).unwrap();
+    t.rejoin(2, Some(1_000_002_400)).unwrap();
+    t.finish(1_000_003_000);
+    let kinds: Vec<_> = t
+        .events
+        .iter()
+        .map(|e| (e.kind, e.seat, e.after_games))
+        .collect();
+    assert_eq!(
+        kinds,
+        vec![
+            (EventKind::Joined, 4, 1),
+            (EventKind::Left, 2, 1),
+            (EventKind::Moved, 4, 1),
+            (EventKind::Returned, 2, 1),
+        ]
+    );
+    assert_eq!(t.events[0].behind, Some(0));
+    assert_eq!(t.ring(), vec![0, 1, 2, 3, 4]);
+    assert_eq!(t.last_activity(), Some(1_000_002_400));
+    let csv = t.events_csv();
+    let lines: Vec<&str> = csv.lines().collect();
+    assert_eq!(
+        lines[0],
+        "Zeit,Zeit_Unix,Ereignis,Spieler,Hinter,Nach_Spiel_Nr"
+    );
+    assert_eq!(lines[1], "2001-09-09 03:46,1000000000,Abend beginnt,,,0");
+    assert_eq!(
+        lines[2],
+        "2001-09-09 03:56,1000000600,Kommt dazu,Eva,Anna,1"
+    );
+    assert_eq!(lines[3], "2001-09-09 04:06,1000001200,Geht,Cem,,1");
+    assert!(lines[4].ends_with("Setzt sich um,Eva,Dora,1"));
+    assert!(lines[6].contains("Abend endet"));
+    assert_eq!(lines.len(), 7);
+}
+
+#[test]
+fn moving_a_player_changes_the_dealing_order_and_a_no_change_is_not_logged() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    assert_eq!(t.next_dealer(), 1);
+    // Ben setzt sich hinter Cem: Anna, Cem, Ben, Dora.
+    t.move_player(1, 2, None).unwrap();
+    assert_eq!(t.ring(), vec![0, 2, 1, 3]);
+    assert_eq!(t.next_dealer(), 2);
+    let logged = t.events.len();
+    t.move_player(1, 2, None).unwrap();
+    assert_eq!(t.events.len(), logged);
+    assert_eq!(t.move_player(1, 1, None), Err(Error::UnknownSeat(1)));
+    assert_eq!(t.move_player(1, 9, None), Err(Error::UnknownSeat(9)));
+}
+
+#[test]
+fn clock_formats_local_times_and_durations() {
+    assert_eq!(format_local(0, 0), "1970-01-01 00:00");
+    assert_eq!(format_local(1_000_000_000, 120), "2001-09-09 03:46");
+    assert_eq!(format_clock(1_000_000_000, -60), "00:46");
+    assert_eq!(format_duration(25 * 60), "25 min");
+    assert_eq!(format_duration(3 * 3600 + 40 * 60), "3 h 40 min");
+}
+
+#[test]
+fn evenings_saved_before_the_log_still_load() {
+    let json = table().to_json().unwrap();
+    let old: String = json
+        .lines()
+        .filter(|l| {
+            !["bock_stacking", "utc_offset_min", "ended_at", "\"events\""]
+                .iter()
+                .any(|k| l.contains(k))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let t = Table::from_json(&old).unwrap();
+    assert!(t.events.is_empty() && t.ended_at.is_none());
+    assert_eq!(t.bock_stacking, BockStacking::Sequential);
 }

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{BockMode, GameKind};
+use crate::model::{BockMode, BockStacking, GameKind};
 use crate::scoring::Tariff;
 
 /// Welche Spielarten in einer Runde gespielt werden.
@@ -15,6 +15,9 @@ pub struct RuleSet {
     /// ohne diese Angabe spielen ohne Bock.
     #[serde(default)]
     pub bock: BockMode,
+    /// Ob sich mehrere Bockrunden hintereinander reihen oder überlagern. Alte Dateien: hintereinander.
+    #[serde(default)]
+    pub stacking: BockStacking,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +78,7 @@ impl Library {
                     name: "Alle Spielarten".into(),
                     kinds: GameKind::ALL.to_vec(),
                     bock: BockMode::Off,
+                    stacking: BockStacking::Sequential,
                 },
                 RuleSet {
                     name: "Unsere Runde".into(),
@@ -86,6 +90,7 @@ impl Library {
                         GameKind::Ramsch,
                     ],
                     bock: BockMode::NextGame,
+                    stacking: BockStacking::Sequential,
                 },
             ],
             tariffs: vec![NamedTariff {
@@ -164,13 +169,29 @@ impl Library {
         self.save_rule_set_with(original, name, kinds, bock)
     }
 
-    /// Wie [`Library::save_rule_set`], mit dem Bock-Modus des Regelwerks.
+    /// Wie [`Library::save_rule_set`], mit dem Bock-Modus des Regelwerks. Die Art, mehrere
+    /// Bockrunden zu verbinden, bleibt, wie sie war.
     pub fn save_rule_set_with(
         &mut self,
         original: Option<&str>,
         name: &str,
         kinds: &[GameKind],
         bock: BockMode,
+    ) -> Result<String> {
+        let stacking = original
+            .and_then(|old| self.rule_set(old))
+            .map_or(BockStacking::Sequential, |r| r.stacking);
+        self.save_rule_set_full(original, name, kinds, bock, stacking)
+    }
+
+    /// Wie [`Library::save_rule_set_with`], auch mit der Art, mehrere Bockrunden zu verbinden.
+    pub fn save_rule_set_full(
+        &mut self,
+        original: Option<&str>,
+        name: &str,
+        kinds: &[GameKind],
+        bock: BockMode,
+        stacking: BockStacking,
     ) -> Result<String> {
         let name = clean_name(name)?;
         let kinds = canonical(kinds);
@@ -182,6 +203,7 @@ impl Library {
             name: name.clone(),
             kinds,
             bock,
+            stacking,
         };
         match original {
             None => self.rule_sets.push(rule_set),

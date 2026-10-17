@@ -14,6 +14,8 @@ pub enum Error {
     UnknownGame(usize),
     #[error("Unbekannter Sitzplatz {0}")]
     UnknownSeat(Seat),
+    #[error("Beim Bock sind höchstens 4 Bockrunden möglich, nicht {0}")]
+    TooManyBock(u8),
     #[error("Sitzplatz {0} ist gerade nicht am Tisch")]
     SeatNotAtTable(Seat),
     #[error("Sitzplatz {0} sitzt in diesem Spiel aus")]

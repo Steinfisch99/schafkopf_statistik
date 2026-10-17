@@ -49,6 +49,8 @@ impl Table {
             "Gegenlauf",
             "Bockspiel",
             "Bockrunde_ausgeloest",
+            "Bockrunden_Anzahl",
+            "Bock_Verdopplungen",
             "Augen",
             "Preis_Cent",
             "Preis_berechnet_Cent",
@@ -98,6 +100,8 @@ impl Table {
             yes_no(g.gegenlauf),
             yes_no(g.bock),
             yes_no(g.starts_bock),
+            g.bock_triggers().to_string(),
+            g.bock_doublings().to_string(),
             opt(g.points.map(|p| p.to_string())),
             game.value.to_string(),
             game.calculated_value.to_string(),
@@ -137,5 +141,67 @@ impl Table {
     /// Die komplette CSV-Datei mit Komma als Trennzeichen.
     pub fn to_csv(&self) -> String {
         self.to_csv_with(',')
+    }
+}
+
+impl Table {
+    /// Das Protokoll des Abends als CSV: Beginn, Kommen, Gehen, Umsetzen und Ende, je mit Uhrzeit
+    /// (Ortszeit) und der Zahl der bis dahin gespielten Spiele.
+    pub fn events_csv_with(&self, separator: char) -> String {
+        let header = [
+            "Zeit",
+            "Zeit_Unix",
+            "Ereignis",
+            "Spieler",
+            "Hinter",
+            "Nach_Spiel_Nr",
+        ];
+        let mut lines = vec![row(header.map(String::from), separator)];
+        let time = |at: Option<i64>| {
+            (
+                at.map(|t| crate::clock::format_local(t, self.utc_offset_min))
+                    .unwrap_or_default(),
+                at.map(|t| t.to_string()).unwrap_or_default(),
+            )
+        };
+        let mut push = |at: Option<i64>, what: &str, who: String, behind: String, games: usize| {
+            let (local, unix) = time(at);
+            lines.push(row(
+                [local, unix, what.to_owned(), who, behind, games.to_string()],
+                separator,
+            ));
+        };
+        push(
+            self.created_at,
+            "Abend beginnt",
+            String::new(),
+            String::new(),
+            0,
+        );
+        for e in &self.events {
+            let behind = e
+                .behind
+                .and_then(|b| self.players.get(b).cloned())
+                .unwrap_or_default();
+            let who = self.players.get(e.seat).cloned().unwrap_or_default();
+            push(e.at, e.kind.label(), who, behind, e.after_games);
+        }
+        if let Some(end) = self.ended_at {
+            push(
+                Some(end),
+                "Abend endet",
+                String::new(),
+                String::new(),
+                self.games().len(),
+            );
+        }
+        let mut out = lines.join("\n");
+        out.push('\n');
+        out
+    }
+
+    /// Das Protokoll mit Komma als Trennzeichen, siehe [`Table::events_csv_with`].
+    pub fn events_csv(&self) -> String {
+        self.events_csv_with(',')
     }
 }
