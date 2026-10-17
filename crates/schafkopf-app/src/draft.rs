@@ -135,6 +135,7 @@ impl GameDraft {
             self.schwarz = false;
             self.laufende = 0;
         }
+        self.laufende = self.laufende.min(kind.max_laufende());
         self.won = kind != GameKind::Ramsch;
     }
 
@@ -225,7 +226,7 @@ impl GameDraft {
     }
 
     pub fn set_laufende(&mut self, n: u8) {
-        self.laufende = n.min(8);
+        self.laufende = n.min(self.kind.max_laufende());
     }
 
     /// Was noch fehlt, damit das Spiel eingetragen werden kann.
@@ -545,6 +546,25 @@ mod tests {
         t.use_rules(None, &[GameKind::Sauspiel, GameKind::Geier])
             .unwrap();
         assert_eq!(GameDraft::new(&t).kind, GameKind::Sauspiel);
+    }
+
+    #[test]
+    fn laufende_limit_follows_the_game_kind() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.set_laufende(20);
+        assert_eq!(d.laufende, 14, "beim Sauspiel bis 14");
+        d.set_laufende(12);
+        assert_eq!(d.laufende, 12);
+        d.set_kind(GameKind::Wenz);
+        assert_eq!(d.laufende, 4, "ein Wechsel zum Wenz kürzt auf 4");
+        d.set_laufende(9);
+        assert_eq!(d.laufende, 4);
+        d.set_kind(GameKind::Farbwenz);
+        d.set_laufende(99);
+        assert_eq!(d.laufende, 11);
+        d.set_kind(GameKind::Farbsolo);
+        assert_eq!(d.laufende, 11, "Farbsolo erlaubt 14, der Wert bleibt");
     }
 
     #[test]

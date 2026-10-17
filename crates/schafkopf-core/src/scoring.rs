@@ -145,8 +145,12 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
             return Err(Error::NegativePrice(price));
         }
     }
-    if input.laufende > 8 {
-        return Err(Error::InvalidLaufende(input.laufende));
+    if input.laufende > kind.max_laufende() {
+        return Err(Error::InvalidLaufende {
+            kind,
+            got: input.laufende,
+            max: kind.max_laufende(),
+        });
     }
     Ok(())
 }

@@ -101,6 +101,19 @@ impl GameKind {
     pub fn has_extras(self) -> bool {
         !matches!(self, GameKind::Bettel | GameKind::Ramsch)
     }
+
+    /// Wie viele Laufende es höchstens geben kann: so viele Trümpfe in Folge von oben, wie es in
+    /// dieser Spielart gibt. Beim Sauspiel, der Hochzeit und dem Farbsolo sind das alle 14 Trümpfe
+    /// (4 Ober, 4 Unter, 6 Herz), beim Wenz die 4 Unter, beim Geier die 4 Ober. Mit Farbe kommen
+    /// beim Farbwenz und Farbgeier 7 Karten der Farbe dazu, also 11. Ohne Zuschläge gibt es keine.
+    pub fn max_laufende(self) -> u8 {
+        match self {
+            GameKind::Sauspiel | GameKind::Hochzeit | GameKind::Farbsolo => 14,
+            GameKind::Wenz | GameKind::Geier => 4,
+            GameKind::Farbwenz | GameKind::Farbgeier => 11,
+            GameKind::Bettel | GameKind::Ramsch => 0,
+        }
+    }
 }
 
 /// Alles, was am Tisch über ein Spiel eingetragen wird.

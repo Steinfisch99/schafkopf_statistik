@@ -46,8 +46,8 @@ pub enum Error {
     NegativePrice(i64),
     #[error("Augen müssen zwischen 0 und 120 liegen, nicht {0}")]
     InvalidPoints(u8),
-    #[error("Laufende müssen zwischen 0 und 8 liegen, nicht {0}")]
-    InvalidLaufende(u8),
+    #[error("Beim {} gibt es höchstens {max} Laufende, nicht {got}", .kind.label())]
+    InvalidLaufende { kind: GameKind, got: u8, max: u8 },
     #[error("Der Name darf nicht leer sein")]
     NameEmpty,
     #[error("Es gibt schon einen Eintrag namens \"{0}\"")]

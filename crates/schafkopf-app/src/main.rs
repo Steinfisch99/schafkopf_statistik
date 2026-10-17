@@ -5,6 +5,7 @@ mod android;
 mod draft;
 mod export;
 mod gestures;
+mod navigation;
 mod stats_text;
 mod storage;
 mod summary;
@@ -12,7 +13,9 @@ mod views;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use dioxus::document::eval;
 use dioxus::prelude::*;
+use navigation::{back_target, effective_screen, history_action, HistoryAction};
 use views::{
     use_setup_state, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar, SettingsScreen,
     Setup, StatsScreen, TableView,
@@ -53,7 +56,7 @@ fn App() -> Element {
     let table = use_signal(storage::load);
     let library = use_signal(storage::load_library);
     let setup = use_setup_state(library);
-    let screen = use_signal(|| {
+    let mut screen = use_signal(|| {
         if table.peek().is_some() {
             Screen::Table
         } else {
@@ -61,15 +64,46 @@ fn App() -> Element {
         }
     });
     let notice = use_signal(|| None::<Notice>);
-    let current = match (table.read().as_ref(), screen()) {
-        // Die Verwaltung braucht keinen Abend, sie ist auch aus der Einrichtung erreichbar.
-        (None, library_screen @ Screen::Library { from_setup: true }) => library_screen,
-        // Ohne Abend gibt es nur die Einrichtung.
-        (None, _) => Screen::Setup,
-        // Ein Spiel, das es nicht mehr gibt, kann nicht bearbeitet werden.
-        (Some(t), Screen::EditGame(index)) if index >= t.games().len() => Screen::Table,
-        (_, other) => other,
-    };
+    let current = effective_screen(table.read().as_ref(), screen());
+
+    // Zurück-Taste des Handys: Solange nicht die Übersicht zu sehen ist, liegt ein Eintrag im
+    // Verlauf der WebView, damit die Taste in der App zurückgeht statt sie in den Hintergrund zu
+    // schieben. `pending_pops` zählt die Einträge, die die App selbst wieder entfernt hat: Deren
+    // Rückmeldung der WebView ist keine Eingabe des Nutzers.
+    let mut entries = use_signal(|| 0u8);
+    let mut pending_pops = use_signal(|| 0u8);
+    use_effect(move || {
+        let current = effective_screen(table.read().as_ref(), screen());
+        let wants_entry = back_target(current, table.read().is_some()).is_some();
+        let depth = *entries.peek();
+        match history_action(wants_entry, depth) {
+            HistoryAction::Push => {
+                let _ = eval("history.pushState({ schafkopf: true }, '')");
+                entries.set(1);
+            }
+            HistoryAction::Pop => {
+                let _ = eval("history.back()");
+                entries.set(0);
+                pending_pops += 1;
+            }
+            HistoryAction::Nothing => {}
+        }
+    });
+    use_future(move || async move {
+        let mut events = eval("window.addEventListener('popstate', () => dioxus.send('back'))");
+        while events.recv::<String>().await.is_ok() {
+            if *pending_pops.peek() > 0 {
+                pending_pops -= 1;
+                continue;
+            }
+            let shown = effective_screen(table.read().as_ref(), screen());
+            if let Some(target) = back_target(shown, table.read().is_some()) {
+                // Der Verlaufseintrag ist verbraucht, der Effekt legt bei Bedarf einen neuen an.
+                entries.set(0);
+                screen.set(target);
+            }
+        }
+    });
 
     rsx! {
         style { dangerous_inner_html: CSS }

@@ -917,3 +917,75 @@ fn old_table_files_without_rules_load_with_all_kinds() {
     assert_eq!(old.enabled_kinds, GameKind::ALL.to_vec());
     assert_eq!((old.rule_set_name, old.tariff_name), (None, None));
 }
+
+#[test]
+fn max_laufende_per_game_kind() {
+    let expected = [
+        (GameKind::Sauspiel, 14),
+        (GameKind::Hochzeit, 14),
+        (GameKind::Farbsolo, 14),
+        (GameKind::Wenz, 4),
+        (GameKind::Geier, 4),
+        (GameKind::Farbwenz, 11),
+        (GameKind::Farbgeier, 11),
+        (GameKind::Bettel, 0),
+        (GameKind::Ramsch, 0),
+    ];
+    assert_eq!(expected.len(), GameKind::ALL.len());
+    for (kind, max) in expected {
+        assert_eq!(kind.max_laufende(), max, "{kind:?}");
+    }
+}
+
+#[test]
+fn laufende_above_eight_are_possible_in_a_sauspiel() {
+    let mut t = table();
+    let ten = GameInput {
+        laufende: 10,
+        ..sauspiel(0, 1, 3)
+    };
+    // 20 + 10 * 10 Laufende
+    assert_eq!(t.add_game(ten).unwrap().value, 120);
+    let all = GameInput {
+        laufende: 14,
+        ..sauspiel(1, 1, 3)
+    };
+    assert_eq!(t.add_game(all).unwrap().value, 20 + 140);
+    let too_many = GameInput {
+        laufende: 15,
+        ..sauspiel(2, 1, 3)
+    };
+    let err = t.add_game(too_many).unwrap_err();
+    assert_eq!(
+        err,
+        Error::InvalidLaufende {
+            kind: GameKind::Sauspiel,
+            got: 15,
+            max: 14
+        }
+    );
+    assert_eq!(
+        err.to_string(),
+        "Beim Sauspiel gibt es höchstens 14 Laufende, nicht 15"
+    );
+}
+
+#[test]
+fn wenz_and_geier_have_at_most_four_laufende() {
+    let mut t = table();
+    for kind in [GameKind::Wenz, GameKind::Geier] {
+        let ok = GameInput {
+            laufende: 4,
+            ..GameInput::new(0, kind, 1)
+        };
+        assert!(t.add_game(ok).is_ok(), "{kind:?}");
+        let bad = GameInput {
+            laufende: 5,
+            ..GameInput::new(0, kind, 1)
+        };
+        assert!(
+            matches!(t.add_game(bad), Err(Error::InvalidLaufende { max: 4, .. })),
+            "{kind:?}"
+        );
+    }
+}

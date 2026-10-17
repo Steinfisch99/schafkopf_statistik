@@ -301,7 +301,7 @@ pub fn GameForm(
                         class: "secondary icon",
                         r#type: "button",
                         "aria-label": "Eine Laufende mehr",
-                        disabled: d.laufende >= 8,
+                        disabled: d.laufende >= kind.max_laufende(),
                         onclick: move |_| { let n = draft.read().laufende; draft.write().set_laufende(n + 1); },
                         "+"
                     }
