@@ -62,7 +62,8 @@ pub fn balance_chart_svg(history: &[Vec<Cents>]) -> String {
     let values = history.iter().flatten().copied();
     let lo = values.clone().min().unwrap_or(0).min(0);
     let hi = values.max().unwrap_or(0).max(0);
-    let step = nice_step((hi - lo).max(1), 4);
+    // Mindestens ein Euro Spanne, damit ein leerer oder kleiner Verlauf nicht winzig skaliert wird.
+    let step = nice_step((hi - lo).max(100), 4);
     let axis_lo = lo.div_euclid(step) * step;
     let axis_hi = (hi + step - 1).div_euclid(step) * step;
     let axis_hi = if axis_hi == axis_lo {

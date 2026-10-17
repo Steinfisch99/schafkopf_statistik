@@ -39,10 +39,10 @@ Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](
 schafkopf/
 ├── crates/schafkopf-core/   Spiellogik, Abrechnung, Statistiken (reines Rust, keine UI)
 ├── crates/schafkopf-charts/ Diagramme als SVG-Text (reines Rust, keine UI)
-├── crates/schafkopf-app/    Dioxus-Prototyp für Android und Desktop
+├── crates/schafkopf-app/    Die App (Dioxus) für Android und Desktop
 ├── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
 ├── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
-└── docs/android-prototyp.md Prototyp auf dem Handy ausprobieren (Anleitung und Checkliste)
+└── docs/android-app.md      App auf dem Handy installieren und testen (Anleitung, Checkliste)
 ```
 
 `schafkopf-core` kennt weder Android noch eine UI, deshalb läuft es unverändert auf dem Handy und
@@ -73,13 +73,16 @@ Entscheidungen:
 - [x] Kern: Datenmodell, Abrechnung, Statistiken, JSON, Tests (`cargo test`)
 - [x] UI-Technik recherchiert: Empfehlung Dioxus 0.7 (Oberfläche in Rust, Graphen als SVG), siehe
       [`docs/ui-entscheidung.md`](docs/ui-entscheidung.md)
-- [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden); übersetzt am Desktop
+- [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden)
 - [x] Prototyp auf dem Handy geprüft (Android 16): Eingabe, Diagramm, Darstellung und Laden nach Neustart
-      klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-prototyp.md`](docs/android-prototyp.md)
+      klappen. Entscheidung: **Dioxus bleibt**. Siehe [`docs/android-app.md`](docs/android-app.md)
 - [ ] CSV/JSON exportieren und importieren (die Dateien liegen im privaten App-Ordner und sind nicht einsehbar)
 - [ ] Diagramm bedienbar machen: Tippen zeigt die Werte, Pinch-Zoom, Verschieben, Zurücksetzen
-- [x] Android-Build mit `dx` und APK auf dem Gerät (Anleitung in `docs/android-prototyp.md`)
-- [ ] Bildschirme: Tisch anlegen, Spiel eintragen, Statistik, Kontoverlauf
+- [x] Android-Build mit `dx` und APK auf dem Gerät (Anleitung in `docs/android-app.md`)
+- [x] Eintragen-Ablauf: Abend einrichten, Tarif, Spiel eintragen mit Preisvorschau und Korrekturfeld,
+      Tischansicht mit Geldstand und Spieleliste, Rückgängig, Neuer Abend mit Archiv. Auf dem Handy
+      noch zu prüfen, siehe [`docs/android-app.md`](docs/android-app.md)
+- [ ] Statistik-Bildschirm (Quoten, Serien, Mitspieler-Matrix, Ergebnis nach Platz)
 - [ ] Spätere Ideen: Schneider/Schwarz angesagt, Ramsch mit Jungfrau, Hochzeit-Details, Sup/Supra,
       mehrere Tische, Abendabrechnung teilen
 
@@ -93,7 +96,7 @@ cargo fmt
 ```
 
 Ohne Nix genügt eine aktuelle Rust-Toolchain. Der Android-Build braucht zusätzlich das Android SDK
-und NDK; `nix develop .#android` bringt alles mit, siehe [`docs/android-prototyp.md`](docs/android-prototyp.md).
+und NDK; `nix develop .#android` bringt alles mit, siehe [`docs/android-app.md`](docs/android-app.md).
 
 ## Regelvarianten
 

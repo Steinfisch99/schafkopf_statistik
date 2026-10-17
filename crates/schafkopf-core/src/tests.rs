@@ -519,3 +519,18 @@ fn csv_has_header_and_one_row_per_game() {
     // Spiel 2 verloren: Ben und Dora zahlen je 20, Stand danach -20, +20, -20, +20.
     assert!(lines[2].ends_with("20,-20,-20,20,20,-20,-20,20"));
 }
+
+#[test]
+fn preview_does_not_save() {
+    let mut t = table();
+    let preview = t.preview_game(sauspiel(0, 1, 3)).unwrap();
+    assert_eq!(preview.value, 20);
+    assert_eq!(preview.payouts, vec![-20, 20, -20, 20]);
+    assert!(t.games().is_empty());
+    assert!(t.preview_game(sauspiel(0, 1, 1)).is_err());
+    assert_eq!(
+        t.add_game(sauspiel(0, 1, 3)).unwrap().payouts,
+        preview.payouts
+    );
+    assert_eq!(t.games().len(), 1);
+}

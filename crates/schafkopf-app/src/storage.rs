@@ -2,12 +2,13 @@
 
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use schafkopf_core::Table;
 
 const JSON_FILE: &str = "schafkopf-tisch.json";
 const CSV_FILE: &str = "schafkopf-spiele.csv";
+const ARCHIVE_DIR: &str = "archiv";
 
 /// Android-App-Kennung aus `Dioxus.toml`; bestimmt das private Datenverzeichnis der App.
 #[cfg(target_os = "android")]
@@ -17,7 +18,6 @@ const APP_ID: &str = "de.schafkopf.statistik";
 ///
 /// Vorrang hat `SCHAFKOPF_DATA_DIR`. Auf Android ist es das private Verzeichnis der App
 /// (`/data/data/<App-Kennung>/files`), sonst das Heimverzeichnis oder der aktuelle Ordner.
-/// Ob der Android-Pfad auf dem Gerät wirklich beschreibbar ist, soll der Prototyp zeigen.
 pub fn data_dir() -> PathBuf {
     if let Some(dir) = std::env::var_os("SCHAFKOPF_DATA_DIR") {
         return PathBuf::from(dir);
@@ -37,18 +37,31 @@ pub fn data_dir() -> PathBuf {
 
 /// Lädt den zuletzt gespeicherten Tisch, falls es einen gibt und er lesbar ist.
 pub fn load() -> Option<Table> {
-    let json = fs::read_to_string(data_dir().join(JSON_FILE)).ok()?;
+    load_from(&data_dir())
+}
+
+/// Schreibt den Tisch als JSON neu und bringt die CSV auf den Stand, siehe [`save_in`].
+pub fn save(table: &Table, new_game: Option<usize>) -> io::Result<PathBuf> {
+    let dir = data_dir();
+    save_in(&dir, table, new_game)?;
+    Ok(dir)
+}
+
+/// Legt den laufenden Abend ins Archiv, bevor ein neuer beginnt. `stamp` macht die Namen eindeutig.
+pub fn archive_current(stamp: u64) -> io::Result<bool> {
+    archive_in(&data_dir(), stamp)
+}
+
+fn load_from(dir: &Path) -> Option<Table> {
+    let json = fs::read_to_string(dir.join(JSON_FILE)).ok()?;
     Table::from_json(&json).ok()
 }
 
-/// Schreibt den Tisch als JSON neu und bringt die CSV auf den Stand.
-///
 /// Mit `new_game = Some(index)` wird nur die Zeile dieses Spiels an die CSV angehängt, außer
-/// es ist das erste Spiel; dann wird die Datei samt Kopfzeile neu geschrieben, damit nie die
-/// Reste eines früheren Tisches in der Datei bleiben.
-pub fn save(table: &Table, new_game: Option<usize>) -> io::Result<PathBuf> {
-    let dir = data_dir();
-    fs::create_dir_all(&dir)?;
+/// es ist das erste Spiel. Dann (und bei `None`, etwa nach Tarifänderung oder Rückgängig) wird
+/// die Datei samt Kopfzeile neu geschrieben, damit sie immer zum Tisch passt.
+fn save_in(dir: &Path, table: &Table, new_game: Option<usize>) -> io::Result<()> {
+    fs::create_dir_all(dir)?;
     let json = table
         .to_json()
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
@@ -68,7 +81,22 @@ pub fn save(table: &Table, new_game: Option<usize>) -> io::Result<PathBuf> {
         }
         _ => fs::write(&csv_path, table.to_csv())?,
     }
-    Ok(dir)
+    Ok(())
+}
+
+fn archive_in(dir: &Path, stamp: u64) -> io::Result<bool> {
+    let mut moved = false;
+    for file in [JSON_FILE, CSV_FILE] {
+        let from = dir.join(file);
+        if from.exists() {
+            let archive = dir.join(ARCHIVE_DIR);
+            fs::create_dir_all(&archive)?;
+            let (name, ext) = file.rsplit_once('.').unwrap_or((file, ""));
+            fs::rename(&from, archive.join(format!("{name}-{stamp}.{ext}")))?;
+            moved = true;
+        }
+    }
+    Ok(moved)
 }
 
 #[cfg(test)]
@@ -76,15 +104,22 @@ mod tests {
     use super::*;
     use schafkopf_core::{GameInput, GameKind, Tariff};
 
+    fn temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("schafkopf-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    fn table() -> Table {
+        let players = ["A", "B", "C", "D"].map(String::from).to_vec();
+        Table::new("T", players, 0, Tariff::default()).unwrap()
+    }
+
     #[test]
     fn csv_grows_by_one_row_per_game_and_json_roundtrips() {
-        let dir = std::env::temp_dir().join(format!("schafkopf-test-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        std::env::set_var("SCHAFKOPF_DATA_DIR", &dir);
-
-        let players = ["A", "B", "C", "D"].map(String::from).to_vec();
-        let mut table = Table::new("T", players, 0, Tariff::default()).unwrap();
-        save(&table, None).unwrap();
+        let dir = temp_dir("save");
+        let mut table = table();
+        save_in(&dir, &table, None).unwrap();
         let csv = || fs::read_to_string(dir.join(CSV_FILE)).unwrap();
         assert_eq!(csv().lines().count(), 1);
 
@@ -92,11 +127,34 @@ mod tests {
             table
                 .add_game(GameInput::new(table.next_dealer(), GameKind::Wenz, 1))
                 .unwrap();
-            save(&table, Some(i)).unwrap();
+            save_in(&dir, &table, Some(i)).unwrap();
             assert_eq!(csv().lines().count(), i + 2);
         }
         assert_eq!(csv(), table.to_csv());
-        assert_eq!(load().unwrap(), table);
+        assert_eq!(load_from(&dir).unwrap(), table);
+
+        table.undo_last();
+        save_in(&dir, &table, None).unwrap();
+        assert_eq!(csv(), table.to_csv());
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn archive_moves_both_files_and_keeps_older_archives() {
+        let dir = temp_dir("archive");
+        assert!(!archive_in(&dir, 1).unwrap(), "nichts zu archivieren");
+
+        let table = table();
+        save_in(&dir, &table, None).unwrap();
+        assert!(archive_in(&dir, 100).unwrap());
+        assert!(load_from(&dir).is_none());
+        assert!(!dir.join(CSV_FILE).exists());
+        assert!(dir.join("archiv/schafkopf-tisch-100.json").exists());
+        assert!(dir.join("archiv/schafkopf-spiele-100.csv").exists());
+
+        save_in(&dir, &table, None).unwrap();
+        assert!(archive_in(&dir, 200).unwrap());
+        assert_eq!(fs::read_dir(dir.join(ARCHIVE_DIR)).unwrap().count(), 4);
         fs::remove_dir_all(&dir).unwrap();
     }
 }

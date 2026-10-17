@@ -102,8 +102,9 @@ impl Table {
         }
     }
 
-    /// Prüft die Eingabe, rechnet ab und hängt das Spiel an.
-    pub fn add_game(&mut self, input: GameInput) -> Result<&Game> {
+    /// Prüft die Eingabe und rechnet sie ab, ohne das Spiel zu speichern.
+    /// Damit zeigt die App den Preis und die Auszahlung schon vor dem Eintragen.
+    pub fn preview_game(&self, input: GameInput) -> Result<Game> {
         let mut input = input;
         if input.participants.is_empty() && input.dealer < self.player_count() {
             input.participants = self.default_participants(input.dealer);
@@ -112,12 +113,18 @@ impl Table {
         let calculated_value = calculated_value(&self.tariff, &input);
         let value = game_value(&self.tariff, &input);
         let payouts = payouts(&self.tariff, &input, self.player_count());
-        self.games.push(Game {
+        Ok(Game {
             input,
             value,
             calculated_value,
             payouts,
-        });
+        })
+    }
+
+    /// Prüft die Eingabe, rechnet ab und hängt das Spiel an.
+    pub fn add_game(&mut self, input: GameInput) -> Result<&Game> {
+        let game = self.preview_game(input)?;
+        self.games.push(game);
         Ok(self.games.last().expect("gerade eingefügt"))
     }
 

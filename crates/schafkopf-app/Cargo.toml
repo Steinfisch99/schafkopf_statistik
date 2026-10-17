@@ -10,7 +10,7 @@ schafkopf-core = { path = "../schafkopf-core" }
 schafkopf-charts = { path = "../schafkopf-charts" }
 
 [features]
-# `dx` schaltet je nach Plattform das passende Feature ein (siehe docs/android-prototyp.md).
+# `dx` schaltet je nach Plattform das passende Feature ein (siehe docs/android-app.md).
 default = []
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
