@@ -46,6 +46,7 @@ schafkopf/
 ├── crates/schafkopf-core/   Spiellogik, Abrechnung, Statistiken (reines Rust, keine UI)
 ├── crates/schafkopf-charts/ Diagramme als SVG-Text (reines Rust, keine UI)
 ├── crates/schafkopf-app/    Die App (Dioxus) für Android und Desktop
+├── scripts/build-apk.sh     APK bauen, prüfen und mit wormhole-rs aufs Handy schicken
 ├── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
 ├── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
 └── docs/android-app.md      App auf dem Handy installieren und testen (Anleitung, Checkliste)
@@ -119,6 +120,8 @@ cargo test
 cargo clippy --all-targets
 cargo fmt
 ```
+
+Die APK für das Handy baut und verschickt `./scripts/build-apk.sh`.
 
 Ohne Nix genügt eine aktuelle Rust-Toolchain. Der Android-Build braucht zusätzlich das Android SDK
 und NDK; `nix develop .#android` bringt alles mit, siehe [`docs/android-app.md`](docs/android-app.md).

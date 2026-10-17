@@ -65,6 +65,20 @@ und neu übertragen. Für den ersten Prototyp-Test reicht das.
 Ein Debug-Build wird von Gradle automatisch mit einem Debug-Schlüssel signiert und lässt sich
 deshalb ohne eigenes Zertifikat installieren. Er ist nur für den eigenen Gebrauch gedacht.
 
+**Kurzfassung mit Skript:** `scripts/build-apk.sh` macht alle folgenden Schritte (bauen, APK suchen,
+prüfen, dass sie für das Handy gebaut ist, und mit `wormhole-rs` senden):
+
+```sh
+cd ~/git-repos/sandbox/schafkopf
+./scripts/build-apk.sh
+```
+
+Mit `--no-send` baut es nur, mit `--send-only` schickt es die zuletzt gebaute APK noch einmal, ohne zu
+bauen. Ist `wormhole-rs` nicht installiert, holt das Skript es über Nix. Auf dem Handy gibst du den
+Code ein, den `wormhole-rs` anzeigt. Die Debug-APK ist groß (um 200 MB), die Übertragung dauert also.
+
+Die einzelnen Schritte, falls du sie von Hand machen willst:
+
 Auf dem Host bauen und die APK suchen:
 
 ```sh
