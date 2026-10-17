@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{BockMode, BockStacking, GameKind};
+use crate::model::{BockAtRamsch, BockMode, BockStacking, GameKind};
 use crate::scoring::Tariff;
 
 /// Welche Spielarten in einer Runde gespielt werden.
@@ -18,6 +18,9 @@ pub struct RuleSet {
     /// Ob sich mehrere Bockrunden hintereinander reihen oder überlagern. Alte Dateien: hintereinander.
     #[serde(default)]
     pub stacking: BockStacking,
+    /// Was beim Ramsch mit einer Bockrunde passiert. Alte Dateien: Der Ramsch zählt als Bockspiel.
+    #[serde(default)]
+    pub bock_at_ramsch: BockAtRamsch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -79,6 +82,7 @@ impl Library {
                     kinds: GameKind::ALL.to_vec(),
                     bock: BockMode::Off,
                     stacking: BockStacking::Sequential,
+                    bock_at_ramsch: BockAtRamsch::Counts,
                 },
                 RuleSet {
                     name: "Unsere Runde".into(),
@@ -91,6 +95,7 @@ impl Library {
                     ],
                     bock: BockMode::NextGame,
                     stacking: BockStacking::Sequential,
+                    bock_at_ramsch: BockAtRamsch::Counts,
                 },
             ],
             tariffs: vec![NamedTariff {
@@ -184,7 +189,8 @@ impl Library {
         self.save_rule_set_full(original, name, kinds, bock, stacking)
     }
 
-    /// Wie [`Library::save_rule_set_with`], auch mit der Art, mehrere Bockrunden zu verbinden.
+    /// Wie [`Library::save_rule_set_with`], auch mit der Art, mehrere Bockrunden zu verbinden. Was
+    /// beim Ramsch mit dem Bock passiert, bleibt, wie es war.
     pub fn save_rule_set_full(
         &mut self,
         original: Option<&str>,
@@ -192,6 +198,22 @@ impl Library {
         kinds: &[GameKind],
         bock: BockMode,
         stacking: BockStacking,
+    ) -> Result<String> {
+        let at_ramsch = original
+            .and_then(|old| self.rule_set(old))
+            .map_or(BockAtRamsch::Counts, |r| r.bock_at_ramsch);
+        self.save_rule_set_all(original, name, kinds, bock, stacking, at_ramsch)
+    }
+
+    /// Wie [`Library::save_rule_set_full`], auch mit dem Verhalten der Bockrunde beim Ramsch.
+    pub fn save_rule_set_all(
+        &mut self,
+        original: Option<&str>,
+        name: &str,
+        kinds: &[GameKind],
+        bock: BockMode,
+        stacking: BockStacking,
+        bock_at_ramsch: BockAtRamsch,
     ) -> Result<String> {
         let name = clean_name(name)?;
         let kinds = canonical(kinds);
@@ -204,6 +226,7 @@ impl Library {
             kinds,
             bock,
             stacking,
+            bock_at_ramsch,
         };
         match original {
             None => self.rule_sets.push(rule_set),

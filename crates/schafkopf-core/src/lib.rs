@@ -17,8 +17,8 @@ pub use clock::{civil, format_clock, format_duration, format_local};
 pub use error::{Error, Result};
 pub use library::{Library, NamedTariff, RuleSet};
 pub use model::{
-    outcome_from_points, BockMode, BockStacking, Cents, GameInput, GameKind, Outcome, Seat, Suit,
-    MAX_BOCK,
+    outcome_from_points, BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, Outcome,
+    PriceMistake, Seat, Suit, MAX_BOCK,
 };
 pub use money::parse_euro;
 pub use scoring::{calculated_value, game_value, payouts, validate, Tariff};

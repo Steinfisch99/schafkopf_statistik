@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::library::RuleSet;
-use crate::model::{BockMode, BockStacking, Cents, GameInput, GameKind, Seat};
+use crate::model::{BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, Seat};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Am Tisch sitzen zwischen 2 und 10 Spieler.
@@ -104,6 +104,9 @@ pub struct Table {
     /// Ob sich mehrere Bockrunden hintereinander reihen oder überlagern. Alte Dateien: hintereinander.
     #[serde(default)]
     pub bock_stacking: BockStacking,
+    /// Was beim Ramsch mit einer Bockrunde passiert. Alte Dateien: Der Ramsch zählt als Bockspiel.
+    #[serde(default)]
+    pub bock_at_ramsch: BockAtRamsch,
     /// Abweichung der Ortszeit von UTC in Minuten, damit Uhrzeiten lesbar sind (Deutschland: 60/120).
     #[serde(default)]
     pub utc_offset_min: i32,
@@ -155,6 +158,7 @@ impl Table {
             rule_set_name: None,
             bock_mode: BockMode::Off,
             bock_stacking: BockStacking::Sequential,
+            bock_at_ramsch: BockAtRamsch::Counts,
             utc_offset_min: 0,
             ended_at: None,
             events: Vec::new(),
@@ -396,6 +400,7 @@ impl Table {
         self.use_rules(Some(rules.name.clone()), &rules.kinds)?;
         self.bock_mode = rules.bock;
         self.bock_stacking = rules.stacking;
+        self.bock_at_ramsch = rules.bock_at_ramsch;
         Ok(())
     }
 
@@ -433,7 +438,10 @@ impl Table {
     fn bock_layers_before(&self, index: usize) -> Vec<u32> {
         let mut layers: Vec<u32> = Vec::new();
         for game in self.games.iter().take(index) {
-            if game.input.bock {
+            let ramsch = game.input.kind == GameKind::Ramsch;
+            if ramsch && self.bock_at_ramsch == BockAtRamsch::Expires {
+                layers.clear();
+            } else if game.input.bock && !(ramsch && self.bock_at_ramsch == BockAtRamsch::Waits) {
                 for l in &mut layers {
                     *l -= 1;
                 }
@@ -506,6 +514,16 @@ impl Table {
         validate(&input, self.players.len())?;
         let calculated_value = calculated_value(tariff, &input);
         let value = game_value(tariff, &input);
+        let mut input = input;
+        if value == calculated_value {
+            // Ohne korrigierten Preis gab es nichts, was falsch verlangt wurde.
+            input.mistakes.clear();
+            input.price_error_by = None;
+        } else {
+            input.mistakes.sort();
+            input.mistakes.dedup();
+            input.price_error_by = input.price_error_by.or(Some(input.declarer));
+        }
         let payouts = payouts(tariff, &input, self.players.len());
         Ok(Game {
             input,

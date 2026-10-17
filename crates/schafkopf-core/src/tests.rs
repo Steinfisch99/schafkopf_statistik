@@ -1899,3 +1899,204 @@ fn evenings_saved_before_the_log_still_load() {
     assert!(t.events.is_empty() && t.ended_at.is_none());
     assert_eq!(t.bock_stacking, BockStacking::Sequential);
 }
+
+fn ramsch(dealer: Seat, loser: Seat) -> GameInput {
+    GameInput {
+        won: false,
+        ..GameInput::new(dealer, GameKind::Ramsch, loser)
+    }
+}
+
+#[test]
+fn bock_can_leave_the_ramsch_price_alone_but_is_still_recorded() {
+    let tariff = Tariff {
+        ramsch_bock_doubles: false,
+        ..Tariff::default()
+    };
+    let input = GameInput {
+        bock: true,
+        ..ramsch(0, 1)
+    };
+    assert_eq!(calculated_value(&tariff, &input), 20);
+    assert_eq!(calculated_value(&Tariff::default(), &input), 40);
+    // Andere Spiele bleiben beim Bock doppelt.
+    let sau = GameInput {
+        bock: true,
+        ..sauspiel(0, 1, 3)
+    };
+    assert_eq!(calculated_value(&tariff, &sau), 40);
+    // Mit Überlagerung zählen auch die Zusatz-Verdopplungen nicht.
+    let stacked = GameInput {
+        bock_extra: 2,
+        ..input
+    };
+    assert_eq!(calculated_value(&tariff, &stacked), 20);
+    assert_eq!(stacked.bock_doublings(), 3);
+}
+
+#[test]
+fn old_tariffs_still_double_the_ramsch_for_bock() {
+    let mut json: serde_json::Value = serde_json::to_value(Tariff::default()).unwrap();
+    json.as_object_mut().unwrap().remove("ramsch_bock_doubles");
+    let tariff: Tariff = serde_json::from_value(json).unwrap();
+    assert!(tariff.ramsch_bock_doubles);
+}
+
+fn ramsch_after_trigger(policy: BockAtRamsch, ramsch_is_bock: bool) -> Table {
+    let mut t = bock_table_with(BockMode::NextRound, BockStacking::Sequential);
+    t.bock_at_ramsch = policy;
+    t.add_game(trigger(0, 1, 3, 0)).unwrap();
+    assert_eq!(t.bock_pending(), 4);
+    t.add_game(GameInput {
+        bock: ramsch_is_bock,
+        ..ramsch(1, 2)
+    })
+    .unwrap();
+    t
+}
+
+#[test]
+fn what_a_ramsch_does_to_a_bock_round_follows_the_rule() {
+    // Zählt: Der Ramsch verbraucht ein Bockspiel.
+    assert_eq!(
+        ramsch_after_trigger(BockAtRamsch::Counts, true).bock_pending(),
+        3
+    );
+    // Wartet: Auch als Bockspiel eingetragen verbraucht er nichts.
+    assert_eq!(
+        ramsch_after_trigger(BockAtRamsch::Waits, true).bock_pending(),
+        4
+    );
+    assert_eq!(
+        ramsch_after_trigger(BockAtRamsch::Waits, false).bock_pending(),
+        4
+    );
+    // Verfällt: Die Bockrunde ist weg.
+    assert_eq!(
+        ramsch_after_trigger(BockAtRamsch::Expires, false).bock_pending(),
+        0
+    );
+    assert_eq!(
+        ramsch_after_trigger(BockAtRamsch::Expires, true).bock_pending(),
+        0
+    );
+}
+
+#[test]
+fn a_ramsch_that_expires_the_bock_does_not_stop_a_later_trigger() {
+    let mut t = ramsch_after_trigger(BockAtRamsch::Expires, false);
+    t.add_game(trigger(2, 3, 0, 0)).unwrap();
+    assert_eq!(t.bock_pending(), 4);
+}
+
+#[test]
+fn rule_sets_keep_what_happens_at_ramsch() {
+    let mut lib = Library::with_defaults();
+    lib.save_rule_set_all(
+        None,
+        "Kneipe",
+        &[GameKind::Ramsch],
+        BockMode::NextRound,
+        BockStacking::Sequential,
+        BockAtRamsch::Expires,
+    )
+    .unwrap();
+    lib.save_rule_set_full(
+        Some("Kneipe"),
+        "Kneipe",
+        &[GameKind::Ramsch],
+        BockMode::NextGame,
+        BockStacking::Stacked,
+    )
+    .unwrap();
+    assert_eq!(
+        lib.rule_set("Kneipe").unwrap().bock_at_ramsch,
+        BockAtRamsch::Expires
+    );
+    let mut t = table();
+    t.use_rule_set(lib.rule_set("Kneipe").unwrap()).unwrap();
+    assert_eq!(t.bock_at_ramsch, BockAtRamsch::Expires);
+}
+
+#[test]
+fn mistakes_are_kept_only_for_a_corrected_price() {
+    let mut t = table();
+    let wrong = GameInput {
+        price_override: Some(30),
+        mistakes: vec![
+            PriceMistake::Miscalculated,
+            PriceMistake::BockForgotten,
+            PriceMistake::Miscalculated,
+        ],
+        ..sauspiel(0, 1, 3)
+    };
+    let g = t.add_game(wrong).unwrap();
+    assert_eq!(
+        g.input.mistakes,
+        vec![PriceMistake::BockForgotten, PriceMistake::Miscalculated],
+        "sortiert, ohne Doppelte"
+    );
+    assert_eq!(g.input.price_error_by, Some(1), "ohne Angabe der Spieler");
+
+    // Der verlangte Preis stimmt: Es gab nichts, was falsch war.
+    let right = GameInput {
+        price_override: Some(20),
+        mistakes: vec![PriceMistake::Other],
+        price_error_by: Some(2),
+        ..sauspiel(1, 0, 2)
+    };
+    let g = t.add_game(right).unwrap();
+    assert!(g.input.mistakes.is_empty() && g.input.price_error_by.is_none());
+    let none = t
+        .add_game(GameInput {
+            mistakes: vec![PriceMistake::Other],
+            ..sauspiel(2, 0, 1)
+        })
+        .unwrap();
+    assert!(none.input.mistakes.is_empty());
+}
+
+#[test]
+fn only_a_participant_can_have_demanded_wrong() {
+    let t = table();
+    let input = GameInput {
+        price_override: Some(30),
+        price_error_by: Some(9),
+        ..sauspiel(0, 1, 3)
+    };
+    assert!(t.preview_game(input).is_err());
+}
+
+#[test]
+fn statistics_count_wrong_demands_per_player_and_kind() {
+    let mut t = table();
+    for (by, kinds) in [
+        (1, vec![PriceMistake::Miscalculated]),
+        (
+            1,
+            vec![PriceMistake::BockForgotten, PriceMistake::WrongLaufende],
+        ),
+        (3, vec![PriceMistake::Miscalculated]),
+    ] {
+        t.add_game(GameInput {
+            price_override: Some(30),
+            mistakes: kinds,
+            price_error_by: Some(by),
+            ..sauspiel(0, 1, 3)
+        })
+        .unwrap();
+    }
+    t.add_game(sauspiel(1, 0, 2)).unwrap();
+    let s = table_stats(&t);
+    assert_eq!(s.corrected_games, 3);
+    assert_eq!(s.mistake_counts[&PriceMistake::Miscalculated], 2);
+    assert_eq!(s.mistake_counts[&PriceMistake::BockForgotten], 1);
+    assert_eq!(s.players[1].wrong_demands, 2);
+    assert_eq!(s.players[3].wrong_demands, 1);
+    assert_eq!(s.players[0].wrong_demands, 0);
+    assert_eq!(s.players[1].wrong_by_kind[&PriceMistake::Miscalculated], 1);
+    let csv = t.to_csv();
+    let header: Vec<&str> = csv.lines().next().unwrap().split(',').collect();
+    assert!(header.contains(&"Falsch_verlangt_von") && header.contains(&"Fehlerarten"));
+    assert!(csv.contains("Bockrunde vergessen; Laufende nicht alle oder keine"));
+}

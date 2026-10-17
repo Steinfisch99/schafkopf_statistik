@@ -31,6 +31,81 @@ impl BockStacking {
 /// So viele Bockrunden können in einem Spiel entstehen, und so oft kann ein Bockspiel gedoppelt sein.
 pub const MAX_BOCK: u8 = 4;
 
+/// Was beim Ramsch mit einer laufenden Bockrunde passiert, ein Regelwerk legt es fest.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BockAtRamsch {
+    /// Der Ramsch zählt als Bockspiel und verbraucht eines. Ob er dadurch teurer wird, sagt der Tarif.
+    #[default]
+    Counts,
+    /// Der Ramsch verbraucht keinen Bock, die Bockrunde wartet auf das nächste Spiel.
+    Waits,
+    /// Wird ein Ramsch gespielt, verfällt die Bockrunde.
+    Expires,
+}
+
+impl BockAtRamsch {
+    pub const ALL: [BockAtRamsch; 3] = [
+        BockAtRamsch::Counts,
+        BockAtRamsch::Waits,
+        BockAtRamsch::Expires,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            BockAtRamsch::Counts => "Ramsch zählt als Bockspiel",
+            BockAtRamsch::Waits => "Bockrunde wartet",
+            BockAtRamsch::Expires => "Bockrunde verfällt",
+        }
+    }
+}
+
+/// Was beim Verlangen des Preises vergessen oder falsch gemacht wurde, wenn der Preis korrigiert wird.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum PriceMistake {
+    /// Falscher Grundtarif, zum Beispiel Solo- statt Sauspielpreis.
+    WrongBase,
+    /// Falsche Anzahl an Doppler verlangt (Klopfen, Kontra, Re, Tout).
+    WrongDoublings,
+    /// Die Bockrunde vergessen.
+    BockForgotten,
+    /// Nicht alle Laufende oder gar keine verlangt, oder zu viele.
+    WrongLaufende,
+    /// Schneider oder Schneider und Schwarz nicht verlangt, oder zu viel.
+    SchneiderMissed,
+    /// Falsch gezählt: Die falsche Partei hat gewonnen.
+    WrongWinner,
+    /// Verrechnet.
+    Miscalculated,
+    /// Etwas anderes.
+    Other,
+}
+
+impl PriceMistake {
+    pub const ALL: [PriceMistake; 8] = [
+        PriceMistake::WrongBase,
+        PriceMistake::WrongDoublings,
+        PriceMistake::BockForgotten,
+        PriceMistake::WrongLaufende,
+        PriceMistake::SchneiderMissed,
+        PriceMistake::WrongWinner,
+        PriceMistake::Miscalculated,
+        PriceMistake::Other,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            PriceMistake::WrongBase => "Falscher Grundtarif",
+            PriceMistake::WrongDoublings => "Falsche Anzahl Doppler",
+            PriceMistake::BockForgotten => "Bockrunde vergessen",
+            PriceMistake::WrongLaufende => "Laufende nicht alle oder keine",
+            PriceMistake::SchneiderMissed => "Schneider / Schwarz nicht verlangt",
+            PriceMistake::WrongWinner => "Falsche Partei gewonnen",
+            PriceMistake::Miscalculated => "Verrechnet",
+            PriceMistake::Other => "Etwas anderes",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Suit {
     Eichel,
@@ -243,6 +318,13 @@ pub struct GameInput {
     /// ergibt. Ersetzt dann die Berechnung.
     #[serde(default)]
     pub price_override: Option<Cents>,
+    /// Was beim Verlangen des Preises schiefging. Nur bei einem korrigierten Preis gespeichert.
+    #[serde(default)]
+    pub mistakes: Vec<PriceMistake>,
+    /// Wer den Preis falsch verlangt hat. Nur bei einem korrigierten Preis gespeichert, ohne Angabe
+    /// der Spieler.
+    #[serde(default)]
+    pub price_error_by: Option<Seat>,
     /// Augen der Spielerpartei, optional für die Statistik.
     #[serde(default)]
     pub points: Option<u8>,
@@ -277,6 +359,8 @@ impl GameInput {
             bock_extra: 0,
             extra_bock_rounds: 0,
             price_override: None,
+            mistakes: Vec::new(),
+            price_error_by: None,
             points: None,
             played_at: None,
             note: None,

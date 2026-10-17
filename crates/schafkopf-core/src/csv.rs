@@ -54,6 +54,8 @@ impl Table {
             "Augen",
             "Preis_Cent",
             "Preis_berechnet_Cent",
+            "Falsch_verlangt_von",
+            "Fehlerarten",
             "Notiz",
         ];
         let players = self
@@ -105,6 +107,12 @@ impl Table {
             opt(g.points.map(|p| p.to_string())),
             game.value.to_string(),
             game.calculated_value.to_string(),
+            opt(g.price_error_by.map(|p| self.players[p].clone())),
+            g.mistakes
+                .iter()
+                .map(|m| m.label())
+                .collect::<Vec<_>>()
+                .join("; "),
             opt(g.note.clone()),
         ];
         let per_player = game

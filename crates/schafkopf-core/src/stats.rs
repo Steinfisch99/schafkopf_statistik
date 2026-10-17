@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::model::{Cents, GameKind, Seat, Suit};
+use crate::model::{Cents, GameKind, PriceMistake, Seat, Suit};
 use crate::table::Table;
 
 /// Spiele und Siege in einer Rolle, Position oder Kategorie.
@@ -82,6 +82,10 @@ pub struct PlayerStats {
     pub worst_game: Cents,
     /// Geklopft: wie oft, und in wie vielen dieser Spiele hat man gewonnen?
     pub knocks: RoleStats,
+    /// Wie oft der Spieler den Preis falsch verlangt hat (der Preis wurde danach korrigiert), und was dabei
+    /// schiefging. Ein Spiel mit mehreren Fehlerarten zählt bei jeder.
+    pub wrong_demands: u32,
+    pub wrong_by_kind: BTreeMap<PriceMistake, u32>,
     pub kontra_given: RoleStats,
     pub re_given: RoleStats,
     pub schneider_wins: u32,
@@ -115,6 +119,8 @@ impl PlayerStats {
             best_game: 0,
             worst_game: 0,
             knocks: RoleStats::default(),
+            wrong_demands: 0,
+            wrong_by_kind: BTreeMap::new(),
             kontra_given: RoleStats::default(),
             re_given: RoleStats::default(),
             schneider_wins: 0,
@@ -152,6 +158,8 @@ pub struct TableStats {
     pub schwarz_games: u32,
     /// Spiele, in denen ein anderer Preis verlangt wurde, als der Tarif ergibt.
     pub corrected_games: u32,
+    /// Wie oft welche Fehlerart bei korrigierten Preisen vorkam.
+    pub mistake_counts: BTreeMap<PriceMistake, u32>,
     /// Spiele, die Bockspiele waren (doppelter Preis), und Spiele, die eine Bockrunde ausgelöst haben.
     pub bock_games: u32,
     pub bock_started: u32,
@@ -185,6 +193,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         schneider_games: 0,
         schwarz_games: 0,
         corrected_games: 0,
+        mistake_counts: BTreeMap::new(),
         bock_games: 0,
         bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
@@ -213,6 +222,18 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.schneider_games += u32::from(g.schneider || g.schwarz);
         stats.schwarz_games += u32::from(g.schwarz);
         stats.corrected_games += u32::from(game.value != game.calculated_value);
+        if game.value != game.calculated_value {
+            for &m in &g.mistakes {
+                *stats.mistake_counts.entry(m).or_default() += 1;
+            }
+            if let Some(by) = g.price_error_by {
+                let p = &mut players[by];
+                p.wrong_demands += 1;
+                for &m in &g.mistakes {
+                    *p.wrong_by_kind.entry(m).or_default() += 1;
+                }
+            }
+        }
         stats.bock_games += u32::from(g.bock);
         stats.bock_started += g.bock_triggers();
         if let Some(partner) = g.partner {

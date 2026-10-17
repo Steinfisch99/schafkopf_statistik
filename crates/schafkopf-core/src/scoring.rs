@@ -28,6 +28,9 @@ pub struct Tariff {
     /// Tarife ohne diese Angabe verhalten sich wie bisher, das Klopfen zählt.
     #[serde(default = "yes")]
     pub ramsch_knock_doubles: bool,
+    /// Verdoppelt ein Bockspiel den Ramsch? Alte Tarife ohne diese Angabe: ja.
+    #[serde(default = "yes")]
+    pub ramsch_bock_doubles: bool,
 }
 
 impl Default for Tariff {
@@ -44,6 +47,7 @@ impl Default for Tariff {
             laufende_min_wenz_geier: 2,
             laufende_min_solo: 3,
             ramsch_knock_doubles: true,
+            ramsch_bock_doubles: true,
         }
     }
 }
@@ -103,6 +107,9 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
         }
     }
     check_active(input.declarer)?;
+    if let Some(by) = input.price_error_by {
+        check_active(by)?;
+    }
 
     let kind = input.kind;
     if kind.is_team_game() && active.len() != 4 {
@@ -202,6 +209,10 @@ pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
     if kind == GameKind::Ramsch && !tariff.ramsch_knock_doubles {
         // Das Klopfen steht weiter im Spiel (für die Statistik), zählt hier aber nicht für den Preis.
         doublings -= input.knockers.len() as u32;
+    }
+    if kind == GameKind::Ramsch && !tariff.ramsch_bock_doubles {
+        // Der Bock steht weiter im Spiel (für die Statistik), zählt hier aber nicht für den Preis.
+        doublings -= input.bock_doublings();
     }
     value << doublings
 }
