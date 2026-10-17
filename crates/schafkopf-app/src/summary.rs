@@ -47,6 +47,12 @@ pub fn detail(table: &Table, game: &Game) -> String {
     if input.tout {
         parts.push("Tout".into());
     }
+    if input.bock {
+        parts.push("Bockspiel".into());
+    }
+    if input.starts_bock {
+        parts.push("löst Bockrunde aus".into());
+    }
     if game.value != game.calculated_value {
         parts.push("Preis korrigiert".into());
     }

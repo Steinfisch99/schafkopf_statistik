@@ -27,6 +27,30 @@ impl Suit {
     }
 }
 
+/// Wie lange eine ausgelöste Bockrunde dauert, ein Regelwerk legt es fest.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BockMode {
+    /// Es gibt keinen Bock.
+    #[default]
+    Off,
+    /// Nur das nächste Spiel ist ein Bockspiel.
+    NextGame,
+    /// Die ganze nächste Runde sind Bockspiele: so viele Spiele, wie Spieler am Tisch sitzen.
+    NextRound,
+}
+
+impl BockMode {
+    pub const ALL: [BockMode; 3] = [BockMode::Off, BockMode::NextGame, BockMode::NextRound];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            BockMode::Off => "Kein Bock",
+            BockMode::NextGame => "Nur das nächste Spiel",
+            BockMode::NextRound => "Die ganze nächste Runde",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum GameKind {
     /// Rufspiel: Spieler ruft eine Sau (nicht Herz), der Besitzer ist der heimliche Mitspieler.
@@ -175,6 +199,13 @@ pub struct GameInput {
     /// in beiden Fällen derselbe, es zählt für die Statistik.
     #[serde(default)]
     pub gegenlauf: bool,
+    /// War dieses Spiel ein Bockspiel? Dann ist der Preis doppelt.
+    #[serde(default)]
+    pub bock: bool,
+    /// Hat dieses Spiel eine Bockrunde ausgelöst, zum Beispiel durch Schwarz? Die folgenden Spiele
+    /// sind dann Bockspiele, wie viele, bestimmt der Bock-Modus des Regelwerks.
+    #[serde(default)]
+    pub starts_bock: bool,
     /// Verlangter Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif
     /// ergibt. Ersetzt dann die Berechnung.
     #[serde(default)]
@@ -208,6 +239,8 @@ impl GameInput {
             schwarz: false,
             laufende: 0,
             gegenlauf: false,
+            bock: false,
+            starts_bock: false,
             price_override: None,
             points: None,
             played_at: None,
@@ -226,12 +259,13 @@ impl GameInput {
         seat == self.declarer || self.partner == Some(seat)
     }
 
-    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re und Tout.
+    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout und Bock.
     pub fn doublings(&self) -> u32 {
         self.knockers.len() as u32
             + u32::from(self.kontra_by.is_some())
             + u32::from(self.re)
             + u32::from(self.tout)
+            + u32::from(self.bock)
     }
 }
 

@@ -2,7 +2,7 @@
 
 use dioxus::prelude::*;
 
-use schafkopf_core::Table;
+use schafkopf_core::{BockMode, Table};
 
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
@@ -40,6 +40,18 @@ pub fn TableView(
         return rsx! {};
     };
     let game_count = t.games().len();
+    let bock_pending = if t.bock_mode == BockMode::Off {
+        0
+    } else {
+        t.bock_pending()
+    };
+    let bock_text = match bock_pending {
+        0 => None,
+        1 => Some("Bock: Das nächste Spiel ist ein Bockspiel, der Preis ist doppelt.".to_string()),
+        n => Some(format!(
+            "Bock: Die nächsten {n} Spiele sind Bockspiele, der Preis ist doppelt."
+        )),
+    };
 
     rsx! {
         section { class: "dealer",
@@ -48,6 +60,9 @@ pub fn TableView(
             span { class: "muted", " · {game_count} Spiele" }
             p { class: "muted small rules",
                 "Regelwerk: {t.rule_set_name.as_deref().unwrap_or(\"eigene Auswahl\")} · Tarif: {t.tariff_name.as_deref().unwrap_or(\"Eigener Tarif\")}"
+            }
+            if let Some(text) = &bock_text {
+                p { class: "bock-note", "{text}" }
             }
         }
         button {

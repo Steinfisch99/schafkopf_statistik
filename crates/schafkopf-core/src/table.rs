@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{Cents, GameInput, GameKind, Seat};
+use crate::library::RuleSet;
+use crate::model::{BockMode, Cents, GameInput, GameKind, Seat};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Ein abgerechnetes Spiel. Beträge werden beim Eintragen festgeschrieben,
@@ -40,6 +41,9 @@ pub struct Table {
     /// Name des Regelwerks in der Bibliothek, falls es von dort stammt. Nur zur Anzeige.
     #[serde(default)]
     pub rule_set_name: Option<String>,
+    /// Ob und wie lange nach einem Auslöser Bockspiele folgen. Alte Dateien: kein Bock.
+    #[serde(default)]
+    pub bock_mode: BockMode,
     #[serde(default)]
     pub created_at: Option<i64>,
     games: Vec<Game>,
@@ -78,6 +82,7 @@ impl Table {
             tariff_name: None,
             enabled_kinds: GameKind::ALL.to_vec(),
             rule_set_name: None,
+            bock_mode: BockMode::Off,
             created_at: None,
             games: Vec::new(),
         })
@@ -133,6 +138,45 @@ impl Table {
         self.enabled_kinds = kinds;
         self.rule_set_name = name;
         Ok(())
+    }
+
+    /// Übernimmt Spielarten, Bock-Modus und Namen eines Regelwerks aus der Bibliothek.
+    pub fn use_rule_set(&mut self, rules: &RuleSet) -> Result<()> {
+        self.use_rules(Some(rules.name.clone()), &rules.kinds)?;
+        self.bock_mode = rules.bock;
+        Ok(())
+    }
+
+    /// Wie viele Spiele noch Bockspiele sein sollen, wenn jetzt das nächste Spiel beginnt.
+    pub fn bock_pending(&self) -> u32 {
+        self.bock_pending_before(self.games.len())
+    }
+
+    /// Wie viele Spiele vor dem Spiel mit dieser Nummer (ab 0) noch Bockspiele sein sollen.
+    ///
+    /// Das wird aus den Spielen abgeleitet, nicht mitgezählt: Jedes Bockspiel verbraucht eines, jeder
+    /// Auslöser bringt neue (eines oder so viele, wie Spieler am Tisch saßen, je nach Modus). So bleibt
+    /// die Zahl nach Bearbeiten, Rückgängig und Löschen von Spielen richtig.
+    pub fn bock_pending_before(&self, index: usize) -> u32 {
+        let mut remaining: u32 = 0;
+        for game in self.games.iter().take(index) {
+            if game.input.bock {
+                remaining = remaining.saturating_sub(1);
+            }
+            if game.input.starts_bock {
+                remaining += match self.bock_mode {
+                    BockMode::Off => 0,
+                    BockMode::NextGame => 1,
+                    BockMode::NextRound => self.players_at_table(game) as u32,
+                };
+            }
+        }
+        remaining
+    }
+
+    /// Wie viele Spieler bei diesem Spiel am Tisch saßen.
+    fn players_at_table(&self, game: &Game) -> usize {
+        game.payouts.len()
     }
 
     /// Ob diese Spielart in diesem Abend gespielt wird.

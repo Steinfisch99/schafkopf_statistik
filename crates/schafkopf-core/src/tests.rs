@@ -1381,3 +1381,167 @@ fn tariffs_saved_before_the_ramsch_option_still_double() {
     assert!(old.ramsch_knock_doubles);
     assert_eq!(old, Tariff::default());
 }
+
+fn bock_table(mode: BockMode) -> Table {
+    let mut t = table();
+    t.bock_mode = mode;
+    t
+}
+
+fn game_with(dealer: Seat, bock: bool, starts_bock: bool) -> GameInput {
+    GameInput {
+        bock,
+        starts_bock,
+        ..sauspiel(dealer, 1, 3)
+    }
+}
+
+#[test]
+fn a_bock_game_doubles_the_price_and_stacks_with_knocking() {
+    let mut t = bock_table(BockMode::NextGame);
+    assert_eq!(t.add_game(game_with(0, false, false)).unwrap().value, 20);
+    assert_eq!(t.add_game(game_with(1, true, false)).unwrap().value, 40);
+    let knocked = GameInput {
+        knockers: vec![2],
+        ..game_with(2, true, false)
+    };
+    assert_eq!(
+        t.add_game(knocked).unwrap().value,
+        20 << 2,
+        "Klopfen und Bock verdoppeln beide"
+    );
+}
+
+#[test]
+fn bock_for_the_next_game_only() {
+    let mut t = bock_table(BockMode::NextGame);
+    assert_eq!(t.bock_pending(), 0);
+    t.add_game(game_with(0, false, true)).unwrap();
+    assert_eq!(t.bock_pending(), 1, "das nächste Spiel ist ein Bockspiel");
+    t.add_game(game_with(1, true, false)).unwrap();
+    assert_eq!(t.bock_pending(), 0, "danach ist der Bock verbraucht");
+    t.add_game(game_with(2, false, false)).unwrap();
+    assert_eq!(t.bock_pending(), 0);
+}
+
+#[test]
+fn bock_for_a_whole_round_lasts_as_many_games_as_players() {
+    let mut t = bock_table(BockMode::NextRound);
+    t.add_game(game_with(0, false, true)).unwrap();
+    assert_eq!(t.bock_pending(), 4);
+    for dealer in 1..=3 {
+        t.add_game(game_with(dealer, true, false)).unwrap();
+    }
+    assert_eq!(t.bock_pending(), 1);
+    t.add_game(game_with(0, true, false)).unwrap();
+    assert_eq!(t.bock_pending(), 0);
+}
+
+#[test]
+fn a_new_trigger_during_a_bock_round_adds_to_it() {
+    let mut t = bock_table(BockMode::NextRound);
+    t.add_game(game_with(0, false, true)).unwrap(); // 4 offen
+    t.add_game(game_with(1, true, true)).unwrap(); // eines verbraucht, vier neue
+    assert_eq!(t.bock_pending(), 4 - 1 + 4);
+    let mut single = bock_table(BockMode::NextGame);
+    single.add_game(game_with(0, false, true)).unwrap();
+    single.add_game(game_with(1, true, true)).unwrap();
+    assert_eq!(
+        single.bock_pending(),
+        1,
+        "das Bockspiel löst wieder eines aus"
+    );
+}
+
+#[test]
+fn without_a_bock_mode_a_trigger_does_nothing() {
+    let mut t = bock_table(BockMode::Off);
+    t.add_game(game_with(0, false, true)).unwrap();
+    assert_eq!(t.bock_pending(), 0);
+}
+
+#[test]
+fn bock_follows_undo_edit_and_removal_of_games() {
+    let mut t = bock_table(BockMode::NextGame);
+    t.add_game(game_with(0, false, true)).unwrap();
+    assert_eq!(t.bock_pending(), 1);
+    // Der Auslöser wird zurückgenommen.
+    let mut input = t.games()[0].input.clone();
+    input.starts_bock = false;
+    t.replace_game(0, input).unwrap();
+    assert_eq!(t.bock_pending(), 0);
+    t.add_game(game_with(1, false, true)).unwrap();
+    assert_eq!(t.bock_pending(), 1);
+    t.undo_last();
+    assert_eq!(t.bock_pending(), 0);
+    t.add_game(game_with(1, false, true)).unwrap();
+    t.remove_game(0).unwrap();
+    assert_eq!(t.bock_pending(), 1, "der zweite Auslöser zählt weiter");
+    assert_eq!(t.bock_pending_before(0), 0);
+}
+
+#[test]
+fn bock_fields_roundtrip_and_old_files_play_without_bock() {
+    let mut t = bock_table(BockMode::NextRound);
+    t.add_game(game_with(0, false, true)).unwrap();
+    assert_eq!(Table::from_json(&t.to_json().unwrap()).unwrap(), t);
+    let mut json = serde_json::to_value(&t).unwrap();
+    json.as_object_mut().unwrap().remove("bock_mode");
+    let input = json["games"][0]["input"].as_object_mut().unwrap();
+    input.remove("bock");
+    input.remove("starts_bock");
+    let old = Table::from_json(&json.to_string()).unwrap();
+    assert_eq!(old.bock_mode, BockMode::Off);
+    assert!(!old.games()[0].input.bock && !old.games()[0].input.starts_bock);
+    assert_eq!(old.bock_pending(), 0);
+}
+
+#[test]
+fn rule_sets_carry_the_bock_mode() {
+    let lib = Library::with_defaults();
+    assert_eq!(
+        lib.rule_set("Unsere Runde").unwrap().bock,
+        BockMode::NextGame
+    );
+    assert_eq!(lib.rule_set("Alle Spielarten").unwrap().bock, BockMode::Off);
+    let mut lib = lib;
+    lib.save_rule_set_with(None, "Kneipe", &[GameKind::Wenz], BockMode::NextRound)
+        .unwrap();
+    assert_eq!(lib.rule_set("Kneipe").unwrap().bock, BockMode::NextRound);
+    // Die kurze Fassung lässt den Bock-Modus, wie er ist.
+    lib.save_rule_set(
+        Some("Kneipe"),
+        "Kneipe 2",
+        &[GameKind::Wenz, GameKind::Geier],
+    )
+    .unwrap();
+    assert_eq!(lib.rule_set("Kneipe 2").unwrap().bock, BockMode::NextRound);
+    let mut t = table();
+    t.use_rule_set(lib.rule_set("Kneipe 2").unwrap()).unwrap();
+    assert_eq!(t.bock_mode, BockMode::NextRound);
+    assert_eq!(t.rule_set_name.as_deref(), Some("Kneipe 2"));
+    assert!(t.is_enabled(GameKind::Geier) && !t.is_enabled(GameKind::Sauspiel));
+    // Alte Bibliotheksdateien ohne Bock-Modus.
+    let mut json = serde_json::to_value(&lib).unwrap();
+    for rule in json["rule_sets"].as_array_mut().unwrap() {
+        rule.as_object_mut().unwrap().remove("bock");
+    }
+    let old = Library::from_json(&json.to_string()).unwrap();
+    assert!(old.rule_sets().iter().all(|r| r.bock == BockMode::Off));
+}
+
+#[test]
+fn bock_is_counted_in_the_statistics_and_the_csv() {
+    let mut t = bock_table(BockMode::NextGame);
+    t.add_game(game_with(0, false, true)).unwrap();
+    t.add_game(game_with(1, true, false)).unwrap();
+    let stats = table_stats(&t);
+    assert_eq!((stats.bock_games, stats.bock_started), (1, 1));
+    let header: Vec<String> = t.csv_header().split(',').map(String::from).collect();
+    let at = header.iter().position(|h| h == "Bockspiel").unwrap();
+    assert_eq!(header[at + 1], "Bockrunde_ausgeloest");
+    let row0: Vec<String> = t.csv_row(0).unwrap().split(',').map(String::from).collect();
+    let row1: Vec<String> = t.csv_row(1).unwrap().split(',').map(String::from).collect();
+    assert_eq!((row0[at].as_str(), row0[at + 1].as_str()), ("nein", "ja"));
+    assert_eq!((row1[at].as_str(), row1[at + 1].as_str()), ("ja", "nein"));
+}

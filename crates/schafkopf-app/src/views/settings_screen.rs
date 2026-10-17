@@ -30,7 +30,7 @@ pub fn SettingsScreen(
     let mut chosen = use_signal(String::new);
     let mut save_name = use_signal(String::new);
 
-    let (current_rules, current_tariff, enabled) = {
+    let (current_rules, current_tariff, enabled, bock_mode) = {
         let guard = table.read();
         let Some(t) = guard.as_ref() else {
             return rsx! {};
@@ -41,6 +41,7 @@ pub fn SettingsScreen(
                 .clone()
                 .unwrap_or_else(|| "Eigener Tarif".into()),
             t.enabled_kinds.clone(),
+            t.bock_mode,
         )
     };
     let lib = library.read();
@@ -55,7 +56,7 @@ pub fn SettingsScreen(
         };
         let mut guard = table.write();
         let Some(t) = guard.as_mut() else { return };
-        if let Err(e) = t.use_rules(Some(rules.name.clone()), &rules.kinds) {
+        if let Err(e) = t.use_rule_set(&rules) {
             return notice.set(Some(Notice::error(e.to_string())));
         }
         let saved = storage::save(t, None);
@@ -128,7 +129,7 @@ pub fn SettingsScreen(
                     option { key: "{name}", value: "{name}", selected: name == current_rules, "{name}" }
                 }
             }
-            p { class: "hint", "Gespielt wird: {kinds_text(&enabled)}" }
+            p { class: "hint", "Gespielt wird: {kinds_text(&enabled)}. Bock: {bock_mode.label()}." }
         }
 
         section {

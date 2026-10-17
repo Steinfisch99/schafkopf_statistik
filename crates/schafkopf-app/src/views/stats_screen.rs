@@ -285,7 +285,7 @@ pub fn StatsScreen(
             )
         })
     });
-    let shares = [
+    let mut shares = vec![
         ("Mit Klopfen", stats.knocked_games),
         ("Mit Kontra", stats.kontra_games),
         ("Mit Re", stats.re_games),
@@ -293,6 +293,11 @@ pub fn StatsScreen(
         ("Mit Schwarz", stats.schwarz_games),
         ("Preis korrigiert", stats.corrected_games),
     ];
+    // Bock nur zeigen, wenn es an diesem Abend welchen gab.
+    if stats.bock_games > 0 || stats.bock_started > 0 {
+        shares.push(("Bockspiele", stats.bock_games));
+        shares.push(("Bockrunde ausgelöst", stats.bock_started));
+    }
 
     rsx! {
         h2 { "Statistik" }

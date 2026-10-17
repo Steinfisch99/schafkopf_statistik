@@ -48,6 +48,11 @@ pub fn GameForm(
         None => d.preview(t),
     });
     let problem = d.problem();
+    // Wie viele Bockspiele vor diesem Spiel noch offen sind.
+    let bock_pending = table.read().as_ref().map_or(0, |t| match editing {
+        Some(index) => t.bock_pending_before(index),
+        None => t.bock_pending(),
+    });
     // Nur die Spielarten des Regelwerks, dazu die des bearbeiteten Spiels, falls sie danach
     // deaktiviert wurde.
     let shown_kinds: Vec<GameKind> = table
@@ -60,6 +65,11 @@ pub fn GameForm(
                 .collect()
         })
         .unwrap_or_else(|| GameKind::ALL.to_vec());
+    let bock_hint = match bock_pending {
+        0 => "Es ist kein Bock offen. Schwarz löst eine Bockrunde von selbst aus, du kannst sie hier ein- oder ausschalten.".to_string(),
+        1 => "Es ist noch 1 Bockspiel offen. Ist dieses Spiel eines, bleibt der Knopf an.".to_string(),
+        n => format!("Es sind noch {n} Bockspiele offen. Ist dieses Spiel eines, bleibt der Knopf an."),
+    };
     let declarer_label = match (kind, d.won) {
         (GameKind::Ramsch, true) => "Durchmarsch",
         (GameKind::Ramsch, false) => "Verlierer",
@@ -316,6 +326,25 @@ pub fn GameForm(
                         onclick: move |_| draft.write().toggle_gegenlauf(),
                     }
                 }
+            }
+        }
+
+        if d.bock_enabled || d.bock || d.starts_bock {
+            section {
+                h3 { "Bock" }
+                div { class: "chips",
+                    Chip {
+                        label: "Bockspiel (doppelter Preis)".to_string(),
+                        on: d.bock,
+                        onclick: move |_| draft.write().toggle_bock(),
+                    }
+                    Chip {
+                        label: "Bockrunde entstanden".to_string(),
+                        on: d.starts_bock,
+                        onclick: move |_| draft.write().toggle_starts_bock(),
+                    }
+                }
+                p { class: "hint", "{bock_hint}" }
             }
         }
 

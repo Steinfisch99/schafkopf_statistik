@@ -241,7 +241,7 @@ pub fn Setup(
             Ok(built) => built,
             Err(e) => return notice.set(Some(Notice::error(e))),
         };
-        if let Err(e) = new_table.use_rules(Some(rules.name.clone()), &rules.kinds) {
+        if let Err(e) = new_table.use_rule_set(&rules) {
             return notice.set(Some(Notice::error(e.to_string())));
         }
         new_table.use_tariff(Some(tariff_label.clone()), tariff);
@@ -339,7 +339,7 @@ pub fn Setup(
                     }
                 }
             }
-            p { class: "hint", "Gespielt wird: {kinds_text(&selected_rules.kinds)}" }
+            p { class: "hint", "Gespielt wird: {kinds_text(&selected_rules.kinds)}. Bock: {selected_rules.bock.label()}." }
         }
         section {
             h3 { "Tarif" }

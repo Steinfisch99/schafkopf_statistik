@@ -23,6 +23,8 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
 | Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier | nein |
 | Gegenlauf | Ja, wenn die **Gegner** die Laufenden hatten (Gegenlauf) statt der Spielerpartei (Lauf). Der Preis ist in beiden Fällen derselbe, es zählt für die Statistik | nein |
+| Bockspiel | Ja, wenn das Spiel ein Bockspiel war (doppelter Preis). Vorgewählt, solange ein Bock offen ist | nein |
+| Bockrunde entstanden | Ja, wenn das Spiel eine Bockrunde ausgelöst hat. Schwarz schaltet es von selbst ein | nein |
 | Augen | Augen der Spielerpartei, daraus lassen sich Sieg und Schneider ableiten | nein |
 | Zeitpunkt, Notiz | frei | nein |
 
@@ -73,7 +75,7 @@ Dateien unlesbar zu machen, weil neue Felder mit Standardwerten gelesen werden.
 
 Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr`, `Zeit`, `Geber`,
 `Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Tout`,
-`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
+`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Bockspiel`, `Bockrunde_ausgeloest`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
 werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.
@@ -137,3 +139,21 @@ unterscheidbar).
 - "Frühere Abende" listet sie, der neueste zuerst. Jeder lässt sich mit Diagramm, Statistik und Spielen
   ansehen, als CSV exportieren und löschen. Bearbeiten lässt sich ein früherer Abend nicht.
 - Ein Tipp auf einen Namen unter dem Diagramm öffnet die Statistik, mit der Karte dieses Spielers.
+
+### Bock
+
+Manche Runden spielen mit Bock: Passiert etwas Bestimmtes (zum Beispiel Schwarz), sind die folgenden
+Spiele Bockspiele mit doppeltem Preis.
+
+- Das **Regelwerk** legt fest, ob es Bock gibt: "Kein Bock", "Nur das nächste Spiel" oder "Die ganze
+  nächste Runde" (so viele Spiele, wie Spieler am Tisch sitzen). Mitgeliefert hat "Unsere Runde" den
+  Bock für das nächste Spiel, "Alle Spielarten" keinen.
+- Beim Eintragen gibt es zwei Knöpfe: **Bockspiel** (doppelter Preis, vorgewählt, solange ein Bock offen
+  ist) und **Bockrunde entstanden**. Schwarz schaltet Letzteren von selbst ein, wenn es Bock gibt. Von
+  Hand lässt sich beides ändern.
+- Der Bock verdoppelt zusätzlich zu Klopfen, Kontra und Re. Ein verlangter Preis ersetzt wie immer die
+  Rechnung.
+- Wie viele Bockspiele noch offen sind, wird aus den Spielen **abgeleitet** und nicht mitgezählt.
+  Deshalb stimmt es auch nach Bearbeiten, Rückgängig und Löschen. Ein neuer Auslöser während einer
+  Bockrunde verlängert sie.
+- Die Statistik zählt Bockspiele und ausgelöste Bockrunden, wenn es an dem Abend welche gab.

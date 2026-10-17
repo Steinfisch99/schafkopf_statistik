@@ -1,7 +1,7 @@
 //! Entwürfe für die Eingabemasken: reine Logik ohne Oberfläche, damit sie sich testen lässt.
 
 use schafkopf_charts::format_amount;
-use schafkopf_core::{parse_euro, Game, GameInput, GameKind, Seat, Suit, Table, Tariff};
+use schafkopf_core::{parse_euro, BockMode, Game, GameInput, GameKind, Seat, Suit, Table, Tariff};
 
 /// Ein Spiel, das gerade eingetragen wird.
 #[derive(Clone, Debug, PartialEq)]
@@ -22,6 +22,14 @@ pub struct GameDraft {
     pub laufende: u8,
     /// Hatten die Gegner die Laufenden (Gegenlauf)?
     pub gegenlauf: bool,
+    /// Ist dieses Spiel ein Bockspiel (doppelter Preis)?
+    pub bock: bool,
+    /// Ist durch dieses Spiel eine Bockrunde entstanden?
+    pub starts_bock: bool,
+    /// `starts_bock` wurde von Schwarz eingeschaltet, nicht von Hand.
+    pub starts_bock_auto: bool,
+    /// Gibt es an diesem Tisch Bock? Nur dann löst Schwarz die Bockrunde von selbst aus.
+    pub bock_enabled: bool,
     pub price_text: String,
     /// Beim Bearbeiten: Angaben des ursprünglichen Spiels, die das Formular nicht zeigt, aber nicht
     /// verlieren darf.
@@ -58,6 +66,10 @@ impl GameDraft {
             schwarz: false,
             laufende: 0,
             gegenlauf: false,
+            bock: table.bock_pending() > 0,
+            starts_bock: false,
+            starts_bock_auto: false,
+            bock_enabled: table.bock_mode != BockMode::Off,
             price_text: String::new(),
             played_at: None,
             points: None,
@@ -85,6 +97,10 @@ impl GameDraft {
             schwarz: i.schwarz,
             laufende: i.laufende,
             gegenlauf: i.gegenlauf,
+            bock: i.bock,
+            starts_bock: i.starts_bock,
+            starts_bock_auto: false,
+            bock_enabled: table.bock_mode != BockMode::Off,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
             played_at: i.played_at,
             points: i.points,
@@ -136,7 +152,9 @@ impl GameDraft {
         }
         if !kind.has_extras() {
             self.schneider = false;
+            let schwarz_before = self.schwarz;
             self.schwarz = false;
+            self.follow_schwarz(schwarz_before);
             self.laufende = 0;
         }
         self.laufende = self.laufende.min(kind.max_laufende(self.gegenlauf));
@@ -218,18 +236,46 @@ impl GameDraft {
     }
 
     pub fn set_schneider(&mut self, on: bool) {
+        let schwarz_before = self.schwarz;
         self.schneider = on;
         if !on {
             self.schwarz = false;
         }
+        self.follow_schwarz(schwarz_before);
     }
 
-    /// Schwarz zählt immer auch als Schneider.
+    /// Schwarz zählt immer auch als Schneider. Gibt es Bock, löst Schwarz die Bockrunde aus.
     pub fn set_schwarz(&mut self, on: bool) {
+        let schwarz_before = self.schwarz;
         self.schwarz = on;
         if on {
             self.schneider = true;
         }
+        self.follow_schwarz(schwarz_before);
+    }
+
+    /// Schwarz schaltet "Bockrunde entstanden" von selbst ein und, wenn Schwarz wieder wegfällt, auch
+    /// wieder aus, solange der Knopf nicht von Hand bedient wurde.
+    fn follow_schwarz(&mut self, schwarz_before: bool) {
+        if self.schwarz && !schwarz_before && self.bock_enabled && !self.starts_bock {
+            self.starts_bock = true;
+            self.starts_bock_auto = true;
+        } else if !self.schwarz && schwarz_before && self.starts_bock_auto {
+            self.starts_bock = false;
+            self.starts_bock_auto = false;
+        }
+    }
+
+    /// Ist dieses Spiel ein Bockspiel (doppelter Preis)?
+    pub fn toggle_bock(&mut self) {
+        self.bock = !self.bock;
+    }
+
+    /// Ist durch dieses Spiel eine Bockrunde entstanden? Von Hand bedient, gilt die Wahl, auch wenn
+    /// Schwarz sich später ändert.
+    pub fn toggle_starts_bock(&mut self) {
+        self.starts_bock = !self.starts_bock;
+        self.starts_bock_auto = false;
     }
 
     pub fn set_laufende(&mut self, n: u8) {
@@ -306,6 +352,8 @@ impl GameDraft {
         input.schwarz = self.schwarz;
         input.laufende = self.laufende;
         input.gegenlauf = self.gegenlauf && self.laufende > 0;
+        input.bock = self.bock;
+        input.starts_bock = self.starts_bock;
         input.price_override = parse_euro(&self.price_text);
         input.played_at = self.played_at.or(played_at);
         input.points = self.points;
@@ -642,6 +690,117 @@ mod tests {
         let draft = GameDraft::from_game(&t, 0).unwrap();
         assert!(draft.gegenlauf);
         assert!(draft.to_input(None).unwrap().gegenlauf);
+    }
+
+    fn bock_table(mode: BockMode) -> Table {
+        let mut t = table(4);
+        t.bock_mode = mode;
+        t
+    }
+
+    #[test]
+    fn a_new_game_is_a_bock_game_while_bock_is_pending() {
+        let mut t = bock_table(BockMode::NextGame);
+        assert!(!GameDraft::new(&t).bock, "noch kein Bock offen");
+        let mut d = GameDraft::new(&t);
+        d.toggle_declarer(1);
+        d.toggle_partner(2);
+        d.suit = Some(Suit::Gras);
+        d.toggle_starts_bock();
+        t.add_game(d.to_input(None).unwrap()).unwrap();
+        let next = GameDraft::new(&t);
+        assert!(next.bock, "das nächste Spiel ist ein Bockspiel");
+        assert!(!next.starts_bock);
+        assert!(next.bock_enabled);
+        assert!(
+            !GameDraft::new(&table(4)).bock_enabled,
+            "ohne Regelwerk-Bock gibt es nichts zu zeigen"
+        );
+    }
+
+    #[test]
+    fn bock_doubles_the_preview_price() {
+        let t = bock_table(BockMode::NextGame);
+        let mut d = GameDraft::new(&t);
+        d.toggle_declarer(1);
+        d.toggle_partner(2);
+        d.suit = Some(Suit::Gras);
+        assert_eq!(d.preview(&t).unwrap().value, 20);
+        d.toggle_bock();
+        assert_eq!(d.preview(&t).unwrap().value, 40);
+        d.toggle_bock();
+        assert_eq!(d.preview(&t).unwrap().value, 20);
+        assert!(d.to_input(None).unwrap().bock == d.bock);
+    }
+
+    #[test]
+    fn schwarz_starts_the_bock_round_by_itself_and_takes_it_back() {
+        let t = bock_table(BockMode::NextRound);
+        let mut d = GameDraft::new(&t);
+        d.set_schwarz(true);
+        assert!(
+            d.starts_bock && d.starts_bock_auto,
+            "Schwarz löst die Bockrunde aus"
+        );
+        d.set_schwarz(false);
+        assert!(
+            !d.starts_bock && !d.starts_bock_auto,
+            "ohne Schwarz wieder aus"
+        );
+        d.set_schwarz(true);
+        d.set_schneider(false);
+        assert!(!d.starts_bock, "Schneider weg heißt auch Schwarz weg");
+    }
+
+    #[test]
+    fn a_manual_choice_beats_the_automation() {
+        let t = bock_table(BockMode::NextGame);
+        let mut d = GameDraft::new(&t);
+        d.set_schwarz(true);
+        d.toggle_starts_bock();
+        assert!(!d.starts_bock, "von Hand ausgeschaltet");
+        d.set_schwarz(false);
+        d.set_schwarz(true);
+        assert!(d.starts_bock, "ein neues Schwarz schaltet wieder ein");
+        d.toggle_starts_bock();
+        d.toggle_starts_bock();
+        assert!(d.starts_bock && !d.starts_bock_auto);
+        d.set_schwarz(false);
+        assert!(d.starts_bock, "von Hand eingeschaltet bleibt es");
+    }
+
+    #[test]
+    fn schwarz_does_not_start_bock_where_there_is_none() {
+        let t = bock_table(BockMode::Off);
+        let mut d = GameDraft::new(&t);
+        d.set_schwarz(true);
+        assert!(!d.starts_bock);
+    }
+
+    #[test]
+    fn switching_to_a_kind_without_extras_drops_an_automatic_bock() {
+        let t = bock_table(BockMode::NextGame);
+        let mut d = GameDraft::new(&t);
+        d.set_schwarz(true);
+        d.set_kind(GameKind::Ramsch);
+        assert!(!d.schwarz && !d.starts_bock);
+    }
+
+    #[test]
+    fn editing_keeps_the_bock_flags() {
+        let mut t = bock_table(BockMode::NextGame);
+        let input = GameInput {
+            suit: Some(Suit::Gras),
+            partner: Some(3),
+            bock: true,
+            starts_bock: true,
+            ..GameInput::new(0, GameKind::Sauspiel, 1)
+        };
+        t.add_game(input).unwrap();
+        let d = GameDraft::from_game(&t, 0).unwrap();
+        assert!(d.bock && d.starts_bock && !d.starts_bock_auto);
+        let back = d.to_input(None).unwrap();
+        assert!(back.bock && back.starts_bock);
     }
 
     #[test]

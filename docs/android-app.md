@@ -6,7 +6,7 @@ prüfen sollte.
 
 ## Was geprüft ist und was nicht
 
-In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (145). Außerdem lief die App
+In der VM geprüft: Kern, Diagramm, Eingabelogik, Speichern und Export haben Tests (171). Außerdem lief die App
 am Desktop in einem virtuellen Bildschirm mit Handybreite, und ich habe sie durchgeklickt: Abend
 einrichten, ein Spiel mit Klopfen, Kontra, Re, Schneider und Laufenden eintragen (der Preis stimmt),
 Tarif ändern (alte Spiele bleiben unverändert), Rückgängig, Neuer Abend mit Archiv und der CSV-Export
@@ -299,7 +299,28 @@ Am Desktop mit zwei archivierten Abenden durchgeklickt: Liste, Abend öffnen, Di
 - [ ] Das geht auch bei einem früheren Abend, und "Zurück" bringt dich zurück.
 - [ ] Der Name lässt sich gut treffen, auch wenn zehn Spieler am Tisch sitzen.
 
-### 13. Darstellung
+### 13. Bock
+Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde ausgelöst hat: Die
+Übersicht zeigt den Hinweis, im Formular ist "Bockspiel" vorgewählt.
+
+- [ ] Unter "Spieler, Regelwerke und Tarife" hat jedes **Regelwerk** die Wahl "Kein Bock", "Nur das
+      nächste Spiel", "Die ganze nächste Runde". "Unsere Runde" steht auf "Nur das nächste Spiel". **Dein
+      bisheriges Regelwerk hat noch keinen Bock**, stell ihn dort einmal ein.
+- [ ] Bei der Einrichtung und unter "Regeln und Tarif" steht beim Regelwerk "Bock: …".
+- [ ] Im Formular gibt es bei Bock den Abschnitt "Bock" mit **Bockspiel (doppelter Preis)** und
+      **Bockrunde entstanden**. Ohne Bock im Regelwerk fehlt er.
+- [ ] **Schwarz** anklicken schaltet "Bockrunde entstanden" von selbst ein, Schwarz wieder ausschalten
+      auch wieder aus. Von Hand bedient, bleibt deine Wahl.
+- [ ] "Bockspiel" verdoppelt den Preis (zusätzlich zu Klopfen, Kontra und Re), die Vorschau zeigt es.
+- [ ] Nach einem Spiel mit "Bockrunde entstanden" zeigt die Übersicht "Bock: Das nächste Spiel ist ein
+      Bockspiel" und im nächsten Formular ist "Bockspiel" vorgewählt.
+- [ ] Bei "Die ganze nächste Runde" stehen so viele Bockspiele an, wie Spieler am Tisch sitzen, und die
+      Zahl sinkt mit jedem Bockspiel.
+- [ ] In der Spieleliste steht "Bockspiel" und "löst Bockrunde aus". Die CSV hat zwei neue Spalten
+      ("Bockspiel", "Bockrunde_ausgeloest"). Die Statistik zählt Bockspiele und ausgelöste Bockrunden.
+- [ ] Nach "Letztes Spiel rückgängig" stimmt die Zahl der offenen Bockspiele wieder.
+
+### 14. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

@@ -1,7 +1,7 @@
 //! Verwaltung der gespeicherten Regelwerke (welche Spielarten) und Tarife (was es kostet).
 
 use dioxus::prelude::*;
-use schafkopf_core::{GameKind, Library, Tariff};
+use schafkopf_core::{BockMode, GameKind, Library, Tariff};
 
 use super::common::{persist_library, Chip, ConfirmButton, Notice, TariffFields, TextField};
 use crate::draft::TariffDraft;
@@ -53,18 +53,20 @@ fn RuleSetEditor(
     notice: Signal<Option<Notice>>,
     original: Option<String>,
 ) -> Element {
-    let (name0, kinds0, is_default, can_delete) = {
+    let (name0, kinds0, bock0, is_default, can_delete) = {
         let lib = library.read();
         match original.as_deref().and_then(|n| lib.rule_set(n)) {
             Some(r) => (
                 r.name.clone(),
                 r.kinds.clone(),
+                r.bock,
                 lib.is_default_rule_set(&r.name),
                 lib.rule_sets().len() > 1,
             ),
             None => (
                 String::new(),
                 lib.default_rule_set().kinds.clone(),
+                BockMode::Off,
                 false,
                 false,
             ),
@@ -72,13 +74,14 @@ fn RuleSetEditor(
     };
     let mut name = use_signal(|| name0.clone());
     let mut kinds = use_signal(|| kinds0.clone());
+    let mut bock = use_signal(|| bock0);
     let is_new = original.is_none();
 
     let save = {
         let original = original.clone();
         move |_| {
             let result = change_library(library, |lib| {
-                lib.save_rule_set(original.as_deref(), &name.read(), &kinds.read())
+                lib.save_rule_set_with(original.as_deref(), &name.read(), &kinds.read(), bock())
                     .map(|saved| format!("Regelwerk \"{saved}\" gespeichert"))
                     .map_err(|e| e.to_string())
             });
@@ -140,6 +143,17 @@ fn RuleSetEditor(
                                 list.push(kind);
                             }
                         },
+                    }
+                }
+            }
+            p { class: "hint", "Bock: Was folgt, wenn ein Spiel eine Bockrunde auslöst (zum Beispiel durch Schwarz)?" }
+            div { class: "chips",
+                for mode in BockMode::ALL {
+                    Chip {
+                        key: "{mode.label()}",
+                        label: mode.label().to_string(),
+                        on: bock() == mode,
+                        onclick: move |_| bock.set(mode),
                     }
                 }
             }

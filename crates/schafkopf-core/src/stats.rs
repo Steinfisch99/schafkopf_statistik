@@ -152,6 +152,9 @@ pub struct TableStats {
     pub schwarz_games: u32,
     /// Spiele, in denen ein anderer Preis verlangt wurde, als der Tarif ergibt.
     pub corrected_games: u32,
+    /// Spiele, die Bockspiele waren (doppelter Preis), und Spiele, die eine Bockrunde ausgelöst haben.
+    pub bock_games: u32,
+    pub bock_started: u32,
     /// Läufe und Gegenläufe je Spielart, nur für Spielarten mit Zuschlägen.
     pub laufende_by_kind: BTreeMap<GameKind, LaufendeStats>,
     pub players: Vec<PlayerStats>,
@@ -180,6 +183,8 @@ pub fn table_stats(table: &Table) -> TableStats {
         schneider_games: 0,
         schwarz_games: 0,
         corrected_games: 0,
+        bock_games: 0,
+        bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
         players: Vec::new(),
         partner_matrix: vec![vec![RoleStats::default(); n]; n],
@@ -206,6 +211,8 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.schneider_games += u32::from(g.schneider || g.schwarz);
         stats.schwarz_games += u32::from(g.schwarz);
         stats.corrected_games += u32::from(game.value != game.calculated_value);
+        stats.bock_games += u32::from(g.bock);
+        stats.bock_started += u32::from(g.starts_bock);
         if let Some(partner) = g.partner {
             stats.partner_matrix[g.declarer][partner].record(g.won);
             stats.partner_matrix[partner][g.declarer].record(g.won);

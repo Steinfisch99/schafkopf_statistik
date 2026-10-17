@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::GameKind;
+use crate::model::{BockMode, GameKind};
 use crate::scoring::Tariff;
 
 /// Welche Spielarten in einer Runde gespielt werden.
@@ -11,6 +11,10 @@ use crate::scoring::Tariff;
 pub struct RuleSet {
     pub name: String,
     pub kinds: Vec<GameKind>,
+    /// Ob und wie lange nach einem Auslöser (zum Beispiel Schwarz) Bockspiele folgen. Alte Dateien
+    /// ohne diese Angabe spielen ohne Bock.
+    #[serde(default)]
+    pub bock: BockMode,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +74,7 @@ impl Library {
                 RuleSet {
                     name: "Alle Spielarten".into(),
                     kinds: GameKind::ALL.to_vec(),
+                    bock: BockMode::Off,
                 },
                 RuleSet {
                     name: "Unsere Runde".into(),
@@ -80,6 +85,7 @@ impl Library {
                         GameKind::Farbsolo,
                         GameKind::Ramsch,
                     ],
+                    bock: BockMode::NextGame,
                 },
             ],
             tariffs: vec![NamedTariff {
@@ -144,12 +150,27 @@ impl Library {
     }
 
     /// Legt ein Regelwerk an (`original` ist `None`) oder ändert ein bestehendes samt Namen.
-    /// Gibt den gespeicherten Namen zurück.
+    /// Der Bock-Modus bleibt, wie er war (bei einem neuen Regelwerk: kein Bock). Gibt den
+    /// gespeicherten Namen zurück.
     pub fn save_rule_set(
         &mut self,
         original: Option<&str>,
         name: &str,
         kinds: &[GameKind],
+    ) -> Result<String> {
+        let bock = original
+            .and_then(|old| self.rule_set(old))
+            .map_or(BockMode::Off, |r| r.bock);
+        self.save_rule_set_with(original, name, kinds, bock)
+    }
+
+    /// Wie [`Library::save_rule_set`], mit dem Bock-Modus des Regelwerks.
+    pub fn save_rule_set_with(
+        &mut self,
+        original: Option<&str>,
+        name: &str,
+        kinds: &[GameKind],
+        bock: BockMode,
     ) -> Result<String> {
         let name = clean_name(name)?;
         let kinds = canonical(kinds);
@@ -157,11 +178,13 @@ impl Library {
             return Err(Error::NoKinds);
         }
         Self::check_name(&self.rule_sets, |r| &r.name, &name, original)?;
+        let rule_set = RuleSet {
+            name: name.clone(),
+            kinds,
+            bock,
+        };
         match original {
-            None => self.rule_sets.push(RuleSet {
-                name: name.clone(),
-                kinds,
-            }),
+            None => self.rule_sets.push(rule_set),
             Some(old) => {
                 let entry = self
                     .rule_sets
@@ -171,10 +194,7 @@ impl Library {
                 if self.default_rule_set == old {
                     self.default_rule_set = name.clone();
                 }
-                *entry = RuleSet {
-                    name: name.clone(),
-                    kinds,
-                };
+                *entry = rule_set;
             }
         }
         Ok(name)
