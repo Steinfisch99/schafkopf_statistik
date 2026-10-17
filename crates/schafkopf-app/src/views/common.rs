@@ -2,7 +2,9 @@
 
 use dioxus::prelude::*;
 
+use super::suit_icon::SuitIcon;
 use crate::draft::TariffDraft;
+use schafkopf_core::Suit;
 
 /// Rückmeldung an die Nutzerin oder den Nutzer, oben auf jedem Bildschirm.
 #[derive(Clone, PartialEq)]
@@ -48,6 +50,9 @@ pub fn Chip(
     on: bool,
     onclick: EventHandler<()>,
     #[props(default = false)] disabled: bool,
+    /// Ein Symbol vor dem Text, zum Beispiel bei der Wahl einer Farbe.
+    #[props(default = None)]
+    icon: Option<Suit>,
 ) -> Element {
     rsx! {
         button {
@@ -56,6 +61,9 @@ pub fn Chip(
             disabled: disabled,
             "aria-pressed": "{on}",
             onclick: move |_| onclick.call(()),
+            if let Some(suit) = icon {
+                SuitIcon { suit }
+            }
             "{label}"
         }
     }

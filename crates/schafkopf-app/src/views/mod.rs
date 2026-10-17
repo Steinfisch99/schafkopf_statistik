@@ -9,6 +9,7 @@ mod settings_screen;
 mod setup;
 mod stat_widgets;
 mod stats_screen;
+mod suit_icon;
 mod table_view;
 
 pub use common::{Notice, NoticeBar};

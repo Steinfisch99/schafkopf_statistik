@@ -12,6 +12,7 @@ use super::stat_widgets::{
     DivergingRow, DonutWithLegend, ResultStrip, SegmentBar, ShareBar, StackedBar, WinDonut,
     GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
 };
+use super::suit_icon::SuitIcon;
 use crate::stats_text::{
     average_laufende, average_per_game, declarer_rate, kind_rows, max_abs, overall, pair_rows,
     percent, position_label, ranking, results_per_player, share, streak,
@@ -456,7 +457,10 @@ pub fn StatsScreen(
                         tbody {
                             for (suit, r) in aces {
                                 tr { key: "{suit.label()}",
-                                    td { "{suit.label()}" }
+                                    td {
+                                        SuitIcon { suit }
+                                        "{suit.label()}"
+                                    }
                                     td { "{r.games}" }
                                     td { "{share(r)}" }
                                 }

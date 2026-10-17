@@ -210,3 +210,7 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .past-card { display: block; width: 100%; text-align: left; background: var(--soft); color: inherit; border: 1px solid var(--line); border-radius: 0.7rem; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; min-height: 3.4rem; }
 .past-title { font-size: 1.05rem; }
 .past-leader { font-size: 0.9rem; margin-top: 0.2rem; }
+
+/* Symbole der Farben */
+.suit-icon { display: inline-flex; width: 1.3em; height: 1.3em; vertical-align: -0.25em; flex: none; margin-right: 0.35em; }
+.chip .suit-icon { margin-right: 0.45em; width: 1.7em; height: 1.7em; }

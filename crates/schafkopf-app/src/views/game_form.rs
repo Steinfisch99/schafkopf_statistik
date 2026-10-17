@@ -189,6 +189,7 @@ pub fn GameForm(
                             key: "{suit.label()}",
                             label: suit.label().to_string(),
                             on: d.suit == Some(suit),
+                            icon: Some(suit),
                             onclick: move |_| draft.write().suit = Some(suit),
                         }
                     }
@@ -202,6 +203,7 @@ pub fn GameForm(
                             key: "{suit.label()}",
                             label: suit.label().to_string(),
                             on: d.suit == Some(suit),
+                            icon: Some(suit),
                             onclick: move |_| draft.write().suit = Some(suit),
                         }
                     }

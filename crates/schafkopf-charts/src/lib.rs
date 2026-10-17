@@ -52,9 +52,11 @@ fn nice_step(range: Cents, target: Cents) -> Cents {
 }
 
 mod donut;
+mod suits;
 mod view;
 
 pub use donut::donut_svg;
+pub use suits::{suit_icon_svg, SuitShape};
 pub use view::ChartView;
 
 /// Breite und Höhe der Zeichnung in SVG-Einheiten. Das Diagramm skaliert auf die Breite der Seite.

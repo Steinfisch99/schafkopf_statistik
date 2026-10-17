@@ -3,6 +3,7 @@
 use dioxus::prelude::*;
 use schafkopf_core::Table;
 
+use super::suit_icon::SuitIcon;
 use crate::summary::{detail, signed_euro, title};
 use crate::Screen;
 
@@ -27,7 +28,12 @@ pub fn GameList(table: Signal<Option<Table>>, screen: Signal<Screen>, editable: 
                 for (index, game) in games.iter().enumerate().rev() {
                     li { key: "{index}",
                         div { class: "game-line",
-                            b { "{title(game)}" }
+                            b {
+                                if let Some(suit) = game.input.suit {
+                                    SuitIcon { suit }
+                                }
+                                "{title(game)}"
+                            }
                             span { class: if game.payouts[game.input.declarer] < 0 { "amount neg" } else { "amount" },
                                 "{signed_euro(game.payouts[game.input.declarer])}"
                             }
