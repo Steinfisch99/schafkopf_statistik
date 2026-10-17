@@ -38,8 +38,11 @@ Die erfassten Datenpunkte und die Statistiken stehen in [`docs/datenpunkte.md`](
 ```
 schafkopf/
 ├── crates/schafkopf-core/   Spiellogik, Abrechnung, Statistiken (reines Rust, keine UI)
+├── crates/schafkopf-charts/ Diagramme als SVG-Text (reines Rust, keine UI)
+├── crates/schafkopf-app/    Dioxus-Prototyp für Android und Desktop
 ├── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
-└── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
+├── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
+└── docs/android-prototyp.md Prototyp auf dem Handy ausprobieren (Anleitung und Checkliste)
 ```
 
 `schafkopf-core` kennt weder Android noch eine UI, deshalb läuft es unverändert auf dem Handy und
@@ -70,7 +73,8 @@ Entscheidungen:
 - [x] Kern: Datenmodell, Abrechnung, Statistiken, JSON, Tests (`cargo test`)
 - [x] UI-Technik recherchiert: Empfehlung Dioxus 0.7 (Oberfläche in Rust, Graphen als SVG), siehe
       [`docs/ui-entscheidung.md`](docs/ui-entscheidung.md)
-- [ ] Prototyp auf dem Gerät: Eingabefeld, ein SVG-Diagramm, Datei speichern
+- [x] Prototyp geschrieben (Eingabe, SVG-Geldstand, JSON und CSV speichern und laden); übersetzt am Desktop
+- [ ] Prototyp auf dem Handy prüfen, siehe [`docs/android-prototyp.md`](docs/android-prototyp.md)
 - [ ] Android-Build (NDK, `cargo-ndk` oder `xbuild`), APK auf dem Gerät testen
 - [ ] Bildschirme: Tisch anlegen, Spiel eintragen, Statistik, Kontoverlauf
 - [ ] Speichern im App-Datenverzeichnis, Export/Import der JSON-Datei
@@ -87,7 +91,7 @@ cargo fmt
 ```
 
 Ohne Nix genügt eine aktuelle Rust-Toolchain. Der Android-Build braucht zusätzlich das Android SDK
-und NDK und ist noch nicht eingerichtet.
+und NDK; `nix develop .#android` bringt alles mit, siehe [`docs/android-prototyp.md`](docs/android-prototyp.md).
 
 ## Regelvarianten
 

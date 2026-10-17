@@ -1,0 +1,17 @@
+[package]
+name = "schafkopf-app"
+version.workspace = true
+edition.workspace = true
+description = "Prototyp der Schafkopf-Statistik-App (Dioxus)"
+
+[dependencies]
+dioxus = "0.7"
+schafkopf-core = { path = "../schafkopf-core" }
+schafkopf-charts = { path = "../schafkopf-charts" }
+
+[features]
+# `dx` schaltet je nach Plattform das passende Feature ein (siehe docs/android-prototyp.md).
+default = []
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+web = ["dioxus/web"]

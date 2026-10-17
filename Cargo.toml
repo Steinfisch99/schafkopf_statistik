@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/schafkopf-core"]
+members = ["crates/schafkopf-core", "crates/schafkopf-charts", "crates/schafkopf-app"]
+# Ein einfaches `cargo test` baut die App (und damit Dioxus) nicht mit.
+default-members = ["crates/schafkopf-core", "crates/schafkopf-charts"]
 
 [workspace.package]
 version = "0.1.0"

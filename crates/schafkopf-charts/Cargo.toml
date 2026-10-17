@@ -1,0 +1,7 @@
+[package]
+name = "schafkopf-charts"
+version.workspace = true
+edition.workspace = true
+description = "Diagramme als SVG-Text, ohne UI-Abhängigkeit"
+
+[dependencies]

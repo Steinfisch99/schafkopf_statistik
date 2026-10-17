@@ -1,0 +1,6 @@
+[application]
+name = "schafkopf-app"
+
+[bundle]
+identifier = "de.schafkopf.statistik"
+publisher = "Schafkopf Statistik"
