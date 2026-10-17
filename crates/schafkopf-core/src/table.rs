@@ -514,7 +514,6 @@ impl Table {
         validate(&input, self.players.len())?;
         let calculated_value = calculated_value(tariff, &input);
         let value = game_value(tariff, &input);
-        let mut input = input;
         if value == calculated_value {
             // Ohne korrigierten Preis gab es nichts, was falsch verlangt wurde.
             input.mistakes.clear();

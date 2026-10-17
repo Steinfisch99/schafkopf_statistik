@@ -2,7 +2,8 @@
 
 use schafkopf_charts::format_amount;
 use schafkopf_core::{
-    parse_euro, BockMode, Game, GameInput, GameKind, Seat, Suit, Table, Tariff, MAX_BOCK,
+    parse_euro, BockAtRamsch, BockMode, Game, GameInput, GameKind, PriceMistake, Seat, Suit, Table,
+    Tariff, MAX_BOCK,
 };
 
 /// Ein Spiel, das gerade eingetragen wird.
@@ -32,6 +33,17 @@ pub struct GameDraft {
     pub bock_extra: u8,
     /// Wie viele Bockrunden zusätzlich zur ersten dieses Spiel ausgelöst hat.
     pub extra_bock_rounds: u8,
+    /// Ob ein Bockspiel vorgewählt ist, wenn die Spielart kein Ramsch ist (offener Bock vor diesem Spiel).
+    pub bock_default: bool,
+    /// Die Verdopplungen, die dann vorgewählt sind.
+    pub bock_extra_default: u8,
+    /// Was beim Ramsch mit einer Bockrunde passiert, damit der Ramsch kein Bockspiel vorwählt, wenn er
+    /// keines sein soll.
+    pub bock_at_ramsch: BockAtRamsch,
+    /// Was beim Verlangen des Preises schiefging. Zählt nur bei einem korrigierten Preis.
+    pub mistakes: Vec<PriceMistake>,
+    /// Wer den Preis falsch verlangt hat, ohne Angabe der Spieler.
+    pub price_error_by: Option<Seat>,
     /// `starts_bock` wurde von Schwarz eingeschaltet, nicht von Hand.
     pub starts_bock_auto: bool,
     /// Gibt es an diesem Tisch Bock? Nur dann löst Schwarz die Bockrunde von selbst aus.
@@ -79,6 +91,14 @@ impl GameDraft {
                 .saturating_sub(1)
                 .min(u32::from(MAX_BOCK) - 1) as u8,
             extra_bock_rounds: 0,
+            bock_default: table.bock_pending() > 0,
+            bock_extra_default: table
+                .bock_level()
+                .saturating_sub(1)
+                .min(u32::from(MAX_BOCK) - 1) as u8,
+            bock_at_ramsch: table.bock_at_ramsch,
+            mistakes: Vec::new(),
+            price_error_by: None,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: String::new(),
@@ -112,6 +132,14 @@ impl GameDraft {
             starts_bock: i.starts_bock,
             bock_extra: i.bock_extra,
             extra_bock_rounds: i.extra_bock_rounds,
+            bock_default: table.bock_pending_before(index) > 0,
+            bock_extra_default: table
+                .bock_level_before(index)
+                .saturating_sub(1)
+                .min(u32::from(MAX_BOCK) - 1) as u8,
+            bock_at_ramsch: table.bock_at_ramsch,
+            mistakes: i.mistakes.clone(),
+            price_error_by: i.price_error_by,
             starts_bock_auto: false,
             bock_enabled: table.bock_mode != BockMode::Off,
             price_text: i.price_override.map(format_amount).unwrap_or_default(),
@@ -127,6 +155,7 @@ impl GameDraft {
         self.declarer = self.declarer.filter(keep);
         self.partner = self.partner.filter(keep);
         self.kontra_by = self.kontra_by.filter(keep);
+        self.price_error_by = self.price_error_by.filter(keep);
         let participants = self.participants.clone();
         self.knockers.retain(|s| participants.contains(s));
         if self.kontra_by.is_none() {
@@ -158,6 +187,16 @@ impl GameDraft {
     }
 
     pub fn set_kind(&mut self, kind: GameKind) {
+        // Beim Ramsch ist ein Bockspiel nur vorgewählt, wenn er eines sein soll. Beim Wechsel zu einer
+        // anderen Spielart gilt wieder, ob ein Bock offen ist.
+        let was_ramsch = self.kind == GameKind::Ramsch;
+        if kind == GameKind::Ramsch && self.bock_at_ramsch != BockAtRamsch::Counts {
+            self.bock = false;
+            self.bock_extra = 0;
+        } else if was_ramsch && kind != GameKind::Ramsch {
+            self.bock = self.bock_default;
+            self.bock_extra = self.bock_extra_default;
+        }
         self.kind = kind;
         self.suit = None;
         if !kind.is_team_game() {
@@ -308,6 +347,20 @@ impl GameDraft {
         self.extra_bock_rounds = n.min(MAX_BOCK - 1);
     }
 
+    /// Nimmt eine Fehlerart beim falsch verlangten Preis dazu oder wieder heraus.
+    pub fn toggle_mistake(&mut self, mistake: PriceMistake) {
+        if self.mistakes.contains(&mistake) {
+            self.mistakes.retain(|&m| m != mistake);
+        } else {
+            self.mistakes.push(mistake);
+        }
+    }
+
+    /// Wer den Preis falsch verlangt hat.
+    pub fn set_price_error_by(&mut self, seat: Seat) {
+        self.price_error_by = Some(seat);
+    }
+
     pub fn set_laufende(&mut self, n: u8) {
         self.laufende = n.min(self.kind.max_laufende(self.gegenlauf));
         if self.laufende == 0 {
@@ -393,6 +446,8 @@ impl GameDraft {
         input.price_override = parse_euro(&self.price_text);
         input.played_at = self.played_at.or(played_at);
         input.points = self.points;
+        input.mistakes = self.mistakes.clone();
+        input.price_error_by = self.price_error_by;
         input.note = self.note.clone();
         Ok(input)
     }
@@ -425,6 +480,7 @@ pub struct TariffDraft {
     pub min_wenz_geier: String,
     pub min_solo: String,
     pub ramsch_knock_doubles: bool,
+    pub ramsch_bock_doubles: bool,
 }
 
 impl TariffDraft {
@@ -441,6 +497,7 @@ impl TariffDraft {
             min_wenz_geier: t.laufende_min_wenz_geier.to_string(),
             min_solo: t.laufende_min_solo.to_string(),
             ramsch_knock_doubles: t.ramsch_knock_doubles,
+            ramsch_bock_doubles: t.ramsch_bock_doubles,
         }
     }
 
@@ -465,6 +522,7 @@ impl TariffDraft {
             laufende_min_wenz_geier: count("Laufende ab (Wenz und Geier)", &self.min_wenz_geier)?,
             laufende_min_solo: count("Laufende ab (Solo)", &self.min_solo)?,
             ramsch_knock_doubles: self.ramsch_knock_doubles,
+            ramsch_bock_doubles: self.ramsch_bock_doubles,
         })
     }
 }
@@ -605,6 +663,7 @@ mod tests {
             schneider: true,
             laufende: 3,
             price_override: Some(150),
+            price_error_by: Some(1),
             points: Some(95),
             played_at: Some(1234),
             note: Some("Notiz".into()),
@@ -911,5 +970,69 @@ mod tests {
         let mut bad = draft;
         bad.min_wenz_geier = "0".into();
         assert!(bad.to_tariff().unwrap_err().contains("Wenz"));
+    }
+
+    #[test]
+    fn a_ramsch_is_no_bock_game_unless_the_rule_counts_it() {
+        for (policy, expected) in [
+            (BockAtRamsch::Counts, true),
+            (BockAtRamsch::Waits, false),
+            (BockAtRamsch::Expires, false),
+        ] {
+            let mut t = bock_table(BockMode::NextRound);
+            t.bock_at_ramsch = policy;
+            let mut d = GameDraft::new(&t);
+            d.set_kind(GameKind::Wenz);
+            d.declarer = Some(1);
+            d.toggle_starts_bock();
+            t.add_game(d.to_input(None).unwrap()).unwrap();
+            let mut next = GameDraft::new(&t);
+            assert!(next.bock, "ein Bock ist offen");
+            next.set_kind(GameKind::Ramsch);
+            assert_eq!(next.bock, expected, "{policy:?}");
+            next.set_kind(GameKind::Wenz);
+            assert!(next.bock, "andere Spielarten haben den offenen Bock wieder");
+        }
+    }
+
+    #[test]
+    fn mistakes_and_who_made_them_are_kept_with_a_corrected_price() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.declarer = Some(1);
+        d.partner = Some(3);
+        d.suit = Some(Suit::Eichel);
+        d.price_text = "0,30".into();
+        d.toggle_mistake(PriceMistake::Miscalculated);
+        d.toggle_mistake(PriceMistake::BockForgotten);
+        d.toggle_mistake(PriceMistake::BockForgotten);
+        d.set_price_error_by(3);
+        let input = d.to_input(None).unwrap();
+        assert_eq!(input.mistakes, vec![PriceMistake::Miscalculated]);
+        assert_eq!(input.price_error_by, Some(3));
+
+        let mut table = t;
+        table.add_game(input).unwrap();
+        let back = GameDraft::from_game(&table, 0).unwrap();
+        assert_eq!(back.mistakes, vec![PriceMistake::Miscalculated]);
+        assert_eq!(back.price_error_by, Some(3));
+        // Ohne Korrektur des Preises bleibt davon nichts.
+        let mut plain = back;
+        plain.price_text.clear();
+        table
+            .replace_game(0, plain.to_input(None).unwrap())
+            .unwrap();
+        assert!(table.games()[0].input.mistakes.is_empty());
+    }
+
+    #[test]
+    fn the_ramsch_bock_option_survives_the_tariff_draft() {
+        let tariff = Tariff {
+            ramsch_bock_doubles: false,
+            ..Tariff::default()
+        };
+        let draft = TariffDraft::from_tariff(&tariff);
+        assert!(!draft.ramsch_bock_doubles);
+        assert_eq!(draft.to_tariff().unwrap(), tariff);
     }
 }

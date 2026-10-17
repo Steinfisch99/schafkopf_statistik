@@ -3,7 +3,7 @@
 
 use dioxus::prelude::*;
 use schafkopf_charts::format_euro;
-use schafkopf_core::{BockStacking, GameKind, Suit, Table, MAX_BOCK};
+use schafkopf_core::{BockStacking, GameKind, PriceMistake, Suit, Table, MAX_BOCK};
 
 use super::common::{Chip, ConfirmButton, Notice};
 use crate::draft::GameDraft;
@@ -60,6 +60,8 @@ pub fn GameForm(
         None => d.preview(t),
     });
     let problem = d.problem();
+    // Die Fehlerarten gibt es nur, wenn der Preis wirklich korrigiert wird.
+    let price_corrected = matches!(&preview, Some(Ok(g)) if g.value != g.calculated_value);
     let stacked = table
         .read()
         .as_ref()
@@ -415,6 +417,30 @@ pub fn GameForm(
                 }
             }
             p { class: "hint", "Der Preis gilt je Gegner. Beim Solo zahlt oder bekommt der Spieler ihn dreifach." }
+            if price_corrected {
+                p { class: "hint", "Der verlangte Preis weicht vom berechneten ab. Wer hat falsch verlangt?" }
+                div { class: "chips",
+                    for seat in d.participants.clone() {
+                        Chip {
+                            key: "{seat}",
+                            label: players[seat].clone(),
+                            on: d.price_error_by.or(d.declarer) == Some(seat),
+                            onclick: move |_| draft.write().set_price_error_by(seat),
+                        }
+                    }
+                }
+                p { class: "hint", "Was wurde vergessen oder falsch gemacht? (Mehrfachauswahl)" }
+                div { class: "chips",
+                    for mistake in PriceMistake::ALL {
+                        Chip {
+                            key: "{mistake.label()}",
+                            label: mistake.label().to_string(),
+                            on: d.mistakes.contains(&mistake),
+                            onclick: move |_| draft.write().toggle_mistake(mistake),
+                        }
+                    }
+                }
+            }
             if let Some(Ok(game)) = &preview {
                 ul { class: "payouts",
                     for seat in d.participants.clone() {

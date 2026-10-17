@@ -148,8 +148,16 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
                     draft.write().ramsch_knock_doubles = on;
                 },
             }
+            Chip {
+                label: "Bock verdoppelt den Preis".to_string(),
+                on: d.ramsch_bock_doubles,
+                onclick: move |_| {
+                    let on = !draft.read().ramsch_bock_doubles;
+                    draft.write().ramsch_bock_doubles = on;
+                },
+            }
         }
-        p { class: "hint", "Aus: Das Klopfen beim Ramsch wird trotzdem eingetragen und in der Statistik gezählt, ändert den Preis aber nicht." }
+        p { class: "hint", "Aus: Klopfen und Bock beim Ramsch werden trotzdem eingetragen und in der Statistik gezählt, ändern den Preis aber nicht." }
     }
 }
 

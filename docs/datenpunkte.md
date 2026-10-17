@@ -199,3 +199,25 @@ Spiele Bockspiele mit doppeltem Preis.
   einen eigenen Knopf (Dateiname `schafkopf-JJJJ-MM-TT-protokoll.csv`).
 - **Umsetzen:** Am Bildschirm "Am Tisch" rückt jeder Spieler mit den Pfeilen einen Platz. Der Geber geht ab
   dem nächsten Spiel in der neuen Reihenfolge weiter. Es steht im Protokoll.
+
+### Bock beim Ramsch
+
+- Im **Tarif** (beim Ramsch) gibt es neben "Klopfen verdoppelt den Preis" auch **"Bock verdoppelt den
+  Preis"**. Aus: Der Bock beim Ramsch wird trotzdem eingetragen und gezählt, ändert den Preis aber nicht.
+- Im **Regelwerk** (Bock an) legt "Beim Ramsch: Was passiert mit einer Bockrunde?" fest:
+  **Ramsch zählt als Bockspiel** (er verbraucht ein Bockspiel, wie bisher), **Bockrunde wartet** (der Ramsch
+  verbraucht keines, die Bockrunde gilt für das nächste Spiel) oder **Bockrunde verfällt** (mit dem
+  Ramsch ist die ganze laufende Bockrunde weg). Wer nicht doppeln und die Bockrunde verfallen lassen will,
+  stellt beides ein: Preis aus, Bockrunde verfällt.
+- Beim Ramsch ist "Bockspiel" im Formular nur vorgewählt, wenn die Regel den Ramsch als Bockspiel zählt.
+
+### Falsch verlangt
+
+- Weicht der verlangte Preis vom berechneten ab, erscheinen im Formular **erst dann** zwei Auswahlen:
+  **Wer hat falsch verlangt?** (ohne Wahl: der Spieler) und **Was wurde vergessen oder falsch gemacht?**
+  (Mehrfachauswahl).
+- Fehlerarten: Falscher Grundtarif, Falsche Anzahl Doppler, Bockrunde vergessen, Laufende nicht alle oder
+  keine, Schneider / Schwarz nicht verlangt, Falsche Partei gewonnen, Verrechnet, Etwas anderes.
+- Stimmt der Preis am Ende doch, werden beide Angaben verworfen.
+- Statistik: Wie oft jeder falsch verlangt hat (Rangliste und Spielerkarte, je Fehlerart) und welche
+  Fehlerarten am Abend vorkamen. CSV: "Falsch_verlangt_von" und "Fehlerarten" (mit Semikolon getrennt).

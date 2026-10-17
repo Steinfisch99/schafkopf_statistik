@@ -128,6 +128,13 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>, open: bool) -> 
             Kv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string() }
             Kv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string() }
             Kv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string() }
+            if p.wrong_demands > 0 {
+                h4 { "Falsch verlangt" }
+                Kv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands) }
+                for (mistake, count) in p.wrong_by_kind.iter() {
+                    Kv { key: "{mistake.label()}", label: mistake.label(), value: format!("{count}×") }
+                }
+            }
 
             h4 { "Serien" }
             p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt." }
@@ -285,6 +292,18 @@ pub fn StatsScreen(
             )
         })
     });
+    // Wer wie oft falsch verlangt hat, die meisten zuerst, ohne die, die nie falsch verlangt haben.
+    let mut wrong_by_player: Vec<(&schafkopf_core::PlayerStats, u32)> = stats
+        .players
+        .iter()
+        .filter(|p| p.wrong_demands > 0)
+        .map(|p| (p, p.wrong_demands))
+        .collect();
+    wrong_by_player.sort_by_key(|(p, count)| (std::cmp::Reverse(*count), p.seat));
+    let wrong_scale = wrong_by_player.iter().map(|(_, c)| *c).max().unwrap_or(0);
+    let mut mistakes_sorted: Vec<(schafkopf_core::PriceMistake, u32)> =
+        stats.mistake_counts.iter().map(|(m, c)| (*m, *c)).collect();
+    mistakes_sorted.sort_by_key(|(m, c)| (std::cmp::Reverse(*c), *m));
     let mut shares = vec![
         ("Mit Klopfen", stats.knocked_games),
         ("Mit Kontra", stats.kontra_games),
@@ -398,6 +417,36 @@ pub fn StatsScreen(
                     }
                 }
                 p { class: "hint", "Gewonnen heißt: Die Spielerpartei hat gewonnen. Beim Ramsch zählt das nur bei Durchmarsch." }
+            }
+
+            if stats.corrected_games > 0 {
+                section {
+                    h3 { "Falsch verlangt" }
+                    p { class: "hint",
+                        "Bei {stats.corrected_games} von {games} Spielen wurde der Preis korrigiert. Hier steht, wer falsch verlangt hat und was dabei vergessen oder falsch gemacht wurde."
+                    }
+                    for (p, count) in wrong_by_player.iter() {
+                        ShareBar {
+                            key: "{p.seat}",
+                            label: p.name.clone(),
+                            part: *count,
+                            total: wrong_scale,
+                            value: format!("{count}×"),
+                        }
+                    }
+                    if !stats.mistake_counts.is_empty() {
+                        h4 { "Was schiefging" }
+                        for (mistake, count) in mistakes_sorted.iter() {
+                            ShareBar {
+                                key: "{mistake.label()}",
+                                label: mistake.label().to_string(),
+                                part: *count,
+                                total: stats.corrected_games,
+                                value: format!("{count}×"),
+                            }
+                        }
+                    }
+                }
             }
 
             if !lauf_rows.is_empty() {

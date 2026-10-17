@@ -1,7 +1,7 @@
 //! Verwaltung der gespeicherten Regelwerke (welche Spielarten) und Tarife (was es kostet).
 
 use dioxus::prelude::*;
-use schafkopf_core::{BockMode, BockStacking, GameKind, Library, Tariff};
+use schafkopf_core::{BockAtRamsch, BockMode, BockStacking, GameKind, Library, Tariff};
 
 use super::common::{persist_library, Chip, ConfirmButton, Notice, TariffFields, TextField};
 use crate::draft::TariffDraft;
@@ -53,7 +53,7 @@ fn RuleSetEditor(
     notice: Signal<Option<Notice>>,
     original: Option<String>,
 ) -> Element {
-    let (name0, kinds0, bock0, stacking0, is_default, can_delete) = {
+    let (name0, kinds0, bock0, stacking0, ramsch0, is_default, can_delete) = {
         let lib = library.read();
         match original.as_deref().and_then(|n| lib.rule_set(n)) {
             Some(r) => (
@@ -61,6 +61,7 @@ fn RuleSetEditor(
                 r.kinds.clone(),
                 r.bock,
                 r.stacking,
+                r.bock_at_ramsch,
                 lib.is_default_rule_set(&r.name),
                 lib.rule_sets().len() > 1,
             ),
@@ -69,6 +70,7 @@ fn RuleSetEditor(
                 lib.default_rule_set().kinds.clone(),
                 BockMode::Off,
                 BockStacking::Sequential,
+                BockAtRamsch::Counts,
                 false,
                 false,
             ),
@@ -78,18 +80,20 @@ fn RuleSetEditor(
     let mut kinds = use_signal(|| kinds0.clone());
     let mut bock = use_signal(|| bock0);
     let mut stacking = use_signal(|| stacking0);
+    let mut at_ramsch = use_signal(|| ramsch0);
     let is_new = original.is_none();
 
     let save = {
         let original = original.clone();
         move |_| {
             let result = change_library(library, |lib| {
-                lib.save_rule_set_full(
+                lib.save_rule_set_all(
                     original.as_deref(),
                     &name.read(),
                     &kinds.read(),
                     bock(),
                     stacking(),
+                    at_ramsch(),
                 )
                 .map(|saved| format!("Regelwerk \"{saved}\" gespeichert"))
                 .map_err(|e| e.to_string())
@@ -179,6 +183,18 @@ fn RuleSetEditor(
                     }
                 }
                 p { class: "hint", "Hintereinander: bei zwei Bockrunden sind die nächsten zwei Runden gedoppelt. Übereinander: solange beide laufen, ist der Preis vervierfacht." }
+                p { class: "hint", "Beim Ramsch: Was passiert mit einer Bockrunde?" }
+                div { class: "chips",
+                    for mode in BockAtRamsch::ALL {
+                        Chip {
+                            key: "{mode.label()}",
+                            label: mode.label().to_string(),
+                            on: at_ramsch() == mode,
+                            onclick: move |_| at_ramsch.set(mode),
+                        }
+                    }
+                }
+                p { class: "hint", "Zählt als Bockspiel: Der Ramsch verbraucht ein Bockspiel. Wartet: Der Ramsch lässt die Bockrunde unberührt. Verfällt: Mit dem Ramsch ist die Bockrunde weg. Ob ein Bock den Ramsch verdoppelt, stellst du im Tarif ein." }
             }
             div { class: "actions",
                 button { class: "primary", r#type: "button", onclick: save, if is_new { "Anlegen" } else { "Speichern" } }

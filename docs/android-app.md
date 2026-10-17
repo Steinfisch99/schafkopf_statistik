@@ -352,7 +352,23 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
       Vorschau. Mit "Hintereinander" bleibt es bei "Bockspiel" (mal 2) und die Zahl der offenen
       Bockspiele wird länger.
 
-### 16. Darstellung
+### 16. Ramsch und Bock, falsch verlangt
+- [ ] Im Tarif (Ramsch) gibt es "Bock verdoppelt den Preis". Aus: Ein Ramsch mit Bockspiel kostet gleich viel,
+      "Bockspiel" steht trotzdem in der Spieleliste.
+- [ ] Im Regelwerk (Bock an) gibt es "Beim Ramsch": Ramsch zählt als Bockspiel / Bockrunde wartet /
+      Bockrunde verfällt. Mit "verfällt" ist nach einem Ramsch kein Bock mehr offen, mit "wartet" bleibt
+      die Zahl der offenen Bockspiele gleich.
+- [ ] Beim Ramsch ist "Bockspiel" nur bei "zählt als Bockspiel" vorgewählt, beim Wechsel zu einer anderen
+      Spielart wieder, sobald ein Bock offen ist.
+- [ ] Der Preis-Abschnitt zeigt **keine** Fehler-Knöpfe, solange der Preis leer oder gleich dem berechneten ist.
+- [ ] Gibst du einen abweichenden Preis ein, erscheinen "Wer hat falsch verlangt?" (der Spieler ist
+      vorgewählt) und die Fehlerarten zum Antippen.
+- [ ] Nach dem Speichern steht in der Spieleliste "Preis korrigiert, falsch verlangt von … (…)".
+- [ ] Die Statistik hat "Falsch verlangt" (wer wie oft, was schiefging) und in der Spielerkarte die Zahl je
+      Fehlerart. Ohne korrigierte Preise fehlt der Abschnitt.
+- [ ] Die CSV hat die Spalten "Falsch_verlangt_von" und "Fehlerarten".
+
+### 17. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.
