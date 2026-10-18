@@ -3434,3 +3434,27 @@ fn overall_stats_average_arrival_and_departure_times_per_player() {
         "22:13"
     );
 }
+
+#[test]
+fn the_csv_has_the_tariff_values_of_each_game() {
+    let mut t = evening(&["Anna", "Ben", "Cem", "Dora"], vec![sauspiel(0, 1, 3)]);
+    t.set_tariff(Tariff {
+        sauspiel: 30,
+        laufende: 20,
+        ..Tariff::default()
+    });
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    let csv = t.to_csv_with(',');
+    let mut lines = csv.lines();
+    let header: Vec<&str> = lines.next().unwrap().split(',').collect();
+    let value = |line: &str, column: &str| {
+        let at = header.iter().position(|h| *h == column).unwrap();
+        line.split(',').nth(at).unwrap().to_owned()
+    };
+    let (first, second) = (lines.next().unwrap(), lines.next().unwrap());
+    assert_eq!(value(first, "Tarif_Sauspiel_Cent"), "20");
+    assert_eq!(value(second, "Tarif_Sauspiel_Cent"), "30");
+    assert_eq!(value(first, "Tarif_Laufende_Cent"), "10");
+    assert_eq!(value(second, "Tarif_Laufende_Cent"), "20");
+    assert_eq!(value(second, "Tarif_Zurueckverlangen"), "ja");
+}

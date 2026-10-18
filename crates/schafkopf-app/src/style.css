@@ -202,7 +202,8 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
   background: transparent; color: inherit; border: 1px solid var(--line); border-radius: 0.6rem;
   padding: 0.3rem 0.6rem; text-align: left; font-size: 1rem;
 }
-.legend-btn .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.legend-btn .legend-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.legend-btn .name { overflow-wrap: anywhere; }
 .legend-btn .amount { margin-left: 0; }
 .legend-btn .chev { opacity: 0.5; font-size: 1.2rem; }
 

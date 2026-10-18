@@ -171,8 +171,10 @@ pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>
                         "aria-label": "Statistik von {name}",
                         onclick: move |_| on_player.call(seat),
                         span { class: "dot", style: "background:{player_color(seat)}" }
-                        span { class: "name", "{name}" }
-                        span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
+                        span { class: "legend-text",
+                            span { class: "name", "{name}" }
+                            span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
+                        }
                         span { class: "chev", "›" }
                     }
                 }

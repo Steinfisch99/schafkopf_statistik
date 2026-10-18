@@ -65,6 +65,22 @@ impl Table {
             "Zurueckverlangt_von",
             "Tarif",
             "Regelwerk",
+            "Tarif_Sauspiel_Cent",
+            "Tarif_Solo_Cent",
+            "Tarif_Bettel_Cent",
+            "Tarif_Ramsch_Cent",
+            "Tarif_Schneider_Cent",
+            "Tarif_Schwarz_Cent",
+            "Tarif_Laufende_Cent",
+            "Tarif_Laufende_ab_Sauspiel",
+            "Tarif_Laufende_ab_Wenz_Geier",
+            "Tarif_Laufende_ab_Solo",
+            "Tarif_Ramsch_Klopfen_verdoppelt",
+            "Tarif_Ramsch_Bock_verdoppelt",
+            "Tarif_Zurueckverlangen",
+            "Tarif_Strafen",
+            "Tarif_Vergehen_Cent",
+            "Tarif_Neumischen_Cent",
             "Notiz",
         ];
         let players = self
@@ -84,6 +100,7 @@ impl Table {
     pub fn csv_row_with(&self, index: usize, separator: char) -> Option<String> {
         let game = self.games().get(index)?;
         let g = &game.input;
+        let tariff = game.tariff.as_ref().unwrap_or(&self.tariff);
         let opt = |v: Option<String>| v.unwrap_or_default();
         let mut standing: Vec<Cents> = vec![0; self.players.len()];
         for earlier in &self.games()[..=index] {
@@ -115,7 +132,7 @@ impl Table {
             yes_no(g.starts_bock),
             g.bock_triggers().to_string(),
             g.bock_doublings().to_string(),
-            price_doublings(game.tariff.as_ref().unwrap_or(&self.tariff), g).to_string(),
+            price_doublings(tariff, g).to_string(),
             opt(g.points.map(|p| p.to_string())),
             opt(g.price_override.map(|p| p.to_string())),
             game.value.to_string(),
@@ -130,6 +147,22 @@ impl Table {
             self.names_of(&g.reclaimed_by),
             opt(game.tariff_name.clone()),
             opt(game.rule_set_name.clone()),
+            tariff.sauspiel.to_string(),
+            tariff.solo.to_string(),
+            tariff.bettel.to_string(),
+            tariff.ramsch.to_string(),
+            tariff.schneider.to_string(),
+            tariff.schwarz.to_string(),
+            tariff.laufende.to_string(),
+            tariff.laufende_min_sauspiel.to_string(),
+            tariff.laufende_min_wenz_geier.to_string(),
+            tariff.laufende_min_solo.to_string(),
+            yes_no(tariff.ramsch_knock_doubles),
+            yes_no(tariff.ramsch_bock_doubles),
+            yes_no(tariff.reclaim_enabled),
+            yes_no(tariff.penalties_enabled),
+            tariff.offence_penalty.to_string(),
+            tariff.misdeal_penalty.to_string(),
             opt(g.note.clone()),
         ];
         let per_player = game

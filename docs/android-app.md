@@ -467,7 +467,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.7" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.8" (passend zu `Cargo.toml`).
 
 ### 28. Re pro Spieler
 - [ ] Die Spiele-CSV hat die Spalten "Re_von", "Doppler_Anzahl" und "Verlangter_Preis_Cent". "Geklopft", "Kontra" und "Re_von" nennen jeweils, wer gedoppelt hat.
@@ -480,7 +480,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Die Statistik zeigt "Tarif und Regelwerk" mit Spielen je Tarif (Balken) und der Zahl der Wechsel. Nach einem Tarifwechsel mitten im Abend steigt sie um 1.
 - [ ] "Wer kam, wer ging" nennt für jeden Spieler Uhrzeit und Spiel beim Kommen und Gehen ("blieb bis zum Ende", wenn er nicht ging).
 - [ ] In der Gesamtstatistik steht "Wann kommt wer, wann geht wer?" mit Ø Zeiten und frühestem/spätestem Mal, dazu Ø Beginn und Dauer der Abende.
-- [ ] Die CSV hat die Spalten "Tarif" und "Regelwerk".
+- [ ] Die CSV hat die Spalten "Tarif" und "Regelwerk" und dahinter alle Tarifwerte je Spiel ("Tarif_Sauspiel_Cent" usw.).
 
 ### 30. Wer doppelt am häufigsten, Tout, Bockrunden
 - [ ] In der Statistik gibt es den Abschnitt "Wer doppelt am häufigsten?" mit Klopfen, Kontra und Re je Spieler, die meisten zuerst, ebenso in der Gesamtstatistik.

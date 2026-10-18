@@ -78,7 +78,7 @@ Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr
 `Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Bockspiel`, `Bockrunde_ausgeloest`, `Doppler_Anzahl`, `Augen`, `Verlangter_Preis_Cent`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
-werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.
+werden nach RFC 4180 maskiert. Der Tarif steht je Spiel in den Spalten `Tarif_...` der CSV (Preise in Cent, Laufende, Optionen), damit auch Wechsel mitten im Abend zu sehen sind; zusätzlich in der JSON-Datei des Tisches.
 
 ### Export
 
@@ -424,7 +424,7 @@ deshalb nach der Richtung des Preises:
   wurde (`tariff_name`, `rule_set_name`; Bearbeiten ändert das nicht). Die Statistik zeigt **Spiele je Tarif** und je Regelwerk und
   **wie oft gewechselt wurde**, gezählt von einem Spiel zum nächsten (ein Wechsel nach dem letzten Spiel zählt nicht). Spiele mit
   eigenem, nicht gespeichertem Tarif heißen "Eigener Tarif" (bei mehreren verschiedenen "Eigener Tarif 1", "2", ...); ältere Spiele ohne
-  Namen bekommen den Namen des jetzigen Tarifs, wenn die Werte gleich sind. In der CSV stehen die Spalten `Tarif` und `Regelwerk`.
+  Namen bekommen den Namen des jetzigen Tarifs, wenn die Werte gleich sind. In der CSV stehen die Spalten `Tarif`, `Regelwerk` und alle Tarifwerte (`Tarif_Sauspiel_Cent` usw.) je Spiel.
 - **Wer kam, wer ging** (Abend): je Spieler, wann er kam (von Anfang an mit Uhrzeit, sonst Uhrzeit und "nach Spiel N") und wann er
   ging oder "blieb bis zum Ende", dazu wie oft er zwischendurch weg war.
 - **Wann kommt wer, wann geht wer?** (Gesamtstatistik): je Spieler Ø Ankunft und Ø Ende mit frühestem und spätestem Mal, an wie vielen
