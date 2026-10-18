@@ -31,7 +31,7 @@ pub use model::{
     PriceMistake, Seat, Suit, MAX_BOCK,
 };
 pub use money::parse_euro;
-pub use overall::{overall_stats, time_spread, OverallPlayer, OverallStats};
+pub use overall::{overall_stats, time_spread, EveningFact, OverallPlayer, OverallStats};
 pub use scoring::{
     calculated_value, game_value, payouts, price_doublings, reclaimed_value, validate, Tariff,
 };

@@ -1,11 +1,15 @@
 //! Metadaten-Statistik: welcher Tarif und welches Regelwerk galten, und wann wer kam und ging.
 
 use dioxus::prelude::*;
-use schafkopf_core::{format_minutes_after_noon, OverallPlayer, Presence, UseCount};
+use schafkopf_core::{
+    format_duration, format_minutes_after_noon, EveningFact, OverallPlayer, Presence, UseCount,
+};
 
 use super::stat_widgets::ShareBar;
 use super::stats_screen::{count_share, Kv};
-use crate::stats_text::{arrival_text, departure_text, spread_text};
+use crate::stats_text::{
+    arrival_text, decimal, departure_text, evenings_summary, fact_date, spread_text,
+};
 
 #[component]
 fn UseBars(title: String, uses: Vec<UseCount>, changes: u32, evenings: Option<u32>) -> Element {
@@ -111,6 +115,47 @@ pub fn OverallPresence(
                 }
             }
             p { class: "legend-note", "Später: an so vielen Abenden kam er erst im Lauf des Abends dazu. Früher: so oft ging er, bevor der Abend zu Ende war." }
+        }
+    }
+}
+
+/// Wie viele Spiele wir pro Abend schaffen und wie lange ein Abend dauert, mit dem kleinsten und größten Wert und
+/// dem Datum dazu.
+#[component]
+pub fn EveningsOverview(facts: Vec<EveningFact>) -> Element {
+    let Some(summary) = evenings_summary(&facts) else {
+        return rsx! {};
+    };
+    let games = summary.games.clone();
+    rsx! {
+        section {
+            h3 { "Abende im Überblick" }
+            p { class: "legend-note", "Über die gewählten Abende. Die Dauer gibt es nur für Abende, deren Beginn bekannt ist (bis zum Ende oder zur letzten Aktivität)." }
+            h4 { "Spiele pro Abend" }
+            Kv { label: "Im Schnitt", value: decimal(games.average) }
+            Kv { label: "Wenigste", value: format!("{} ({})", games.min.value, games.min.date) }
+            Kv { label: "Meiste", value: format!("{} ({})", games.max.value, games.max.date) }
+            if let Some(length) = summary.length.clone() {
+                h4 { "Dauer eines Abends" }
+                Kv { label: "Im Schnitt", value: format_duration(length.average as i64) }
+                Kv { label: "Kürzester", value: format!("{} ({})", format_duration(length.min.value), length.min.date) }
+                Kv { label: "Längster", value: format!("{} ({})", format_duration(length.max.value), length.max.date) }
+            }
+            if let Some(rate) = summary.games_per_hour {
+                Kv { label: "Spiele pro Stunde", value: decimal(rate) }
+            }
+            table { class: "stat-table",
+                thead { tr { th { "Datum" } th { "Spiele" } th { "Dauer" } } }
+                tbody {
+                    for (i, f) in facts.iter().enumerate() {
+                        tr { key: "{i}",
+                            td { "{fact_date(f)}" }
+                            td { "{f.games}" }
+                            td { "{f.length.map_or(\"–\".to_string(), format_duration)}" }
+                        }
+                    }
+                }
+            }
         }
     }
 }

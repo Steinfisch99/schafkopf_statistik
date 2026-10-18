@@ -3424,6 +3424,9 @@ fn overall_stats_average_arrival_and_departure_times_per_player() {
     assert_eq!(dora.early_departures, 1);
     assert_eq!(dora.departures.len(), 2);
     assert_eq!(all.evening_starts.len(), 2);
+    assert_eq!(all.evening_facts.len(), 2);
+    assert_eq!(all.evening_facts[1].games, 1);
+    assert_eq!(all.evening_facts[1].length, Some(7_200));
     assert_eq!(all.tariffs[0].games, 2);
     assert_eq!(minutes_after_noon(1_700_000_000, 0), (22 * 60 + 13) - 720);
     assert_eq!(

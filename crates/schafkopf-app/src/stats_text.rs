@@ -1,7 +1,7 @@
 //! Aufbereitung der Statistik für die Anzeige: Texte und Sortierungen ohne Oberfläche.
 
 use schafkopf_core::{
-    format_clock, format_minutes_after_noon, time_spread, Cents, GameKind, KindStats,
+    format_clock, format_minutes_after_noon, time_spread, Cents, EveningFact, GameKind, KindStats,
     LaufendeStats, PlayerStats, Presence, RoleStats, Table, TableStats,
 };
 
@@ -341,6 +341,85 @@ pub fn spread_text(times: &[i32]) -> String {
     }
 }
 
+/// "17.10.2026" in der Ortszeit des Abends.
+pub fn date_text(unix_secs: i64, offset_min: i32) -> String {
+    let (y, mo, d, _, _) = schafkopf_core::civil(unix_secs, offset_min);
+    format!("{d:02}.{mo:02}.{y:04}")
+}
+
+/// Der Abend mit dem kleinsten oder größten Wert: der Wert und das Datum ("ohne Datum", wenn unbekannt).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Extreme {
+    pub value: i64,
+    pub date: String,
+}
+
+/// Mittel, Kleinstes und Größtes einer Zahl über die Abende.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Spread {
+    pub average: f64,
+    pub min: Extreme,
+    pub max: Extreme,
+}
+
+/// Überblick über mehrere Abende: wie viele Spiele und wie lange.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EveningsSummary {
+    pub games: Spread,
+    /// Nur über Abende, deren Dauer bekannt ist.
+    pub length: Option<Spread>,
+    /// Spiele pro Stunde, alle Abende mit bekannter Dauer zusammen.
+    pub games_per_hour: Option<f64>,
+}
+
+fn spread(values: &[(i64, String)]) -> Option<Spread> {
+    // Bei Gleichstand gilt der erste Abend (kleinster: früher, größter: früher).
+    let min = values.iter().min_by_key(|(v, _)| *v)?;
+    let max = values.iter().rev().max_by_key(|(v, _)| *v)?;
+    let sum: i64 = values.iter().map(|(v, _)| v).sum();
+    Some(Spread {
+        average: sum as f64 / values.len() as f64,
+        min: Extreme {
+            value: min.0,
+            date: min.1.clone(),
+        },
+        max: Extreme {
+            value: max.0,
+            date: max.1.clone(),
+        },
+    })
+}
+
+pub fn fact_date(f: &EveningFact) -> String {
+    f.started.map_or_else(
+        || "ohne Datum".to_owned(),
+        |t| date_text(t, f.utc_offset_min),
+    )
+}
+
+/// Wertet Spiele und Dauer der Abende aus. `None` ohne Abende.
+pub fn evenings_summary(facts: &[EveningFact]) -> Option<EveningsSummary> {
+    let games: Vec<(i64, String)> = facts
+        .iter()
+        .map(|f| (i64::from(f.games), fact_date(f)))
+        .collect();
+    let lengths: Vec<(i64, String)> = facts
+        .iter()
+        .filter_map(|f| f.length.map(|l| (l, fact_date(f))))
+        .collect();
+    let timed_games: i64 = facts
+        .iter()
+        .filter(|f| f.length.is_some())
+        .map(|f| i64::from(f.games))
+        .sum();
+    let timed_secs: i64 = lengths.iter().map(|(l, _)| l).sum();
+    Some(EveningsSummary {
+        games: spread(&games)?,
+        length: spread(&lengths),
+        games_per_hour: (timed_secs > 0).then(|| timed_games as f64 * 3_600.0 / timed_secs as f64),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -648,5 +727,50 @@ mod tests {
         assert_eq!(spread_text(&[]), "–");
         assert_eq!(spread_text(&[600]), "22:00 (immer)");
         assert_eq!(spread_text(&[540, 660]), "Ø 22:00 (21:00 bis 23:00)");
+    }
+
+    fn fact(day: i64, games: u32, length: Option<i64>) -> EveningFact {
+        EveningFact {
+            started: Some(1_700_000_000 + day * 86_400),
+            utc_offset_min: 0,
+            games,
+            length,
+        }
+    }
+
+    #[test]
+    fn the_evenings_summary_finds_average_min_and_max_with_dates() {
+        let facts = [
+            fact(0, 20, Some(3 * 3_600)),
+            fact(7, 30, Some(5 * 3_600)),
+            fact(14, 10, None),
+        ];
+        let s = evenings_summary(&facts).unwrap();
+        assert_eq!(s.games.average, 20.0);
+        assert_eq!(
+            (s.games.min.value, s.games.min.date.as_str()),
+            (10, "28.11.2023")
+        );
+        assert_eq!(
+            (s.games.max.value, s.games.max.date.as_str()),
+            (30, "21.11.2023")
+        );
+        let length = s.length.unwrap();
+        assert_eq!(
+            length.average,
+            4.0 * 3_600.0,
+            "der Abend ohne Dauer zählt nicht"
+        );
+        assert_eq!(length.min.date, "14.11.2023");
+        assert_eq!(s.games_per_hour, Some(50.0 / 8.0));
+        assert!(evenings_summary(&[]).is_none());
+        assert_eq!(decimal(12.46), "12,5");
+        assert_eq!(
+            fact_date(&EveningFact {
+                started: None,
+                ..fact(0, 1, None)
+            }),
+            "ohne Datum"
+        );
     }
 }

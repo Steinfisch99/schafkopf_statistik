@@ -126,6 +126,7 @@ Entscheidungen:
 - [x] Vergleich: Tipp auf eine Zahl in der Spielerkarte zeigt die Rangliste aller Spieler dazu
 - [x] Versionsnummer in der App sichtbar (aus `Cargo.toml`)
 - [x] Metadaten: Spiele je Tarif und Regelwerk, Wechsel, wer wann kam und ging (Abend und Gesamtstatistik)
+- [x] Abende im Überblick: Spiele pro Abend und Dauer mit Ø, Minimum und Maximum samt Datum
 - [x] Rangliste "Wer doppelt am häufigsten", Tout je Spieler (Abend und Gesamtstatistik), Zahl der Bockrunden
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,

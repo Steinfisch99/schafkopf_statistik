@@ -431,3 +431,10 @@ deshalb nach der Richtung des Preises:
   Abenden er später kam und früher ging; dazu Ø Beginn und Ø Dauer der Abende. Uhrzeiten werden als Minuten seit 12:00 Uhr gemittelt,
   damit 01:00 Uhr nach 23:00 Uhr liegt. Wer bis zum Ende blieb, geht mit dem Ende des Abends ein (bei einem offenen Abend die letzte
   Aktivität). Abende ohne Zeitstempel (alte Dateien) fehlen in den Uhrzeiten.
+
+### Abende im Überblick
+
+- In der Gesamtstatistik: **Spiele pro Abend** (Ø, wenigste und meiste, je mit Datum), **Dauer eines Abends** (Ø, kürzester und längster, je mit
+  Datum), **Spiele pro Stunde** (alle Abende mit bekannter Dauer zusammen) und eine Tabelle mit Datum, Spielen und Dauer jedes Abends.
+- Die Dauer geht vom Beginn bis zum Ende, bei einem Abend ohne Ende bis zur letzten Aktivität. Abende ohne Beginn (alte Dateien) zählen bei
+  den Spielen mit ("ohne Datum"), aber nicht bei der Dauer. Bei gleichen Werten gilt der erste Abend.

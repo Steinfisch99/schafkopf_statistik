@@ -255,6 +255,8 @@ pub struct OverallStats {
     /// Beginn und Dauer der Abende (Minuten seit 12:00 Uhr, Sekunden).
     pub evening_starts: Vec<i32>,
     pub evening_lengths: Vec<i64>,
+    /// Eckdaten jedes Abends in der Reihenfolge der Abende: Beginn, Spiele, Dauer.
+    pub evening_facts: Vec<EveningFact>,
 }
 
 impl OverallStats {
@@ -348,6 +350,12 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
         out.tariff_changes += meta.tariff_changes;
         out.rule_set_changes += meta.rule_set_changes;
         let offset = table.utc_offset_min;
+        out.evening_facts.push(EveningFact {
+            started: meta.started,
+            utc_offset_min: offset,
+            games: stats.games,
+            length: meta.started.zip(meta.ended).map(|(s, e)| (e - s).max(0)),
+        });
         if let Some(start) = meta.started {
             out.evening_starts.push(minutes_after_noon(start, offset));
             if let Some(end) = meta.ended {
@@ -384,4 +392,15 @@ pub fn time_spread(times: &[i32]) -> Option<(i32, i32, i32)> {
     let max = *times.iter().max()?;
     let avg = (times.iter().map(|&t| i64::from(t)).sum::<i64>() / times.len() as i64) as i32;
     Some((avg, min, max))
+}
+
+/// Die Eckdaten eines Abends für den Überblick über mehrere Abende.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EveningFact {
+    /// Beginn in Unix-Sekunden, falls bekannt, und die Abweichung der Ortszeit von UTC.
+    pub started: Option<i64>,
+    pub utc_offset_min: i32,
+    pub games: u32,
+    /// Dauer in Sekunden (bis zum Ende oder zur letzten Aktivität), falls Beginn und Ende bekannt sind.
+    pub length: Option<i64>,
 }
