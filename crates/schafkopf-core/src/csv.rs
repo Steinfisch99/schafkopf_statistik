@@ -1,4 +1,5 @@
 use crate::model::{Cents, Seat};
+use crate::scoring::price_doublings;
 use crate::table::{Offence, Table, TableEvent};
 
 /// Maskiert ein Feld nach RFC 4180: Felder mit Trennzeichen, Anführungszeichen oder Zeilenumbruch
@@ -53,7 +54,9 @@ impl Table {
             "Bockrunde_ausgeloest",
             "Bockrunden_Anzahl",
             "Bock_Verdopplungen",
+            "Doppler_Anzahl",
             "Augen",
+            "Verlangter_Preis_Cent",
             "Preis_Cent",
             "Preis_berechnet_Cent",
             "Falsch_verlangt_von",
@@ -110,7 +113,9 @@ impl Table {
             yes_no(g.starts_bock),
             g.bock_triggers().to_string(),
             g.bock_doublings().to_string(),
+            price_doublings(game.tariff.as_ref().unwrap_or(&self.tariff), g).to_string(),
             opt(g.points.map(|p| p.to_string())),
+            opt(g.price_override.map(|p| p.to_string())),
             game.value.to_string(),
             game.calculated_value.to_string(),
             self.names_of(&g.price_error_by),

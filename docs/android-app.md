@@ -467,9 +467,10 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.3" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.4" (passend zu `Cargo.toml`).
 
 ### 28. Re pro Spieler
+- [ ] Die Spiele-CSV hat die Spalten "Re_von", "Doppler_Anzahl" und "Verlangter_Preis_Cent". "Geklopft", "Kontra" und "Re_von" nennen jeweils, wer gedoppelt hat.
 - [ ] Im Formular steht "Re" bei jedem Spieler der Spielerpartei (bei Sauspiel und Hochzeit auch beim Mitspieler), nicht mehr als einzelner Knopf.
 - [ ] Re ist ausgegraut, solange niemand Kontra gegeben hat, und bei den Gegenspielern immer. Es gibt nur ein Re: Ein anderer Spieler der Partei übernimmt es, ein zweiter Tipp nimmt es zurück.
 - [ ] Nimmst du das Kontra weg oder änderst die Rollen, fällt Re mit weg. In der Statistik zählt Re beim richtigen Spieler, in der CSV steht die Spalte "Re_von".

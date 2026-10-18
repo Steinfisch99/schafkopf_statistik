@@ -3286,3 +3286,31 @@ fn games_saved_before_re_by_still_load() {
     let loaded = Table::from_json(&json).unwrap();
     assert_eq!(loaded.games()[0].input.re_giver(), Some(1));
 }
+
+#[test]
+fn the_csv_names_everyone_who_doubled_and_the_demanded_price() {
+    let mut t = table();
+    t.add_game(GameInput {
+        knockers: vec![0, 2],
+        kontra_by: Some(2),
+        re: true,
+        re_by: Some(3),
+        bock: true,
+        price_override: Some(300),
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let csv = t.to_csv_with(',');
+    let header: Vec<&str> = csv.lines().next().unwrap().split(',').collect();
+    let row: Vec<&str> = csv.lines().nth(1).unwrap().split(',').collect();
+    let at = |name: &str| row[header.iter().position(|h| *h == name).unwrap()];
+    assert_eq!(at("Geklopft"), "Anna; Cem");
+    assert_eq!(at("Kontra"), "Cem");
+    assert_eq!(at("Re_von"), "Dora");
+    assert_eq!(
+        at("Doppler_Anzahl"),
+        "5",
+        "zweimal Klopfen, Kontra, Re, Bock"
+    );
+    assert_eq!(at("Verlangter_Preis_Cent"), "300");
+}

@@ -75,7 +75,7 @@ Dateien unlesbar zu machen, weil neue Felder mit Standardwerten gelesen werden.
 
 Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr`, `Zeit`, `Geber`,
 `Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Re_von`, `Tout`,
-`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Bockspiel`, `Bockrunde_ausgeloest`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
+`Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Bockspiel`, `Bockrunde_ausgeloest`, `Doppler_Anzahl`, `Augen`, `Verlangter_Preis_Cent`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
 werden nach RFC 4180 maskiert. Der Tarif steht nicht in der CSV, sondern in der JSON-Datei des Tisches.
@@ -88,6 +88,8 @@ richtig erscheinen:
 
 - **Semikolon (deutsches Excel):** Das deutsche Excel teilt die Spalten nur bei Semikolon auf.
 - **Komma (international):** Für Tabellenkalkulationen mit englischen Einstellungen und Programme.
+
+In der Spiele-CSV steht, **wer** gedoppelt hat: `Geklopft` (alle Klopfer), `Kontra` (wer), `Re_von` (wer von der Spielerpartei), dazu `Tout`, `Sie`, `Bockspiel` und `Doppler_Anzahl` (wie oft der Preis nach dem Tarif verdoppelt wurde). `Verlangter_Preis_Cent` ist der am Tisch verlangte Preis, falls er vom berechneten abwich (bei Zurückverlangen unterscheidet er sich von `Preis_Cent`).
 
 Der Dateiname enthält das Datum des Abends (`schafkopf-2026-10-17.csv`). Eine bestehende Datei wird
 nie überschrieben, es kommt eine Nummer dazu.
