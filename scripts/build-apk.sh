@@ -59,7 +59,9 @@ echo "==> APK: $apk ($size)"
 # Die APK muss die Bibliothek für das Handy (arm64) enthalten, sonst sagt Android nur
 # "App nicht installiert".
 if command -v unzip > /dev/null 2>&1; then
-  if unzip -l "$apk" | grep -q 'lib/arm64-v8a/'; then
+  # Erst in eine Variable: `grep -q` schließt die Leitung früh, und `unzip` meldet dann unter `pipefail` einen Fehler.
+  listing="$(unzip -l "$apk")"
+  if grep -q 'lib/arm64-v8a/' <<< "$listing"; then
     echo "==> Enthält lib/arm64-v8a: passt zu aktuellen Handys"
   else
     echo "WARNUNG: Die APK enthält kein lib/arm64-v8a, das Handy wird sie ablehnen." >&2
