@@ -10,13 +10,14 @@ use schafkopf_core::{
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
 use super::stat_widgets::{
-    DivergingRow, DonutWithLegend, ResultStrip, SegmentBar, ShareBar, StackedBar, WinDonut,
-    GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
+    DivergingRow, DonutWithLegend, DoublerSection, ResultStrip, SegmentBar, ShareBar, StackedBar,
+    ToutSection, WinDonut, GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
 };
 use super::suit_icon::SuitIcon;
 use crate::stats_text::{
     average_laufende, average_per_game, declarer_rate, doubling_label, kind_rows, max_abs, overall,
-    pair_rows, percent, position_label, ranking, results_per_player, share, streak,
+    pair_rows, percent, position_label, ranking, results_per_player, share, streak, DoublerRow,
+    ToutRow,
 };
 use crate::summary::{detail, signed_euro, title};
 use crate::Screen;
@@ -137,6 +138,11 @@ fn PlayerDetail(
                         value: if role.games == 0 { "–".to_string() } else { share(role) },
                     }
                 }
+            }
+            TapKv { label: "Selbst gedoppelt", value: count_share(p.doubles_given(), p.games_played), metric: Metric::Doubles, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Tout gespielt", value: if p.touts.games == 0 { "–".to_string() } else { share(p.touts) }, metric: Metric::Touts, me: me.clone(), peers: peers.clone(), open: compare }
+            if p.sies.games > 0 {
+                TapKv { label: "Davon Sie", value: share(p.sies), metric: Metric::Sies, me: me.clone(), peers: peers.clone(), open: compare }
             }
             h4 { "Wie oft gedoppelt?" }
             p { class: "legend-note", "Seine Spiele nach der Zahl der Doppler im Preis (Klopfen, Kontra, Re, Tout, Bock)." }
@@ -339,6 +345,26 @@ pub fn StatsScreen(
         .filter(|p| p.games_played + p.games_sat_out > 0)
         .map(evening_peer)
         .collect();
+    let doubler_rows: Vec<DoublerRow> = stats
+        .players
+        .iter()
+        .map(|p| DoublerRow {
+            name: p.name.clone(),
+            knocks: p.knocks.games,
+            kontra: p.kontra_given.games,
+            re: p.re_given.games,
+            played: p.games_played,
+        })
+        .collect();
+    let tout_rows: Vec<ToutRow> = stats
+        .players
+        .iter()
+        .map(|p| ToutRow {
+            name: p.name.clone(),
+            touts: p.touts,
+            sies: p.sies,
+        })
+        .collect();
     let priciest = stats.most_expensive.and_then(|(index, value)| {
         t.games().get(index).map(|g| {
             (
@@ -419,9 +445,15 @@ pub fn StatsScreen(
                 }
             }
 
+            DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
+            ToutSection { rows: tout_rows }
+
             section {
                 h3 { "Dieser Abend" }
                 Kv { label: "Spiele", value: games.to_string() }
+                if stats.bock_games > 0 || stats.bock_started > 0 {
+                    Kv { label: "Bockrunden entstanden", value: stats.bock_started.to_string() }
+                }
                 Kv { label: "Bewegtes Geld", value: format_euro(stats.turnover) }
                 if let Some((headline, description)) = priciest {
                     Kv { label: "Teuerstes Spiel", value: headline }

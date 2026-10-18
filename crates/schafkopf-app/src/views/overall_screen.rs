@@ -9,9 +9,13 @@ use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, T
 
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
-use super::stat_widgets::{DivergingRow, ShareBar, StackedBar, WinDonut};
+use super::stat_widgets::{
+    DivergingRow, DoublerSection, ShareBar, StackedBar, ToutSection, WinDonut,
+};
 use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection};
-use crate::stats_text::{doubling_label, kind_rows, max_abs, percent, share, streak};
+use crate::stats_text::{
+    doubling_label, kind_rows, max_abs, percent, share, streak, DoublerRow, ToutRow,
+};
 use crate::summary::{evening_date, evening_times, games_text, signed_euro};
 use crate::{storage, Screen};
 
@@ -125,7 +129,11 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow
                     }
                 }
             }
-            Kv { label: "Selbst gedoppelt", value: count_share(p.doubles_given(), p.games_played) }
+            TapKv { label: "Selbst gedoppelt", value: count_share(p.doubles_given(), p.games_played), metric: Metric::Doubles, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Tout gespielt", value: if p.touts.games == 0 { "–".to_string() } else { share(p.touts) }, metric: Metric::Touts, me: me.clone(), peers: peers.clone(), open: compare }
+            if p.sies.games > 0 {
+                TapKv { label: "Davon Sie", value: share(p.sies), metric: Metric::Sies, me: me.clone(), peers: peers.clone(), open: compare }
+            }
             Kv { label: "In gedoppelten Spielen (mindestens)", value: count_share(p.doubled_games, p.games_played) }
             Kv { label: "In vervierfachten Spielen (mindestens)", value: count_share(p.quadrupled_games, p.games_played) }
             p { class: "legend-note", "Seine Spiele genau nach der Zahl der Doppler im Preis (Klopfen, Kontra, Re, Tout, Bock)." }
@@ -203,6 +211,26 @@ fn OverallNumbers(stats: OverallStats) -> Element {
     let money_scale = max_abs(ranked.iter().map(|p| p.balance));
     // Alle Spieler der gewählten Abende für die Ranglisten beim Antippen einer Zahl.
     let peers: Vec<PeerRow> = ranked.iter().map(overall_peer).collect();
+    let doubler_rows: Vec<DoublerRow> = stats
+        .players
+        .iter()
+        .map(|p| DoublerRow {
+            name: p.name.clone(),
+            knocks: p.knocks.games,
+            kontra: p.kontra_given.games,
+            re: p.re_given.games,
+            played: p.games_played,
+        })
+        .collect();
+    let tout_rows: Vec<ToutRow> = stats
+        .players
+        .iter()
+        .map(|p| ToutRow {
+            name: p.name.clone(),
+            touts: p.touts,
+            sies: p.sies,
+        })
+        .collect();
     let kinds = kind_rows(&stats.by_kind);
     let kind_scale = kinds.iter().map(|(_, k)| k.games).max().unwrap_or(0);
     let top_doublings = stats.by_doublings.keys().next_back().copied().unwrap_or(0);
@@ -255,11 +283,17 @@ fn OverallNumbers(stats: OverallStats) -> Element {
             }
         }
 
+        DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen über alle gewählten Abende, gezählt in den Spielen, bei denen man mitgespielt hat." }
+        ToutSection { rows: tout_rows }
+
         section {
             h3 { "Alle Abende zusammen" }
             Kv { label: "Abende", value: stats.evenings.to_string() }
             Kv { label: "Spiele", value: games.to_string() }
             Kv { label: "Bewegtes Geld", value: format_euro(stats.turnover) }
+            if stats.bock_games > 0 || stats.bock_started > 0 {
+                Kv { label: "Bockrunden entstanden", value: format!("{} an {} Abenden", stats.bock_started, stats.evenings) }
+            }
             Kv { label: "Spielerpartei gewann", value: share(stats.declarer_side) }
             WinDonut {
                 wins: stats.declarer_side.wins,

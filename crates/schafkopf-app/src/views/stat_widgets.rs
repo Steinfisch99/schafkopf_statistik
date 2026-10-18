@@ -6,7 +6,9 @@ use dioxus::prelude::*;
 use schafkopf_charts::{donut_svg, format_euro, player_color};
 use schafkopf_core::Cents;
 
-use crate::stats_text::{bar_percent, diverging, percent};
+use crate::stats_text::{
+    bar_percent, diverging, doubler_ranking, percent, tout_ranking, DoublerRow, ToutRow,
+};
 
 /// Sieg und Niederlage in zwei Farben, die sich auch bei Farbschwäche unterscheiden (Okabe/Ito).
 pub const WIN_COLOR: &str = "#009E73";
@@ -163,6 +165,62 @@ pub fn SegmentBar(label: String, segments: Vec<(u32, String)>, max: u32, value: 
                 }
             }
             span { class: "bar-value", "{value}" }
+        }
+    }
+}
+
+/// Wer am häufigsten gedoppelt hat (Klopfen, Kontra und Re zusammen), die meisten zuerst.
+#[component]
+pub fn DoublerSection(rows: Vec<DoublerRow>, intro: String) -> Element {
+    let ranked = doubler_ranking(rows);
+    let scale = ranked.iter().map(|(_, r)| r.total()).max().unwrap_or(0);
+    rsx! {
+        section {
+            h3 { "Wer doppelt am häufigsten?" }
+            p { class: "legend-note", "{intro}" }
+            for (place, r) in ranked {
+                ShareBar {
+                    key: "{r.name}",
+                    label: format!("{place}. {}", r.name),
+                    part: r.total(),
+                    total: scale,
+                    value: format!(
+                        "{} (Klopfen {}, Kontra {}, Re {}) in {} Spielen, {}",
+                        r.total(), r.knocks, r.kontra, r.re, r.played, percent(r.total(), r.played)
+                    ),
+                }
+            }
+        }
+    }
+}
+
+/// Wer Tout gespielt hat und wie oft gewonnen, die meisten zuerst. Ohne Tout steht nur ein Hinweis.
+#[component]
+pub fn ToutSection(rows: Vec<ToutRow>) -> Element {
+    let ranked = tout_ranking(rows);
+    let scale = ranked.iter().map(|(_, r)| r.touts.games).max().unwrap_or(0);
+    rsx! {
+        section {
+            h3 { "Tout" }
+            if ranked.is_empty() {
+                p { class: "hint", "Noch hat niemand Tout gespielt." }
+            } else {
+                p { class: "legend-note", "Wie oft jemand Tout angesagt hat (Sie zählt mit) und wie oft er gewann. Die Länge zeigt die Zahl der Spiele." }
+            }
+            for (place, r) in ranked {
+                StackedBar {
+                    key: "{r.name}",
+                    label: format!("{place}. {}", r.name),
+                    won: r.touts.wins,
+                    lost: r.touts.games - r.touts.wins,
+                    max: scale,
+                    value: if r.sies.games > 0 {
+                        format!("{} von {}, davon Sie: {} von {}", r.touts.wins, r.touts.games, r.sies.wins, r.sies.games)
+                    } else {
+                        format!("{} von {}", r.touts.wins, r.touts.games)
+                    },
+                }
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ use schafkopf_charts::format_euro;
 use schafkopf_core::{Cents, OverallPlayer, PlayerStats, RoleStats};
 
 use super::stats_screen::Kv;
-use crate::stats_text::{doubling_label, share};
+use crate::stats_text::{doubling_label, percent, share};
 use crate::summary::signed_euro;
 
 /// Eine Zahl, die sich zwischen den Spielern vergleichen lässt.
@@ -28,6 +28,10 @@ pub enum Metric {
     Knocks,
     Kontra,
     Re,
+    /// Wie oft er selbst gedoppelt hat (Klopfen, Kontra und Re zusammen).
+    Doubles,
+    Touts,
+    Sies,
     SchneiderWins,
     SchwarzWins,
     LaufOwn,
@@ -65,6 +69,9 @@ impl Metric {
             Metric::Knocks => "Geklopft, Siegquote".into(),
             Metric::Kontra => "Kontra, Siegquote".into(),
             Metric::Re => "Re, Siegquote".into(),
+            Metric::Doubles => "Selbst gedoppelt".into(),
+            Metric::Touts => "Tout gespielt".into(),
+            Metric::Sies => "Sie gespielt".into(),
             Metric::SchneiderWins => "Siege mit Schneider".into(),
             Metric::SchwarzWins => "Siege mit Schwarz".into(),
             Metric::LaufOwn => "Lauf auf der eigenen Seite".into(),
@@ -107,6 +114,32 @@ impl PeerRow {
 
     fn cents(&mut self, metric: Metric, c: Cents) {
         self.values.insert(metric, (c as f64, signed_euro(c)));
+    }
+
+    /// Wie oft er gedoppelt hat, mit dem Anteil an seinen Spielen; ohne Spiele gibt es nichts zu vergleichen.
+    fn doubles(&mut self, count: u32, played: u32) {
+        if played > 0 {
+            self.values.insert(
+                Metric::Doubles,
+                (
+                    f64::from(count),
+                    format!("{count} ({})", percent(count, played)),
+                ),
+            );
+        }
+    }
+
+    /// Eine seltene Ansage: sortiert nach der Zahl der Spiele, der Text nennt die Siege dazu.
+    fn played_won(&mut self, metric: Metric, role: RoleStats) {
+        if role.games > 0 {
+            self.values.insert(
+                metric,
+                (
+                    f64::from(role.games),
+                    format!("{} (gewonnen: {})", role.games, role.wins),
+                ),
+            );
+        }
     }
 
     fn money(&mut self, metric: Metric, c: Cents) {
@@ -156,6 +189,9 @@ pub fn evening_peer(p: &PlayerStats) -> PeerRow {
     r.rate(Metric::Knocks, p.knocks);
     r.rate(Metric::Kontra, p.kontra_given);
     r.rate(Metric::Re, p.re_given);
+    r.doubles(p.doubles_given(), p.games_played);
+    r.played_won(Metric::Touts, p.touts);
+    r.played_won(Metric::Sies, p.sies);
     r.count(Metric::SchneiderWins, p.schneider_wins);
     r.count(Metric::SchwarzWins, p.schwarz_wins);
     r.count(Metric::LaufOwn, p.lauf_own_side);
@@ -206,6 +242,9 @@ pub fn overall_peer(p: &OverallPlayer) -> PeerRow {
     r.rate(Metric::Knocks, p.knocks);
     r.rate(Metric::Kontra, p.kontra_given);
     r.rate(Metric::Re, p.re_given);
+    r.doubles(p.doubles_given(), p.games_played);
+    r.played_won(Metric::Touts, p.touts);
+    r.played_won(Metric::Sies, p.sies);
     r.count(Metric::SchneiderWins, p.schneider_wins);
     r.count(Metric::SchwarzWins, p.schwarz_wins);
     r.count(Metric::LaufOwn, p.lauf_own_side);
@@ -360,6 +399,30 @@ mod tests {
         assert!(ranked[0].2.contains("1 von 2"));
     }
 
+    #[test]
+    fn doubles_and_touts_can_be_compared() {
+        let players = ["Anna", "Ben", "Cem", "Dora"].map(String::from).to_vec();
+        let mut t =
+            schafkopf_core::Table::new("T", players, 0, schafkopf_core::Tariff::default()).unwrap();
+        t.add_game(schafkopf_core::GameInput {
+            suit: Some(schafkopf_core::Suit::Eichel),
+            tout: true,
+            knockers: vec![2],
+            ..schafkopf_core::GameInput::new(0, schafkopf_core::GameKind::Farbsolo, 1)
+        })
+        .unwrap();
+        let stats = schafkopf_core::table_stats(&t);
+        let rows: Vec<PeerRow> = stats.players.iter().map(evening_peer).collect();
+        let doubles = ranking(&rows, Metric::Doubles);
+        assert_eq!(doubles.len(), 4, "alle haben mitgespielt");
+        assert_eq!(
+            (doubles[0].1.as_str(), doubles[0].2.as_str()),
+            ("Cem", "1 (100\u{a0}%)")
+        );
+        let touts = ranking(&rows, Metric::Touts);
+        assert_eq!(touts.len(), 1, "nur Ben hat Tout gespielt");
+        assert_eq!(touts[0].2, "1 (gewonnen: 1)");
+    }
     #[test]
     fn evening_and_overall_rows_cover_the_same_core_numbers() {
         let players = ["Anna", "Ben", "Cem", "Dora"].map(String::from).to_vec();

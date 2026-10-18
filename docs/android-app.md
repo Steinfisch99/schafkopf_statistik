@@ -467,9 +467,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.1" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.2" (passend zu `Cargo.toml`).
 
-### 28. Darstellung
+### 28. Wer doppelt am häufigsten, Tout, Bockrunden
+- [ ] In der Statistik gibt es den Abschnitt "Wer doppelt am häufigsten?" mit Klopfen, Kontra und Re je Spieler, die meisten zuerst, ebenso in der Gesamtstatistik.
+- [ ] Der Abschnitt "Tout" zeigt, wer wie oft Tout gespielt und gewonnen hat (ohne Tout steht ein Hinweis). In der Gesamtstatistik passt die Zahl zu allen Abenden zusammen.
+- [ ] In der Spielerkarte sind "Selbst gedoppelt" und "Tout gespielt" antippbar und zeigen die Rangliste.
+- [ ] Unter "Dieser Abend" steht "Bockrunden entstanden" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
+
+### 29. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

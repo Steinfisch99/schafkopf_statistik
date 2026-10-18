@@ -105,6 +105,11 @@ pub struct PlayerStats {
     pub undercharge_benefit: Cents,
     pub kontra_given: RoleStats,
     pub re_given: RoleStats,
+    /// Tout gespielt (auch Sie): wie oft, und wie oft gewonnen. Sie zählt zusätzlich einzeln.
+    #[serde(default)]
+    pub touts: RoleStats,
+    #[serde(default)]
+    pub sies: RoleStats,
     pub schneider_wins: u32,
     pub schwarz_wins: u32,
     /// Spiele mit einem Lauf oder Gegenlauf, bei denen die eigene Seite die Laufenden hatte, und
@@ -131,6 +136,11 @@ pub struct PlayerStats {
 }
 
 impl PlayerStats {
+    /// Wie oft er selbst gedoppelt hat: geklopft, Kontra oder Re gegeben.
+    pub fn doubles_given(&self) -> u32 {
+        self.knocks.games + self.kontra_given.games + self.re_given.games
+    }
+
     fn new(seat: Seat, name: &str) -> Self {
         PlayerStats {
             seat,
@@ -158,6 +168,8 @@ impl PlayerStats {
             undercharge_benefit: 0,
             kontra_given: RoleStats::default(),
             re_given: RoleStats::default(),
+            touts: RoleStats::default(),
+            sies: RoleStats::default(),
             schneider_wins: 0,
             schwarz_wins: 0,
             lauf_own_side: 0,
@@ -429,6 +441,12 @@ pub fn table_stats(table: &Table) -> TableStats {
             }
             if g.kontra_by == Some(seat) {
                 p.kontra_given.record(won);
+            }
+            if g.tout && seat == g.declarer {
+                p.touts.record(won);
+                if g.sie {
+                    p.sies.record(won);
+                }
             }
             if g.re && seat == g.declarer {
                 p.re_given.record(won);

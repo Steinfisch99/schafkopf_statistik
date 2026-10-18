@@ -3139,3 +3139,59 @@ fn doublings_are_split_by_level_for_the_evening_and_for_every_player() {
     assert_eq!(ben.by_doublings[&4], 1);
     assert_eq!(ben.by_doublings.values().sum::<u32>(), ben.games_played);
 }
+
+#[test]
+fn touts_and_sies_are_counted_per_player_and_across_evenings() {
+    let lost_tout = GameInput {
+        won: false,
+        ..farbsolo(true, false)
+    };
+    let t1 = evening(
+        &["Anna", "Ben", "Cem", "Dora"],
+        vec![
+            farbsolo(true, false),
+            lost_tout.clone(),
+            farbsolo(true, true),
+            farbsolo(false, false),
+        ],
+    );
+    let stats = table_stats(&t1);
+    let ben = &stats.players[1];
+    assert_eq!(
+        (ben.touts.games, ben.touts.wins),
+        (3, 2),
+        "Sie zählt als Tout"
+    );
+    assert_eq!((ben.sies.games, ben.sies.wins), (1, 1));
+    assert_eq!(stats.players[0].touts.games, 0);
+    let t2 = evening(&["Anna", "Ben", "Cem", "Dora"], vec![lost_tout]);
+    let all = overall_stats(&[&t1, &t2]);
+    let ben = all.players.iter().find(|p| p.name == "Ben").unwrap();
+    assert_eq!((ben.touts.games, ben.touts.wins), (4, 2));
+    assert_eq!(ben.sies.games, 1);
+}
+
+#[test]
+fn doubles_given_adds_knocking_kontra_and_re() {
+    let t = evening(
+        &["Anna", "Ben", "Cem", "Dora"],
+        vec![
+            GameInput {
+                knockers: vec![2],
+                kontra_by: Some(2),
+                re: true,
+                ..sauspiel(0, 1, 3)
+            },
+            GameInput {
+                knockers: vec![2],
+                ..sauspiel(1, 0, 2)
+            },
+        ],
+    );
+    let stats = table_stats(&t);
+    assert_eq!(stats.players[2].doubles_given(), 3);
+    assert_eq!(stats.players[1].doubles_given(), 1, "Re kommt vom Spieler");
+    let all = overall_stats(&[&t]);
+    let cem = all.players.iter().find(|p| p.name == "Cem").unwrap();
+    assert_eq!(cem.doubles_given(), 3);
+}

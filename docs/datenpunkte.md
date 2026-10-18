@@ -401,3 +401,15 @@ deshalb nach der Richtung des Preises:
   Kontra, Re, jede Doppler-Stufe, Siege mit Schneider und Schwarz, Lauf eigene und andere Seite, Serien, Vergehen,
   Neumischen, Strafen und falsch verlangte Preise. Quoten werden nach dem Anteil sortiert (mit Spiele-Zahl dahinter),
   wer keine Spiele in der Rolle hat, steht nicht in der Liste.
+
+### Wer doppelt am häufigsten, Tout und Bockrunden
+
+- **Wer doppelt am häufigsten?** Eigener Abschnitt in der Statistik des Abends und in der Gesamtstatistik: Klopfen, Kontra und Re
+  zusammen, die meisten zuerst, mit der Aufteilung (Klopfen, Kontra, Re) und dem Anteil an den Spielen des Spielers. Gleiche
+  Summen teilen sich den Platz. Wer nicht mitgespielt hat, steht nicht in der Liste.
+- **Tout:** Abschnitt "Tout" mit der Rangliste, wie oft jemand Tout angesagt hat (Sie zählt mit, wird aber extra genannt) und wie oft
+  er gewann. In der Spielerkarte stehen "Tout gespielt" und, falls vorhanden, "Davon Sie". Beides ist antippbar (Rangliste nach
+  Zahl der Tout-Spiele). Ohne Tout steht ein Hinweis.
+- **Selbst gedoppelt** ist in der Spielerkarte antippbar (Abend und Gesamtstatistik), die Rangliste sortiert nach der Summe.
+- **Bockrunden:** "Bockrunden entstanden" steht unter "Dieser Abend" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
+- Alte Dateien laden wie bisher, die Zahlen werden aus den Spielen berechnet.

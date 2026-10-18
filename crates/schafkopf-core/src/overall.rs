@@ -28,6 +28,8 @@ pub struct OverallPlayer {
     pub knocks: RoleStats,
     pub kontra_given: RoleStats,
     pub re_given: RoleStats,
+    pub touts: RoleStats,
+    pub sies: RoleStats,
     pub schneider_wins: u32,
     pub schwarz_wins: u32,
     pub lauf_own_side: u32,
@@ -77,6 +79,8 @@ impl OverallPlayer {
             knocks: RoleStats::default(),
             kontra_given: RoleStats::default(),
             re_given: RoleStats::default(),
+            touts: RoleStats::default(),
+            sies: RoleStats::default(),
             schneider_wins: 0,
             schwarz_wins: 0,
             lauf_own_side: 0,
@@ -144,6 +148,8 @@ impl OverallPlayer {
         role(&mut self.knocks, &p.knocks);
         role(&mut self.kontra_given, &p.kontra_given);
         role(&mut self.re_given, &p.re_given);
+        role(&mut self.touts, &p.touts);
+        role(&mut self.sies, &p.sies);
         self.best_game = self.best_game.max(p.best_game);
         self.worst_game = self.worst_game.min(p.worst_game);
         self.schneider_wins += p.schneider_wins;

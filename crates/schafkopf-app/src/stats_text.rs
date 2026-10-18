@@ -211,6 +211,75 @@ pub fn results_per_player(table: &Table) -> Vec<Vec<Option<bool>>> {
     rows
 }
 
+/// Wie oft ein Spieler gedoppelt hat: Klopfen, Kontra und Re einzeln, dazu die Zahl seiner Spiele.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DoublerRow {
+    pub name: String,
+    pub knocks: u32,
+    pub kontra: u32,
+    pub re: u32,
+    pub played: u32,
+}
+
+impl DoublerRow {
+    pub fn total(&self) -> u32 {
+        self.knocks + self.kontra + self.re
+    }
+}
+
+/// Wer am häufigsten gedoppelt hat: Platz und Zeile, die meisten zuerst. Gleiche Summen teilen sich den
+/// Platz und stehen nach Namen geordnet. Wer nicht mitgespielt hat, steht nicht in der Liste.
+pub fn doubler_ranking(rows: Vec<DoublerRow>) -> Vec<(usize, DoublerRow)> {
+    let mut rows: Vec<DoublerRow> = rows.into_iter().filter(|r| r.played > 0).collect();
+    rows.sort_by(|a, b| b.total().cmp(&a.total()).then_with(|| a.name.cmp(&b.name)));
+    let mut place = 0;
+    let mut last = None;
+    rows.into_iter()
+        .enumerate()
+        .map(|(i, r)| {
+            if last != Some(r.total()) {
+                place = i + 1;
+                last = Some(r.total());
+            }
+            (place, r)
+        })
+        .collect()
+}
+
+/// Tout (mit Sie) eines Spielers: wie oft gespielt und wie oft gewonnen.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToutRow {
+    pub name: String,
+    pub touts: RoleStats,
+    pub sies: RoleStats,
+}
+
+/// Wer wie oft Tout gespielt hat, die meisten zuerst; gleiche Zahlen teilen sich den Platz. Wer nie Tout
+/// gespielt hat, steht nicht in der Liste.
+pub fn tout_ranking(rows: Vec<ToutRow>) -> Vec<(usize, ToutRow)> {
+    let mut rows: Vec<ToutRow> = rows.into_iter().filter(|r| r.touts.games > 0).collect();
+    rows.sort_by(|a, b| {
+        b.touts
+            .games
+            .cmp(&a.touts.games)
+            .then_with(|| b.touts.wins.cmp(&a.touts.wins))
+            .then_with(|| a.name.cmp(&b.name))
+    });
+    let mut place = 0;
+    let mut last = None;
+    rows.into_iter()
+        .enumerate()
+        .map(|(i, r)| {
+            let key = (r.touts.games, r.touts.wins);
+            if last != Some(key) {
+                place = i + 1;
+                last = Some(key);
+            }
+            (place, r)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -432,5 +501,50 @@ mod tests {
     fn position_labels() {
         let labels: Vec<&str> = (0..4).map(position_label).collect();
         assert_eq!(labels, ["Vorhand", "Mittelhand", "Hinterhand", "Letzter"]);
+    }
+
+    fn doubler(name: &str, knocks: u32, kontra: u32, re: u32, played: u32) -> DoublerRow {
+        DoublerRow {
+            name: name.to_owned(),
+            knocks,
+            kontra,
+            re,
+            played,
+        }
+    }
+
+    #[test]
+    fn the_doubler_ranking_sums_the_calls_and_ties_share_the_place() {
+        let ranked = doubler_ranking(vec![
+            doubler("Cem", 1, 1, 0, 5),
+            doubler("Anna", 3, 0, 1, 5),
+            doubler("Ben", 2, 0, 0, 5),
+            doubler("Dora", 0, 0, 0, 0),
+            doubler("Emil", 0, 2, 0, 4),
+        ]);
+        let names: Vec<(usize, &str)> = ranked.iter().map(|(p, r)| (*p, r.name.as_str())).collect();
+        assert_eq!(
+            names,
+            vec![(1, "Anna"), (2, "Ben"), (2, "Cem"), (2, "Emil")],
+            "Dora saß nicht mit am Tisch"
+        );
+        assert_eq!(ranked[0].1.total(), 4);
+    }
+
+    #[test]
+    fn the_tout_ranking_leaves_out_players_without_a_tout() {
+        let row = |name: &str, games, wins| ToutRow {
+            name: name.to_owned(),
+            touts: RoleStats { games, wins },
+            sies: RoleStats::default(),
+        };
+        let ranked = tout_ranking(vec![
+            row("Anna", 0, 0),
+            row("Ben", 2, 1),
+            row("Cem", 2, 2),
+            row("Dora", 1, 1),
+        ]);
+        let names: Vec<(usize, &str)> = ranked.iter().map(|(p, r)| (*p, r.name.as_str())).collect();
+        assert_eq!(names, vec![(1, "Cem"), (2, "Ben"), (3, "Dora")]);
     }
 }
