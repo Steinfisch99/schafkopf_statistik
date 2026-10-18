@@ -21,6 +21,8 @@ pub fn OffenceScreen(
     let mut offender = use_signal(|| None::<usize>);
     // Die Strafe als Text; leer: die Strafe aus dem Tarif.
     let mut amount = use_signal(String::new);
+    // Wer die Strafe bekommt, wenn von Hand gewählt; sonst die Mitspieler der laufenden Runde.
+    let mut payees = use_signal(|| None::<Vec<usize>>);
 
     let guard = table.read();
     let Some(t) = guard.as_ref() else {
@@ -31,7 +33,12 @@ pub fn OffenceScreen(
     let dealer = t.next_dealer();
     let penalties = t.tariff.penalties_enabled;
     let default_amount = kind().map_or(0, |k| t.penalty_for(k));
-    let others = present.len().saturating_sub(1) as i64;
+    let recipients: Vec<usize> = match (offender(), payees()) {
+        (Some(who), Some(list)) => list.into_iter().filter(|&s| s != who).collect(),
+        (Some(who), None) => t.default_penalty_recipients(who),
+        _ => Vec::new(),
+    };
+    let others = recipients.len() as i64;
     drop(guard);
 
     let typed = amount();
@@ -42,6 +49,7 @@ pub fn OffenceScreen(
     };
     let cost = if penalties { parsed } else { Some(0) };
 
+    let save_recipients = recipients.clone();
     let save = move |_| {
         let (Some(k), Some(who)) = (kind(), offender()) else {
             return;
@@ -62,14 +70,20 @@ pub fn OffenceScreen(
         let mut guard = table.write();
         let Some(t) = guard.as_mut() else { return };
         let added = t
-            .add_offence(k, who, custom, Some(now_secs() as i64))
+            .add_offence(
+                k,
+                who,
+                Some(save_recipients.clone()),
+                custom,
+                Some(now_secs() as i64),
+            )
             .map(|o| (o.offender, o.amount));
         let message = match added {
             Ok((offender, paid)) => {
                 let name = t.players[offender].clone();
                 if paid > 0 {
                     format!(
-                        "{}: {name}, Strafe {} an jeden",
+                        "{}: {name}, Strafe {} an jeden Mitspieler",
                         k.label(),
                         format_euro(paid)
                     )
@@ -122,7 +136,34 @@ pub fn OffenceScreen(
                         key: "{seat}",
                         label: names[seat].clone(),
                         on: offender() == Some(seat),
-                        onclick: move |_| offender.set(Some(seat)),
+                        onclick: move |_| {
+                            offender.set(Some(seat));
+                            payees.set(None);
+                        },
+                    }
+                }
+            }
+            if offender().is_some() {
+                p { class: "hint", "Wer bekommt die Strafe? Standard sind die Mitspieler der laufenden Runde." }
+                div { class: "chips",
+                    for seat in present.clone().into_iter().filter(|&s| Some(s) != offender()) {
+                        Chip {
+                            key: "{seat}",
+                            label: names[seat].clone(),
+                            on: recipients.contains(&seat),
+                            onclick: {
+                                let current = recipients.clone();
+                                move |_| {
+                                    let mut list = current.clone();
+                                    if let Some(i) = list.iter().position(|&s| s == seat) {
+                                        list.remove(i);
+                                    } else {
+                                        list.push(seat);
+                                    }
+                                    payees.set(Some(list));
+                                }
+                            },
+                        }
                     }
                 }
             }
@@ -140,7 +181,7 @@ pub fn OffenceScreen(
                 }
                 match cost {
                     Some(c) if c > 0 && offender().is_some() => rsx! {
-                        p { class: "hint", "{names[offender().unwrap_or(0)]} zahlt {format_euro(c)} an jeden der {others} anderen, zusammen {format_euro(c * others)}." }
+                        p { class: "hint", "{names[offender().unwrap_or(0)]} zahlt {format_euro(c)} an jeden der {others} Empfänger, zusammen {format_euro(c * others)}." }
                     },
                     Some(_) => rsx! { p { class: "hint", "Keine Strafe, das Vergehen wird nur gezählt." } },
                     None => rsx! { p { class: "hint", role: "status", "Der Betrag ist nicht lesbar, zum Beispiel 0,50." } },
@@ -152,7 +193,7 @@ pub fn OffenceScreen(
                 button {
                     class: "primary big",
                     r#type: "button",
-                    disabled: kind().is_none() || offender().is_none() || cost.is_none(),
+                    disabled: kind().is_none() || offender().is_none() || recipients.is_empty() || cost.is_none(),
                     onclick: save,
                     "Eintragen"
                 }

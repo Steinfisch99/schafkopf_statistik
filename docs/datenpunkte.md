@@ -10,7 +10,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Geber | Anna | ja |
 | Mitspielende | 2 bis 4 Plätze, die in diesem Spiel dabei sind (Voreinstellung: Geber, der Spieler vor ihm und die zwei nach ihm) | nein |
 | Verlangter Preis | Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif ergibt | nein |
-| Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Sie, Bettel, Ramsch | ja |
+| Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Bettel, Ramsch | ja |
 | Farbe | beim Sauspiel die gerufene Sau (nicht Herz), beim Farbsolo die Trumpffarbe | je nach Spielart |
 | Spieler | Ben. Beim Ramsch: der Verlierer, oder bei "Durchmarsch" der, der alle Stiche gemacht hat | ja |
 | Mitspieler | Dora (Sauspiel, Hochzeit) | je nach Spielart |
@@ -21,7 +21,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Gewonnen | Spielerpartei ja/nein | ja |
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
-| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier, 8 beim Sie | nein |
+| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier | nein |
 | Gegenlauf | Ja, wenn die **Gegner** die Laufenden hatten (Gegenlauf) statt der Spielerpartei (Lauf). Der Preis ist in beiden Fällen derselbe, es zählt für die Statistik | nein |
 | Bockspiel | Ja, wenn das Spiel ein Bockspiel war (doppelter Preis). Vorgewählt, solange ein Bock offen ist | nein |
 | Bockrunde entstanden | Ja, wenn das Spiel eine Bockrunde ausgelöst hat. Schwarz schaltet es von selbst ein | nein |
@@ -339,20 +339,25 @@ deshalb nach der Richtung des Preises:
 
 ### Sie
 
-Die Spielart **Sie** ist ein **Solo ohne Farbe**, bei dem alle acht Ober und Unter Trumpf sind. Die App rechnet
-sie wie die anderen Solospiele: Solo-Preis, der Spieler zahlt oder bekommt ihn dreifach, Schneider, Schwarz,
-Laufende (ab der Zahl "Solo" im Tarif, höchstens 8), Tout möglich, keine Farbe. Wer eine andere Regel spielt,
-sagt es mir, dann ändere ich sie. Ein Regelwerk muss "Sie" ausdrücklich einschalten, bestehende Regelwerke und
-Abende bleiben, wie sie waren. "Alle Spielarten" enthält sie.
+**Sie** ist keine eigene Spielart, sondern die **Steigerung des Tout beim Farbsolo**. Im Formular lässt sich der Knopf
+"Sie" erst drücken, wenn "Tout" an ist (nur beim Farbsolo). Beim Sie gilt:
+
+- Der Spieler hat **immer alle 8 Laufende** (sie werden von selbst eingetragen, der Zähler und "Gegenlauf" entfallen).
+- **Schneider und Schwarz zählen nicht** zum Preis (wie beim Tout, sie bleiben für die Statistik eingetragen).
+- Der Preis ist **eine Verdopplung mehr** als beim Tout (Tout und Sie sind je ein Doppler, dazu kommen Klopfen,
+  Kontra, Re und Bock). Beispiel mit Standardtarif: (50 + 8 · 10) mal 4 = 520 je Gegner, der Spieler bekommt dreifach.
+- Wird Tout abgeschaltet oder die Spielart gewechselt, fällt Sie weg. Die Spieleliste zeigt "Tout, Sie", die CSV hat
+  eine Spalte "Sie". Alte Dateien ohne das Feld laden wie bisher (kein Sie).
 
 ### Vergehen, Strafzahlungen und Neumischen
 
 - Im Abend gibt es "Vergehen oder Neumischen". Eingetragen werden die **Art** (Nicht bedient, Aus der Reihe
   gespielt, Karten gezeigt, Absprache oder Zeichen, Falsch gegeben (neu gemischt), Etwas anderes) und **wer** es
   war. Beim **Neumischen** ist der Geber der Täter und bleibt derselbe (der Geber rückt nicht weiter).
-- **Strafe:** Der Täter zahlt jedem anderen, der am Tisch sitzt, den Betrag aus dem Tarif ("Vergehen je
-  Mitspieler", Standard 0,50 €; "Neumischen je Mitspieler", Standard **0**, also keine Strafe). Der Betrag lässt
-  sich beim Eintragen ändern. Er wird festgeschrieben, eine spätere Tarifänderung berührt ihn nicht.
+- **Strafe:** Der Täter zahlt jedem **Mitspieler der laufenden Runde** (die, die beim nächsten Spiel mitspielen, ohne
+  den Täter; wer aussetzt, bekommt nichts, auch wenn er am Tisch sitzt) den Betrag aus dem Tarif ("Vergehen je
+  Mitspieler", Standard 0,50 €; "Neumischen je Mitspieler", Standard **0**, also keine Strafe). Betrag und Empfänger
+  lassen sich beim Eintragen ändern. Er wird festgeschrieben, eine spätere Tarifänderung berührt ihn nicht.
 - **Option im Tarif:** "Vergehen und Neumischen kosten eine Strafe" (Standard an, auch für alte Tarife). Aus:
   Alles wird trotzdem eingetragen und gezählt, kostet aber nichts.
 - Die Strafen zählen zum Kontostand und stehen im Verlauf: Eine Strafe nach n Spielen steckt im Stand nach

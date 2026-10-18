@@ -217,8 +217,6 @@ pub enum GameKind {
     Farbsolo,
     Farbwenz,
     Farbgeier,
-    /// Sie: ein Solo ohne Farbe, bei dem alle Ober und Unter Trumpf sind (acht Trümpfe).
-    Sie,
     /// Spieler gewinnt, wenn er keinen Stich macht.
     Bettel,
     /// Wer die meisten Augen hat, verliert. `declarer` ist der Verlierer (bzw. Durchmarschierer).
@@ -226,7 +224,7 @@ pub enum GameKind {
 }
 
 impl GameKind {
-    pub const ALL: [GameKind; 10] = [
+    pub const ALL: [GameKind; 9] = [
         GameKind::Sauspiel,
         GameKind::Hochzeit,
         GameKind::Wenz,
@@ -234,7 +232,6 @@ impl GameKind {
         GameKind::Farbsolo,
         GameKind::Farbwenz,
         GameKind::Farbgeier,
-        GameKind::Sie,
         GameKind::Bettel,
         GameKind::Ramsch,
     ];
@@ -248,7 +245,6 @@ impl GameKind {
             GameKind::Farbsolo => "Farbsolo",
             GameKind::Farbwenz => "Farbwenz",
             GameKind::Farbgeier => "Farbgeier",
-            GameKind::Sie => "Sie",
             GameKind::Bettel => "Bettel",
             GameKind::Ramsch => "Ramsch",
         }
@@ -268,7 +264,6 @@ impl GameKind {
                 | GameKind::Farbsolo
                 | GameKind::Farbwenz
                 | GameKind::Farbgeier
-                | GameKind::Sie
         )
     }
 
@@ -305,7 +300,6 @@ impl GameKind {
         let trumps = match self {
             GameKind::Sauspiel | GameKind::Hochzeit | GameKind::Farbsolo => 14,
             GameKind::Wenz | GameKind::Geier => 4,
-            GameKind::Sie => 8,
             GameKind::Farbwenz | GameKind::Farbgeier => 11,
             GameKind::Bettel | GameKind::Ramsch => 0,
         };
@@ -350,6 +344,10 @@ pub struct GameInput {
     /// Tout: Spieler sagt an, alle Stiche zu machen (Verdopplung).
     #[serde(default)]
     pub tout: bool,
+    /// Sie: die Steigerung des Tout beim Farbsolo (noch eine Verdopplung). Der Spieler hat dabei immer alle
+    /// 8 Laufende, Schneider und Schwarz zählen nicht zum Preis. Geht nur zusammen mit Tout.
+    #[serde(default)]
+    pub sie: bool,
     /// Hat die Spielerpartei gewonnen?
     pub won: bool,
     /// Hat die Siegerpartei Schneider erreicht?
@@ -424,6 +422,7 @@ impl GameInput {
             kontra_by: None,
             re: false,
             tout: false,
+            sie: false,
             won: true,
             schneider: false,
             schwarz: false,
@@ -474,12 +473,13 @@ impl GameInput {
             .collect()
     }
 
-    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout und Bock.
+    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout, Sie und Bock.
     pub fn doublings(&self) -> u32 {
         self.knockers.len() as u32
             + u32::from(self.kontra_by.is_some())
             + u32::from(self.re)
             + u32::from(self.tout)
+            + u32::from(self.sie)
             + self.bock_doublings()
     }
 

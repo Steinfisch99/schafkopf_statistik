@@ -302,7 +302,15 @@ pub fn GameForm(
                     }
                 }
                 if kind.allows_tout() {
-                    Chip { label: "Tout".to_string(), on: d.tout, onclick: move |_| { let on = !draft.read().tout; draft.write().tout = on; } }
+                    Chip { label: "Tout".to_string(), on: d.tout, onclick: move |_| { let on = !draft.read().tout; draft.write().set_tout(on); } }
+                }
+                if kind == GameKind::Farbsolo {
+                    Chip {
+                        label: "Sie".to_string(),
+                        on: d.sie,
+                        disabled: !d.tout,
+                        onclick: move |_| { let on = !draft.read().sie; draft.write().set_sie(on); },
+                    }
                 }
             }
         }
@@ -335,9 +343,12 @@ pub fn GameForm(
                     Chip { label: "Schneider".to_string(), on: d.schneider, onclick: move |_| { let on = !draft.read().schneider; draft.write().set_schneider(on); } }
                     Chip { label: "Schwarz".to_string(), on: d.schwarz, onclick: move |_| { let on = !draft.read().schwarz; draft.write().set_schwarz(on); } }
                 }
-                if d.tout {
+                if d.sie {
+                    p { class: "hint", "Beim Sie hat der Spieler immer alle 8 Laufende, Schneider und Schwarz zählen nicht zum Preis. Sie ist eine Verdopplung mehr als das Tout." }
+                } else if d.tout {
                     p { class: "hint", "Beim Tout zählen Schneider und Schwarz nicht zum Preis, der Spieler muss ohnehin alle Stiche machen. Sie werden trotzdem eingetragen." }
                 }
+                if !d.sie {
                 div { class: "stepper",
                     span { "Laufende" }
                     button {
@@ -365,6 +376,7 @@ pub fn GameForm(
                         disabled: d.laufende == 0,
                         onclick: move |_| draft.write().toggle_gegenlauf(),
                     }
+                }
                 }
             }
         }

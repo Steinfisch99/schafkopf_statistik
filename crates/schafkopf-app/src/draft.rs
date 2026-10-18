@@ -19,6 +19,8 @@ pub struct GameDraft {
     pub kontra_by: Option<Seat>,
     pub re: bool,
     pub tout: bool,
+    /// Sie, die Steigerung des Tout beim Farbsolo: Der Spieler hat immer alle 8 Laufende.
+    pub sie: bool,
     pub won: bool,
     pub schneider: bool,
     pub schwarz: bool,
@@ -84,6 +86,7 @@ impl GameDraft {
             kontra_by: None,
             re: false,
             tout: false,
+            sie: false,
             won: true,
             schneider: false,
             schwarz: false,
@@ -130,6 +133,7 @@ impl GameDraft {
             kontra_by: i.kontra_by,
             re: i.re,
             tout: i.tout,
+            sie: i.sie,
             won: i.won,
             schneider: i.schneider || i.schwarz,
             schwarz: i.schwarz,
@@ -219,6 +223,9 @@ impl GameDraft {
         if !kind.allows_tout() {
             self.tout = false;
         }
+        if kind != GameKind::Farbsolo {
+            self.set_sie(false);
+        }
         if !kind.has_extras() {
             self.schneider = false;
             let schwarz_before = self.schwarz;
@@ -302,6 +309,25 @@ impl GameDraft {
         if self.kontra_by.is_some() {
             self.re = !self.re;
         }
+    }
+
+    pub fn set_tout(&mut self, on: bool) {
+        self.tout = on;
+        if !on {
+            self.set_sie(false);
+        }
+    }
+
+    /// Sie geht nur beim Farbsolo und erst, wenn Tout an ist. Es setzt die Laufenden auf 8 (der Spieler hat sie
+    /// immer), beim Ausschalten fängt die Zahl wieder bei 0 an.
+    pub fn set_sie(&mut self, on: bool) {
+        let on = on && self.tout && self.kind == GameKind::Farbsolo;
+        if on == self.sie {
+            return;
+        }
+        self.sie = on;
+        self.gegenlauf = false;
+        self.laufende = if on { 8 } else { 0 };
     }
 
     pub fn set_schneider(&mut self, on: bool) {
@@ -537,6 +563,7 @@ impl GameDraft {
         input.kontra_by = self.kontra_by;
         input.re = self.re;
         input.tout = self.tout;
+        input.sie = self.sie && self.tout && self.kind == GameKind::Farbsolo;
         input.won = self.won;
         input.schneider = self.schneider || self.schwarz;
         input.schwarz = self.schwarz;
@@ -723,6 +750,41 @@ mod tests {
         assert_eq!(d.kontra_by, None, "wer Mitspieler wird, gibt kein Kontra");
         d.toggle_re();
         assert!(!d.re);
+    }
+
+    #[test]
+    fn sie_needs_tout_and_a_farbsolo_and_sets_eight_laufende() {
+        let t = table(4);
+        let mut d = GameDraft::new(&t);
+        d.toggle_declarer(1);
+        d.set_kind(GameKind::Farbsolo);
+        d.suit = Some(Suit::Gras);
+        d.set_sie(true);
+        assert!(!d.sie, "ohne Tout geht Sie nicht");
+        d.set_tout(true);
+        d.set_sie(true);
+        assert!(d.sie && d.laufende == 8 && !d.gegenlauf);
+        let input = d.to_input(None).unwrap();
+        assert!(input.sie && input.tout && input.laufende == 8);
+        let game = t.preview_game(input).unwrap();
+        assert_eq!(game.value, (50 + 80) * 4);
+        // Tout aus oder andere Spielart: Sie fällt weg.
+        d.set_tout(false);
+        assert!(!d.sie && d.laufende == 0);
+        d.set_tout(true);
+        d.set_sie(true);
+        d.set_kind(GameKind::Wenz);
+        assert!(!d.sie);
+        // Beim Bearbeiten kommt Sie zurück.
+        let mut table = t;
+        let mut d = GameDraft::new(&table);
+        d.toggle_declarer(1);
+        d.set_kind(GameKind::Farbsolo);
+        d.suit = Some(Suit::Gras);
+        d.set_tout(true);
+        d.set_sie(true);
+        table.add_game(d.to_input(None).unwrap()).unwrap();
+        assert!(GameDraft::from_game(&table, 0).unwrap().sie);
     }
 
     #[test]

@@ -119,7 +119,7 @@ Entscheidungen:
       führt in der App zurück statt in den Hintergrund; davor: Geier zählt Laufende ab 2 (ein Feld mit Wenz), Ramsch mit
       Durchmarsch-Knopf, Umlaute in beiden CSV-Formaten
 - [x] Fehlerarten richten sich nach der Richtung des Preises (zu viel: dazugedichtet, zu wenig: vergessen)
-- [x] Spielart Sie (Solo ohne Farbe, acht Trümpfe)
+- [x] Sie als Steigerung des Tout beim Farbsolo (8 Laufende, kein Schneider/Schwarz, noch eine Verdopplung)
 - [x] Vergehen und Neumischen mit Strafzahlungen (Tarif-Option), Statistik, Verlauf und CSV
 - [x] Spieleliste farbig nach Sauspiel, Solo und Ramsch; Schellen als Rollschelle
 - [ ] JSON-Sicherung exportieren und wieder importieren

@@ -44,7 +44,9 @@ pub fn detail(table: &Table, game: &Game) -> String {
     if input.kontra_by.is_some() {
         parts.push(if input.re { "Kontra, Re" } else { "Kontra" }.into());
     }
-    if input.tout {
+    if input.sie {
+        parts.push("Tout, Sie".into());
+    } else if input.tout {
         parts.push("Tout".into());
     }
     if input.bock {
@@ -417,9 +419,10 @@ mod offence_tests {
     fn an_offence_reads_as_one_sentence() {
         let players = ["Anna", "Ben", "Cem", "Dora"].map(String::from).to_vec();
         let mut t = Table::new("T", players, 0, Tariff::default()).unwrap();
-        t.add_offence(OffenceKind::NotFollowed, 2, None, None)
+        t.add_offence(OffenceKind::NotFollowed, 2, None, None, None)
             .unwrap();
-        t.add_offence(OffenceKind::Misdeal, 1, None, None).unwrap();
+        t.add_offence(OffenceKind::Misdeal, 1, None, None, None)
+            .unwrap();
         assert_eq!(
             offence_text(&t, &t.offences[0]),
             "Cem: Nicht bedient (vor dem ersten Spiel, zahlt 0,50\u{a0}€ an jeden)"

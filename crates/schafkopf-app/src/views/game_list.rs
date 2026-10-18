@@ -27,7 +27,7 @@ pub fn GameList(table: Signal<Option<Table>>, screen: Signal<Screen>, editable: 
             summary { "Spiele ({games.len()})" }
             p { class: "kind-legend",
                 span { class: "kind-team", "Sauspiel, Hochzeit" }
-                span { class: "kind-solo", "Solo, Wenz, Geier, Sie, Bettel" }
+                span { class: "kind-solo", "Solo, Wenz, Geier, Bettel" }
                 span { class: "kind-ramsch", "Ramsch" }
             }
             ol { reversed: true, start: "{games.len()}",
@@ -139,7 +139,6 @@ mod tests {
             GameKind::Farbsolo,
             GameKind::Farbwenz,
             GameKind::Farbgeier,
-            GameKind::Sie,
             GameKind::Bettel,
         ] {
             assert_eq!(kind_class(solo), "kind-solo", "{solo:?}");

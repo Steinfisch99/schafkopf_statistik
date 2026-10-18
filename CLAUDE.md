@@ -50,10 +50,10 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
   (`reclaimed_value`, Preis = verlangt − 2·Mehrbetrag, nie unter 0). Tarif-Option schaltet es ab.
 - **Falsch-verlangt-Fehlerarten** hängen von der Richtung ab (`PriceMistake::for_price`): zu viel = "dazugedichtet",
   zu wenig = "vergessen/nicht verlangt". Alte Varianten bleiben im Enum, damit gespeicherte Daten laden.
-- **Sie** (`GameKind::Sie`) ist als Solo ohne Farbe mit 8 Trümpfen umgesetzt. Das ist meine Annahme, der Nutzer hat die
-  Regel nie beschrieben. Falls sie anders gespielt wird, anpassen (`max_laufende`, Tarif-Gruppe in `laufende_min`).
+- **Sie** ist **keine Spielart**, sondern `GameInput.sie`: Steigerung des Tout, nur beim Farbsolo. Immer 8 Laufende, Schneider/
+  Schwarz zählen nicht, eine Verdopplung mehr als Tout (letzteres ist meine Auslegung von "Steigerung").
 - **Vergehen/Neumischen** sind `Table.offences` (`Offence`, Auszahlung wird beim Eintragen festgeschrieben). Täter zahlt
-  jedem anderen am Tisch. Neumischen = `OffenceKind::Misdeal`, der Geber bleibt (er ist aus den Spielen abgeleitet).
+  nur den **Mitspielern der laufenden Runde** (`default_penalty_recipients`), nicht allen am Tisch. Neumischen = `OffenceKind::Misdeal`, der Geber bleibt (er ist aus den Spielen abgeleitet).
   Tarif: `penalties_enabled`, `offence_penalty`, `misdeal_penalty` (Standard 0). Strafen stecken im Stand nach
   `after_games` (`balance_history`) und in `PlayerStats::balance`. In der CSV als Zeilen in der Ereignis-Datei.
 - Spieleliste färbt nach `GameKind::is_team_game`/`is_solo` (CSS `kind-team`, `kind-solo`, `kind-ramsch`).
@@ -69,7 +69,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 248 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 251 Tests, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
@@ -94,5 +94,5 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
   nicht bestätigt, ob er stattdessen das ganze Falsch-verlangen-Feature abschaltbar haben wollte.
 - Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
   Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, aus dem Gedächtnis gezeichnet, keine
-  Recherche möglich: Netz gesperrt). Die Regel für "Sie" ist geraten.
+  Recherche möglich: Netz gesperrt). Der Sie-Preis (eine Verdopplung mehr als Tout) ist Auslegung.
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

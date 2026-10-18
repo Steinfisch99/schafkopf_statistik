@@ -43,7 +43,7 @@ pub struct Tariff {
     /// anderen am Tisch zahlt.
     #[serde(default = "default_offence_penalty")]
     pub offence_penalty: Cents,
-    /// Strafe fürs Neumischen nach einem Fehler beim Geben, die der Geber jedem anderen am Tisch
+    /// Strafe fürs Neumischen nach einem Fehler beim Geben, die der Geber jedem Mitspieler der Runde
     /// zahlt. 0: Neumischen kostet nichts.
     #[serde(default)]
     pub misdeal_penalty: Cents,
@@ -173,6 +173,9 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
     }
     if input.tout && !kind.allows_tout() {
         return Err(Error::ToutNotAllowed);
+    }
+    if input.sie && !(input.tout && kind == GameKind::Farbsolo) {
+        return Err(Error::SieNotAllowed);
     }
     if let Some(p) = input.points {
         if p > 120 {

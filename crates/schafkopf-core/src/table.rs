@@ -141,7 +141,7 @@ pub struct Offence {
     pub kind: OffenceKind,
     /// Wer das Vergehen begangen hat (beim Neumischen: der Geber).
     pub offender: Seat,
-    /// Strafe, die der Täter jedem anderen am Tisch zahlt, in Cent. 0: keine Strafe.
+    /// Strafe, die der Täter jedem Empfänger zahlt, in Cent. 0: keine Strafe.
     pub amount: Cents,
     /// Gewinn/Verlust pro Sitzplatz in Cent. Die Summe ist null.
     pub payouts: Vec<Cents>,
@@ -607,6 +607,11 @@ impl Table {
         if input.participants.is_empty() && input.dealer < self.players.len() {
             input.participants = self.default_participants(input.dealer);
         }
+        if input.sie {
+            // Beim Sie hat der Spieler immer alle 8 Laufende, nie die Gegner.
+            input.laufende = 8;
+            input.gegenlauf = false;
+        }
         validate(&input, self.players.len())?;
         let calculated_value = calculated_value(tariff, &input);
         let demanded = input.price_override.filter(|&p| p != calculated_value);
@@ -700,13 +705,25 @@ impl Table {
         }
     }
 
-    /// Hält ein Vergehen oder Neumischen fest. Der Täter zahlt `amount` an jeden anderen, der gerade am
-    /// Tisch sitzt; ohne Angabe gilt die Strafe aus dem Tarif ([`Table::penalty_for`]). Gibt der Tarif
-    /// keine Strafzahlungen vor, kostet es nichts, es wird aber gezählt.
+    /// Wer eine Strafe bekommt, wenn nichts anderes gewählt ist: die Mitspieler der laufenden Runde, also
+    /// die, die beim nächsten Spiel mitspielen (siehe [`Table::default_participants`]), ohne den Täter.
+    /// Wer gerade aussetzt, bekommt nichts.
+    pub fn default_penalty_recipients(&self, offender: Seat) -> Vec<Seat> {
+        self.default_participants(self.next_dealer())
+            .into_iter()
+            .filter(|&s| s != offender)
+            .collect()
+    }
+
+    /// Hält ein Vergehen oder Neumischen fest. Der Täter zahlt `amount` an jeden der `recipients`, ohne
+    /// Angabe an die Mitspieler der laufenden Runde ([`Table::default_penalty_recipients`]), nicht an alle
+    /// am Tisch. Ohne `amount` gilt die Strafe aus dem Tarif ([`Table::penalty_for`]). Gibt der Tarif keine
+    /// Strafzahlungen vor, kostet es nichts, es wird aber gezählt.
     pub fn add_offence(
         &mut self,
         kind: OffenceKind,
         offender: Seat,
+        recipients: Option<Vec<Seat>>,
         amount: Option<Cents>,
         at: Option<i64>,
     ) -> Result<&Offence> {
@@ -724,11 +741,18 @@ impl Table {
         if amount < 0 {
             return Err(Error::NegativePrice(amount));
         }
-        let others: Vec<Seat> = self
-            .present_seats()
-            .into_iter()
-            .filter(|&s| s != offender)
-            .collect();
+        let mut others = recipients.unwrap_or_else(|| self.default_penalty_recipients(offender));
+        others.sort_unstable();
+        others.dedup();
+        others.retain(|&s| s != offender);
+        for &s in &others {
+            if s >= self.players.len() {
+                return Err(Error::UnknownSeat(s));
+            }
+            if !self.is_present(s) {
+                return Err(Error::SeatNotAtTable(s));
+            }
+        }
         let mut payouts = vec![0; self.players.len()];
         for &s in &others {
             payouts[s] = amount;

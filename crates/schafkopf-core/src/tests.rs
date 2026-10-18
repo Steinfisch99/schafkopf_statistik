@@ -929,7 +929,6 @@ fn max_laufende_per_game_kind_and_side() {
         (GameKind::Geier, 4, 4),
         (GameKind::Farbwenz, 8, 11),
         (GameKind::Farbgeier, 8, 11),
-        (GameKind::Sie, 8, 8),
         (GameKind::Bettel, 0, 0),
         (GameKind::Ramsch, 0, 0),
     ];
@@ -2811,48 +2810,11 @@ fn invented_schneider_is_stored_and_counted() {
 }
 
 #[test]
-fn sie_is_a_solo_without_suit_and_old_rule_sets_do_not_get_it() {
-    assert_eq!(GameKind::Sie.label(), "Sie");
-    assert!(GameKind::Sie.is_solo() && GameKind::Sie.allows_tout());
-    assert!(!GameKind::Sie.needs_trump_suit() && !GameKind::Sie.is_team_game());
-    assert!(!GameKind::Ramsch.is_solo() && !GameKind::Sauspiel.is_solo());
-    assert!(GameKind::Bettel.is_solo() && GameKind::Wenz.is_solo());
-    let mut t = table();
-    // Solo-Preis 50, dreifach; Laufende ab 3, höchstens 8 beim Spieler.
-    let g = t
-        .add_game(GameInput {
-            laufende: 3,
-            ..GameInput::new(0, GameKind::Sie, 1)
-        })
-        .unwrap();
-    assert_eq!(g.value, 50 + 30);
-    assert_eq!(g.payouts, vec![-80, 240, -80, -80]);
-    assert!(t
-        .add_game(GameInput {
-            laufende: 9,
-            ..GameInput::new(0, GameKind::Sie, 1)
-        })
-        .is_err());
-    assert!(t
-        .add_game(GameInput {
-            suit: Some(Suit::Eichel),
-            ..GameInput::new(0, GameKind::Sie, 1)
-        })
-        .is_err());
-    // Ein gespeichertes Regelwerk ohne Sie bekommt sie nicht dazu.
-    let json = t.to_json().unwrap();
-    let mut old: serde_json::Value = serde_json::from_str(&json).unwrap();
-    old["enabled_kinds"] = serde_json::json!(["Sauspiel", "Wenz"]);
-    let loaded = Table::from_json(&old.to_string()).unwrap();
-    assert!(!loaded.is_enabled(GameKind::Sie));
-}
-
-#[test]
 fn an_offence_costs_the_offender_a_penalty_from_every_other_player() {
     let mut t = table();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
     let o = t
-        .add_offence(OffenceKind::NotFollowed, 2, None, Some(100))
+        .add_offence(OffenceKind::NotFollowed, 2, None, None, Some(100))
         .unwrap();
     assert_eq!((o.amount, o.after_games), (50, 1));
     assert_eq!(o.payouts, vec![50, 50, -150, 50]);
@@ -2860,7 +2822,7 @@ fn an_offence_costs_the_offender_a_penalty_from_every_other_player() {
     assert_eq!(t.balances().iter().sum::<Cents>(), 0);
     // Eigener Betrag.
     let o = t
-        .add_offence(OffenceKind::Collusion, 0, Some(100), None)
+        .add_offence(OffenceKind::Collusion, 0, None, Some(100), None)
         .unwrap();
     assert_eq!(o.payouts, vec![-300, 100, 100, 100]);
     assert_eq!(t.last_activity(), Some(100));
@@ -2874,14 +2836,20 @@ fn an_offence_costs_the_offender_a_penalty_from_every_other_player() {
 #[test]
 fn offences_check_the_seat_and_the_amount() {
     let mut t = table();
-    assert!(t.add_offence(OffenceKind::Other, 9, None, None).is_err());
     assert!(t
-        .add_offence(OffenceKind::Other, 1, Some(-5), None)
+        .add_offence(OffenceKind::Other, 9, None, None, None)
+        .is_err());
+    assert!(t
+        .add_offence(OffenceKind::Other, 1, None, Some(-5), None)
         .is_err());
     t.leave(3, None).unwrap();
-    assert!(t.add_offence(OffenceKind::Other, 3, None, None).is_err());
+    assert!(t
+        .add_offence(OffenceKind::Other, 3, None, None, None)
+        .is_err());
     // Wer nicht am Tisch sitzt, zahlt und bekommt nichts.
-    let o = t.add_offence(OffenceKind::Other, 1, None, None).unwrap();
+    let o = t
+        .add_offence(OffenceKind::Other, 1, None, None, None)
+        .unwrap();
     assert_eq!(o.payouts, vec![50, -100, 50, 0]);
 }
 
@@ -2892,7 +2860,7 @@ fn a_misdeal_keeps_the_dealer_and_is_free_unless_the_tariff_says_so() {
     assert_eq!(t.next_dealer(), 1);
     // Standard: Neumischen kostet nichts, wird aber gezählt.
     let o = t
-        .add_offence(OffenceKind::Misdeal, t.next_dealer(), None, None)
+        .add_offence(OffenceKind::Misdeal, t.next_dealer(), None, None, None)
         .unwrap();
     assert_eq!((o.amount, o.payouts.clone()), (0, vec![0; 4]));
     assert_eq!(t.next_dealer(), 1, "derselbe Geber mischt neu");
@@ -2900,7 +2868,9 @@ fn a_misdeal_keeps_the_dealer_and_is_free_unless_the_tariff_says_so() {
         misdeal_penalty: 20,
         ..Tariff::default()
     });
-    let o = t.add_offence(OffenceKind::Misdeal, 1, None, None).unwrap();
+    let o = t
+        .add_offence(OffenceKind::Misdeal, 1, None, None, None)
+        .unwrap();
     assert_eq!(o.payouts, vec![20, -60, 20, 20]);
     let s = table_stats(&t);
     assert_eq!((s.misdeals, s.offences), (2, 0));
@@ -2921,7 +2891,7 @@ fn without_penalties_offences_are_counted_but_free() {
     assert_eq!(t.penalty_for(OffenceKind::NotFollowed), 0);
     assert_eq!(t.penalty_for(OffenceKind::Misdeal), 0);
     let o = t
-        .add_offence(OffenceKind::NotFollowed, 1, Some(100), None)
+        .add_offence(OffenceKind::NotFollowed, 1, None, Some(100), None)
         .unwrap();
     assert_eq!((o.amount, o.payouts.clone()), (0, vec![0; 4]));
     let s = table_stats(&t);
@@ -2933,10 +2903,10 @@ fn without_penalties_offences_are_counted_but_free() {
 #[test]
 fn penalties_flow_into_balances_stats_and_the_history_chart() {
     let mut t = table();
-    t.add_offence(OffenceKind::OutOfTurn, 0, None, None)
+    t.add_offence(OffenceKind::OutOfTurn, 0, None, None, None)
         .unwrap();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
-    t.add_offence(OffenceKind::ShowedCards, 2, None, None)
+    t.add_offence(OffenceKind::ShowedCards, 2, None, None, None)
         .unwrap();
     t.add_game(sauspiel(1, 1, 3)).unwrap();
     let history = balance_history(&t);
@@ -2971,7 +2941,8 @@ fn old_files_have_no_offences_and_old_tariffs_have_penalties_on() {
     assert!(old.penalties_enabled);
     assert_eq!((old.offence_penalty, old.misdeal_penalty), (50, 0));
     let mut t = table();
-    t.add_offence(OffenceKind::Other, 0, None, None).unwrap();
+    t.add_offence(OffenceKind::Other, 0, None, None, None)
+        .unwrap();
     let mut value: serde_json::Value = serde_json::from_str(&t.to_json().unwrap()).unwrap();
     value.as_object_mut().unwrap().remove("offences");
     let loaded = Table::from_json(&value.to_string()).unwrap();
@@ -2979,7 +2950,8 @@ fn old_files_have_no_offences_and_old_tariffs_have_penalties_on() {
     assert_eq!(loaded.balances(), vec![0; 4]);
     // Ein neuer Spieler bekommt für frühere Strafen 0.
     let mut t = table();
-    t.add_offence(OffenceKind::Other, 0, None, None).unwrap();
+    t.add_offence(OffenceKind::Other, 0, None, None, None)
+        .unwrap();
     t.add_player("Eva", None, None).unwrap();
     assert_eq!(t.offences[0].payouts.len(), 5);
     assert_eq!(t.balances().iter().sum::<Cents>(), 0);
@@ -2988,9 +2960,10 @@ fn old_files_have_no_offences_and_old_tariffs_have_penalties_on() {
 #[test]
 fn overall_stats_add_up_offences_across_evenings() {
     let mut a = table();
-    a.add_offence(OffenceKind::NotFollowed, 1, None, None)
+    a.add_offence(OffenceKind::NotFollowed, 1, None, None, None)
         .unwrap();
-    a.add_offence(OffenceKind::Misdeal, 0, None, None).unwrap();
+    a.add_offence(OffenceKind::Misdeal, 0, None, None, None)
+        .unwrap();
     let mut b = Table::new(
         "B",
         ["Ben", "Anna", "Cem", "Dora"].map(String::from).to_vec(),
@@ -2998,7 +2971,7 @@ fn overall_stats_add_up_offences_across_evenings() {
         Tariff::default(),
     )
     .unwrap();
-    b.add_offence(OffenceKind::NotFollowed, 0, None, None)
+    b.add_offence(OffenceKind::NotFollowed, 0, None, None, None)
         .unwrap();
     let all = overall_stats(&[&a, &b]);
     assert_eq!((all.offences, all.misdeals), (2, 1));
@@ -3011,14 +2984,121 @@ fn overall_stats_add_up_offences_across_evenings() {
 #[test]
 fn offences_appear_in_the_protocol_csv_in_the_order_of_the_games() {
     let mut t = table();
-    t.add_offence(OffenceKind::NotFollowed, 2, None, Some(50))
+    t.add_offence(OffenceKind::NotFollowed, 2, None, None, Some(50))
         .unwrap();
     t.add_game(sauspiel(0, 1, 3)).unwrap();
-    t.add_offence(OffenceKind::Misdeal, 1, Some(20), None)
+    t.add_offence(OffenceKind::Misdeal, 1, None, Some(20), None)
         .unwrap();
     let csv = t.events_csv();
     let lines: Vec<&str> = csv.lines().collect();
     assert!(lines[0].ends_with("Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent"));
     assert!(lines[2].contains("Vergehen: Nicht bedient,Cem,,0,50"));
     assert!(lines[3].contains("Vergehen: Falsch gegeben (neu gemischt),Ben,,1,20"));
+}
+
+fn farbsolo(tout: bool, sie: bool) -> GameInput {
+    GameInput {
+        suit: Some(Suit::Eichel),
+        tout,
+        sie,
+        ..GameInput::new(0, GameKind::Farbsolo, 1)
+    }
+}
+
+#[test]
+fn sie_is_the_step_up_from_tout_in_a_farbsolo() {
+    let mut t = table();
+    // Tout: (50 + 3 Laufende zählen nicht, es gibt keine) mal 2.
+    let g = t.add_game(farbsolo(true, false)).unwrap();
+    assert_eq!(g.value, 100);
+    // Sie: immer 8 Laufende (50 + 80), Schneider und Schwarz zählen nicht, eine Verdopplung mehr als Tout.
+    let g = t
+        .add_game(GameInput {
+            schneider: true,
+            schwarz: true,
+            laufende: 2,
+            gegenlauf: true,
+            ..farbsolo(true, true)
+        })
+        .unwrap();
+    assert_eq!((g.input.laufende, g.input.gegenlauf), (8, false));
+    assert_eq!(g.value, (50 + 80) * 4);
+    assert_eq!(g.payouts, vec![-520, 1560, -520, -520]);
+    assert_eq!(g.input.doublings(), 2);
+    // Bock und Klopfen kommen darüber.
+    let g = t
+        .add_game(GameInput {
+            knockers: vec![2],
+            ..farbsolo(true, true)
+        })
+        .unwrap();
+    assert_eq!(g.value, (50 + 80) * 8);
+}
+
+#[test]
+fn sie_only_goes_with_tout_in_a_farbsolo() {
+    let mut t = table();
+    assert!(matches!(
+        t.add_game(farbsolo(false, true)),
+        Err(Error::SieNotAllowed)
+    ));
+    let wenz = GameInput {
+        tout: true,
+        sie: true,
+        ..GameInput::new(0, GameKind::Wenz, 1)
+    };
+    assert!(matches!(t.add_game(wenz), Err(Error::SieNotAllowed)));
+    assert!(t.games().is_empty());
+    // Es gibt keine Spielart Sie, und alte Dateien ohne das Feld laden.
+    assert_eq!(GameKind::ALL.len(), 9);
+    let mut t = table();
+    t.add_game(farbsolo(true, true)).unwrap();
+    let json = t.to_json().unwrap();
+    assert_eq!(Table::from_json(&json).unwrap(), t);
+    let old: String = json
+        .lines()
+        .filter(|l| !l.contains("\"sie\""))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(!Table::from_json(&old).unwrap().games()[0].input.sie);
+    assert!(t.csv_header().contains(",Tout,Sie,"));
+}
+
+#[test]
+fn a_penalty_goes_only_to_the_players_of_the_current_round() {
+    let mut t = Table::new(
+        "Fünf",
+        ["Anna", "Ben", "Cem", "Dora", "Eva"]
+            .map(String::from)
+            .to_vec(),
+        0,
+        Tariff::default(),
+    )
+    .unwrap();
+    // Geber Anna: Es spielen Ben, Cem, Eva (vor dem Geber) und Anna. Dora sitzt aus.
+    assert_eq!(t.default_participants(0), vec![1, 2, 4, 0]);
+    let o = t
+        .add_offence(OffenceKind::NotFollowed, 2, None, None, None)
+        .unwrap();
+    assert_eq!(o.payouts, vec![50, 50, -150, 0, 50]);
+    // Wer aussetzt, kann auch etwas verbrochen haben und zahlt den Mitspielern.
+    let o = t
+        .add_offence(OffenceKind::Other, 3, None, None, None)
+        .unwrap();
+    assert_eq!(o.payouts, vec![50, 50, 50, -200, 50]);
+    // Die Empfänger lassen sich von Hand wählen, aber es müssen Anwesende sein.
+    let o = t
+        .add_offence(OffenceKind::Other, 1, Some(vec![0, 3]), Some(100), None)
+        .unwrap();
+    assert_eq!(o.payouts, vec![100, -200, 0, 100, 0]);
+    assert!(t
+        .add_offence(OffenceKind::Other, 1, Some(vec![9]), None, None)
+        .is_err());
+    // Nach dem Spiel von Geber Ben gibt Cem: Es spielen Dora, Eva, Ben und Cem, Eva setzt hier aus (Täter).
+    t.add_game(GameInput {
+        participants: vec![2, 3, 0, 1],
+        ..sauspiel(1, 2, 0)
+    })
+    .unwrap();
+    assert_eq!(t.default_penalty_recipients(4), vec![3, 1, 2]);
 }

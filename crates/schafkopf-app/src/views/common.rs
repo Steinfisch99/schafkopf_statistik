@@ -186,7 +186,7 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
                 TextField { label: "Vergehen je Mitspieler (€)", value: d.offence_penalty, mode: "decimal", oninput: move |v| draft.write().offence_penalty = v }
                 TextField { label: "Neumischen je Mitspieler (€)", value: d.misdeal_penalty, mode: "decimal", oninput: move |v| draft.write().misdeal_penalty = v }
             }
-            p { class: "hint", "Der Täter zahlt die Strafe an jeden anderen am Tisch. Beim Neumischen (Fehler beim Geben) ist es der Geber, 0 heißt: Neumischen kostet nichts." }
+            p { class: "hint", "Der Täter zahlt die Strafe an jeden Mitspieler der laufenden Runde (wer aussetzt, bekommt nichts). Beim Neumischen (Fehler beim Geben) ist es der Geber, 0 heißt: Neumischen kostet nichts." }
         } else {
             p { class: "hint", "Aus: Vergehen und Neumischen werden trotzdem eingetragen und gezählt, kosten aber nichts." }
         }

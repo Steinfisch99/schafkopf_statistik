@@ -46,6 +46,8 @@ pub enum Error {
     ReWithoutKontra,
     #[error("Tout gibt es nur bei Solospielen (Wenz, Geier, Farbsolo, ...)")]
     ToutNotAllowed,
+    #[error("Sie gibt es nur beim Farbsolo und nur zusammen mit Tout")]
+    SieNotAllowed,
     #[error("Der verlangte Preis darf nicht negativ sein: {0}")]
     NegativePrice(i64),
     #[error("Augen müssen zwischen 0 und 120 liegen, nicht {0}")]

@@ -432,17 +432,19 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
       "Bockrunde vergessen".
 - [ ] Die Statistik ("Falsch verlangt") zählt "Schneider dazugedichtet" wie jede andere Art.
 
-### 23. Sie
-- [ ] Im Regelwerk lässt sich "Sie" an- und abschalten, bei "Alle Spielarten" ist sie an.
-- [ ] Eintragen: "Sie" hat keine Farbwahl, rechnet wie ein Solo (Preis, der Spieler dreifach), Laufende bis 8, Tout geht.
-- [ ] Ein altes Regelwerk (zum Beispiel "Unsere Runde") zeigt "Sie" nicht.
-- [ ] Wenn die Regel für "Sie" bei euch anders ist, schreib mir wie.
+### 23. Sie (Steigerung des Tout)
+- [ ] Beim Farbsolo gibt es neben "Tout" den Knopf "Sie". Er ist ausgegraut, solange Tout aus ist; bei anderen
+      Spielarten fehlt er.
+- [ ] Mit Sie stehen die Laufende fest auf 8 (kein Zähler), Schneider und Schwarz ändern den Preis nicht.
+- [ ] Der Preis ist doppelt so hoch wie beim Tout (Standardtarif: Tout 260, Sie 520 je Gegner).
+- [ ] Tout abschalten schaltet Sie mit ab. In der Liste steht "Tout, Sie".
 
 ### 24. Vergehen, Strafzahlungen und Neumischen
 - [ ] Am Tisch gibt es "Vergehen oder Neumischen". Du wählst die Art und den Spieler, "Eintragen" ist erst dann bedienbar.
 - [ ] Bei "Falsch gegeben (neu gemischt)" ist der Geber vorgewählt, nach dem Eintragen ist **derselbe** Geber dran.
 - [ ] Im Tarif gibt es "Vergehen und Neumischen kosten eine Strafe" mit zwei Beträgen. Standard: Vergehen 0,50 €, Neumischen 0.
-- [ ] Der Täter zahlt jedem anderen die Strafe, der Geldstand und das Diagramm ändern sich, die Summe bleibt 0.
+- [ ] Der Täter zahlt nur den **Mitspielern der laufenden Runde** (wer aussetzt, bekommt nichts), unter "Wer bekommt die
+      Strafe?" lässt sich das ändern. Geldstand und Diagramm ändern sich, die Summe bleibt 0.
 - [ ] Der Betrag lässt sich beim Eintragen ändern. Ist die Option im Tarif aus, kostet nichts etwas, es wird nur gezählt.
 - [ ] Unter den Spielen steht "Vergehen und Neumischen" mit Uhrzeit und Strafe, "Zurücknehmen" macht es rückgängig.
 - [ ] Die Statistik zeigt den Abschnitt "Vergehen und Neumischen" (Art, wer, Strafen), in der Gesamtstatistik und
