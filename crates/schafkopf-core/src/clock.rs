@@ -45,3 +45,16 @@ pub fn format_duration(secs: i64) -> String {
         format!("{minutes} min")
     }
 }
+
+/// Minuten seit 12:00 Uhr mittags in der Ortszeit (0 bis 1439). So liegt 01:00 Uhr nach 23:00 Uhr, und
+/// sich Uhrzeiten eines Abends lassen sich mitteln, auch wenn sie über Mitternacht gehen.
+pub fn minutes_after_noon(unix_secs: i64, offset_min: i32) -> i32 {
+    let (_, _, _, h, mi) = civil(unix_secs, offset_min);
+    (h as i32 * 60 + mi as i32 - 720).rem_euclid(1_440)
+}
+
+/// "21:15" für Minuten seit 12:00 Uhr, siehe [`minutes_after_noon`].
+pub fn format_minutes_after_noon(minutes: i32) -> String {
+    let m = (minutes + 720).rem_euclid(1_440);
+    format!("{:02}:{:02}", m / 60, m % 60)
+}

@@ -1,7 +1,8 @@
 //! Aufbereitung der Statistik für die Anzeige: Texte und Sortierungen ohne Oberfläche.
 
 use schafkopf_core::{
-    Cents, GameKind, KindStats, LaufendeStats, PlayerStats, RoleStats, Table, TableStats,
+    format_clock, format_minutes_after_noon, time_spread, Cents, GameKind, KindStats,
+    LaufendeStats, PlayerStats, Presence, RoleStats, Table, TableStats,
 };
 
 /// Prozent als ganze Zahl mit geschütztem Leerzeichen, "–" ohne Spiele.
@@ -280,6 +281,66 @@ pub fn tout_ranking(rows: Vec<ToutRow>) -> Vec<(usize, ToutRow)> {
         .collect()
 }
 
+/// Wann ein Spieler kam: "von Anfang an (19:30)" oder "20:45, nach Spiel 4".
+pub fn arrival_text(p: &Presence, offset_min: i32) -> String {
+    let time = p.arrived.map(|t| format_clock(t, offset_min));
+    if p.from_start {
+        return match time {
+            Some(t) => format!("von Anfang an ({t})"),
+            None => "von Anfang an".to_owned(),
+        };
+    }
+    let when = match p.arrived_after_games {
+        0 => "vor dem ersten Spiel".to_owned(),
+        n => format!("nach Spiel {n}"),
+    };
+    match time {
+        Some(t) => format!("{t}, {when}"),
+        None => when,
+    }
+}
+
+/// Wann ein Spieler ging: "21:50, nach Spiel 8" oder "blieb bis zum Ende"; war er zwischendurch weg, steht
+/// das dahinter.
+pub fn departure_text(p: &Presence, offset_min: i32) -> String {
+    let mut text = if p.left_early {
+        let time = p.left.map(|t| format_clock(t, offset_min));
+        let when = match p.left_after_games {
+            Some(0) => Some("vor dem ersten Spiel".to_owned()),
+            Some(n) => Some(format!("nach Spiel {n}")),
+            None => None,
+        };
+        match (time, when) {
+            (Some(t), Some(w)) => format!("{t}, {w}"),
+            (Some(t), None) => t,
+            (None, Some(w)) => w,
+            (None, None) => "ging".to_owned(),
+        }
+    } else {
+        "blieb bis zum Ende".to_owned()
+    };
+    if p.comebacks > 0 {
+        text.push_str(&format!(" (zwischendurch {}× weg)", p.comebacks));
+    }
+    text
+}
+
+/// Mittel und Spanne mehrerer Uhrzeiten (Minuten seit 12:00 Uhr): "Ø 19:40 (19:00 bis 20:30)".
+pub fn spread_text(times: &[i32]) -> String {
+    match time_spread(times) {
+        None => "–".to_owned(),
+        Some((avg, min, max)) if min == max => {
+            format!("{} (immer)", format_minutes_after_noon(avg))
+        }
+        Some((avg, min, max)) => format!(
+            "Ø {} ({} bis {})",
+            format_minutes_after_noon(avg),
+            format_minutes_after_noon(min),
+            format_minutes_after_noon(max)
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -546,5 +607,46 @@ mod tests {
         ]);
         let names: Vec<(usize, &str)> = ranked.iter().map(|(p, r)| (*p, r.name.as_str())).collect();
         assert_eq!(names, vec![(1, "Cem"), (2, "Ben"), (3, "Dora")]);
+    }
+
+    fn presence(from_start: bool, left_early: bool) -> Presence {
+        Presence {
+            seat: 0,
+            name: "Anna".into(),
+            from_start,
+            arrived: Some(1_700_000_000),
+            arrived_after_games: if from_start { 0 } else { 4 },
+            left: left_early.then_some(1_700_003_600),
+            left_early,
+            left_after_games: left_early.then_some(8),
+            comebacks: 0,
+        }
+    }
+
+    #[test]
+    fn arrival_and_departure_read_as_sentences() {
+        assert_eq!(
+            arrival_text(&presence(true, false), 0),
+            "von Anfang an (22:13)"
+        );
+        assert_eq!(
+            arrival_text(&presence(false, false), 0),
+            "22:13, nach Spiel 4"
+        );
+        assert_eq!(
+            departure_text(&presence(true, false), 0),
+            "blieb bis zum Ende"
+        );
+        let mut p = presence(true, true);
+        assert_eq!(departure_text(&p, 0), "23:13, nach Spiel 8");
+        p.comebacks = 2;
+        assert!(departure_text(&p, 0).ends_with("(zwischendurch 2× weg)"));
+    }
+
+    #[test]
+    fn spreads_of_times_show_average_and_range() {
+        assert_eq!(spread_text(&[]), "–");
+        assert_eq!(spread_text(&[600]), "22:00 (immer)");
+        assert_eq!(spread_text(&[540, 660]), "Ø 22:00 (21:00 bis 23:00)");
     }
 }

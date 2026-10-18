@@ -125,6 +125,7 @@ Entscheidungen:
 - [x] Doppler aufgeschlüsselt (ohne, mal 2, mal 4, mal 8, ...) für Abend, Gesamtstatistik und jeden Spieler
 - [x] Vergleich: Tipp auf eine Zahl in der Spielerkarte zeigt die Rangliste aller Spieler dazu
 - [x] Versionsnummer in der App sichtbar (aus `Cargo.toml`)
+- [x] Metadaten: Spiele je Tarif und Regelwerk, Wechsel, wer wann kam und ging (Abend und Gesamtstatistik)
 - [x] Rangliste "Wer doppelt am häufigsten", Tout je Spieler (Abend und Gesamtstatistik), Zahl der Bockrunden
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,

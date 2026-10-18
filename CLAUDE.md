@@ -60,6 +60,7 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
   Tarif: `penalties_enabled`, `offence_penalty`, `misdeal_penalty` (Standard 0). Strafen stecken im Stand nach
   `after_games` (`balance_history`) und in `PlayerStats::balance`. In der CSV als Zeilen in der Ereignis-Datei.
 - **Re** hat `GameInput.re_by` (wer von der Spielerpartei), `re` bleibt der Schalter für den Preis; `re_giver()` füllt ältere Spiele mit dem Spieler.
+- **Metadaten** (`meta.rs`, `views/meta_sections.rs`): Tarif-/Regelwerksname steht je `Game`; Wechsel werden aus den Spielen abgeleitet, nicht protokolliert. Kommen/Gehen aus `events`.
 - **Vergleich** (`views/compare.rs`): `Metric` + `PeerRow` (Zahlen je Spieler, aus `PlayerStats` oder `OverallPlayer`), `Tap`/`TapKv`
   machen Zeilen in den Spielerkarten antippbar und zeigen die Rangliste. Neue Zahl in der Karte = Metric ergänzen und beide
   `*_peer`-Funktionen füllen. Doppler-Stufen exakt in `by_doublings` (`PlayerStats`, `TableStats`, `OverallPlayer`).
@@ -76,7 +77,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 264 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 270 Tests, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,

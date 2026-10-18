@@ -9,6 +9,7 @@ use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, T
 
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
+use super::meta_sections::{OverallPresence, TariffSection};
 use super::stat_widgets::{
     DivergingRow, DoublerSection, ShareBar, StackedBar, ToutSection, WinDonut,
 };
@@ -285,6 +286,8 @@ fn OverallNumbers(stats: OverallStats) -> Element {
 
         DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen über alle gewählten Abende, gezählt in den Spielen, bei denen man mitgespielt hat." }
         ToutSection { rows: tout_rows }
+        TariffSection { tariffs: stats.tariffs.clone(), tariff_changes: stats.tariff_changes, rule_sets: stats.rule_sets.clone(), rule_set_changes: stats.rule_set_changes, evenings: Some(stats.evenings) }
+        OverallPresence { players: stats.players.clone(), evening_starts: stats.evening_starts.clone(), evening_lengths: stats.evening_lengths.clone() }
 
         section {
             h3 { "Alle Abende zusammen" }

@@ -29,6 +29,12 @@ pub struct Game {
     /// dann saßen alle da, für die das Spiel eine Auszahlung hat.
     #[serde(default)]
     pub at_table: Vec<Seat>,
+    /// Name des Tarifs und des Regelwerks aus der Bibliothek, mit denen das Spiel gespielt wurde (nur zur
+    /// Auswertung). Ältere Spiele haben keinen.
+    #[serde(default)]
+    pub tariff_name: Option<String>,
+    #[serde(default)]
+    pub rule_set_name: Option<String>,
 }
 
 impl Game {
@@ -598,11 +604,18 @@ impl Table {
                 return Err(Error::SeatNotAtTable(*seat));
             }
         }
-        self.settle(&self.tariff, input, self.present_seats())
+        let names = (self.tariff_name.clone(), self.rule_set_name.clone());
+        self.settle(&self.tariff, input, self.present_seats(), names)
     }
 
     /// Rechnet ein Spiel ab. `at_table` sind die Sitzplätze, die dabei am Tisch saßen.
-    fn settle(&self, tariff: &Tariff, input: GameInput, at_table: Vec<Seat>) -> Result<Game> {
+    fn settle(
+        &self,
+        tariff: &Tariff,
+        input: GameInput,
+        at_table: Vec<Seat>,
+        (tariff_name, rule_set_name): (Option<String>, Option<String>),
+    ) -> Result<Game> {
         let mut input = input;
         if input.participants.is_empty() && input.dealer < self.players.len() {
             input.participants = self.default_participants(input.dealer);
@@ -654,6 +667,8 @@ impl Table {
             payouts,
             tariff: Some(tariff.clone()),
             at_table,
+            tariff_name,
+            rule_set_name,
         })
     }
 
@@ -667,7 +682,9 @@ impl Table {
     /// Tarif, mit dem das Spiel ursprünglich abgerechnet wurde.
     pub fn preview_edit(&self, index: usize, input: GameInput) -> Result<Game> {
         let tariff = self.tariff_of(index)?;
-        self.settle(&tariff, input, self.games[index].at_table.clone())
+        let old = &self.games[index];
+        let names = (old.tariff_name.clone(), old.rule_set_name.clone());
+        self.settle(&tariff, input, old.at_table.clone(), names)
     }
 
     /// Ersetzt ein bestehendes Spiel durch eine geänderte Fassung. Beträge werden mit dem Tarif

@@ -3,6 +3,8 @@
 
 use std::collections::BTreeMap;
 
+use crate::clock::minutes_after_noon;
+use crate::meta::{table_meta, UseCount};
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
 use crate::stats::{table_stats, KindStats, PlayerStats, RoleStats};
@@ -59,6 +61,14 @@ pub struct OverallPlayer {
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_paid: Cents,
     pub penalty_received: Cents,
+    /// Wann er an den Abenden kam und ging, in Minuten seit 12:00 Uhr mittags (siehe `minutes_after_noon`). Wer
+    /// bis zum Ende blieb, geht mit dem Ende des Abends in die Zahlen ein.
+    pub arrivals: Vec<i32>,
+    pub departures: Vec<i32>,
+    /// An wie vielen Abenden er später dazukam, früher ging, und wie oft er nach dem Gehen zurückkam.
+    pub late_arrivals: u32,
+    pub early_departures: u32,
+    pub comebacks: u32,
 }
 
 impl OverallPlayer {
@@ -107,6 +117,11 @@ impl OverallPlayer {
             offences_by_kind: BTreeMap::new(),
             penalty_paid: 0,
             penalty_received: 0,
+            arrivals: Vec::new(),
+            departures: Vec::new(),
+            late_arrivals: 0,
+            early_departures: 0,
+            comebacks: 0,
         }
     }
 
@@ -232,6 +247,14 @@ pub struct OverallStats {
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_cents: Cents,
     pub players: Vec<OverallPlayer>,
+    /// Spiele je Tarif und je Regelwerk (die meisten zuerst) und wie oft sie von einem Spiel zum nächsten wechselten.
+    pub tariffs: Vec<UseCount>,
+    pub tariff_changes: u32,
+    pub rule_sets: Vec<UseCount>,
+    pub rule_set_changes: u32,
+    /// Beginn und Dauer der Abende (Minuten seit 12:00 Uhr, Sekunden).
+    pub evening_starts: Vec<i32>,
+    pub evening_lengths: Vec<i64>,
 }
 
 impl OverallStats {
@@ -311,6 +334,54 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
             });
             out.players[i].add(p);
         }
+        let meta = table_meta(table);
+        let merge = |into: &mut Vec<UseCount>, from: &[UseCount]| {
+            for c in from {
+                match into.iter_mut().find(|u| u.name == c.name) {
+                    Some(u) => u.games += c.games,
+                    None => into.push(c.clone()),
+                }
+            }
+        };
+        merge(&mut out.tariffs, &meta.tariffs);
+        merge(&mut out.rule_sets, &meta.rule_sets);
+        out.tariff_changes += meta.tariff_changes;
+        out.rule_set_changes += meta.rule_set_changes;
+        let offset = table.utc_offset_min;
+        if let Some(start) = meta.started {
+            out.evening_starts.push(minutes_after_noon(start, offset));
+            if let Some(end) = meta.ended {
+                out.evening_lengths.push((end - start).max(0));
+            }
+        }
+        for presence in &meta.presence {
+            let Some(&i) = index.get(&presence.name) else {
+                continue;
+            };
+            let p = &mut out.players[i];
+            if let Some(at) = presence.arrived {
+                p.arrivals.push(minutes_after_noon(at, offset));
+            }
+            let gone = if presence.left_early {
+                presence.left
+            } else {
+                meta.ended
+            };
+            if let Some(at) = gone {
+                p.departures.push(minutes_after_noon(at, offset));
+            }
+            p.late_arrivals += u32::from(!presence.from_start);
+            p.early_departures += u32::from(presence.left_early);
+            p.comebacks += presence.comebacks;
+        }
     }
     out
+}
+
+/// Mittel, frühester und spätester Wert einer Liste von Uhrzeiten (Minuten seit 12:00 Uhr).
+pub fn time_spread(times: &[i32]) -> Option<(i32, i32, i32)> {
+    let min = *times.iter().min()?;
+    let max = *times.iter().max()?;
+    let avg = (times.iter().map(|&t| i64::from(t)).sum::<i64>() / times.len() as i64) as i32;
+    Some((avg, min, max))
 }

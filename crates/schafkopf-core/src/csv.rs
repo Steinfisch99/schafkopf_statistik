@@ -63,6 +63,8 @@ impl Table {
             "Fehlerarten",
             "Zurueckverlangt",
             "Zurueckverlangt_von",
+            "Tarif",
+            "Regelwerk",
             "Notiz",
         ];
         let players = self
@@ -126,6 +128,8 @@ impl Table {
                 .join("; "),
             yes_no(g.reclaimed),
             self.names_of(&g.reclaimed_by),
+            opt(game.tariff_name.clone()),
+            opt(game.rule_set_name.clone()),
             opt(g.note.clone()),
         ];
         let per_player = game

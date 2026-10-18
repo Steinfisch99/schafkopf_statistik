@@ -5,10 +5,12 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
-    table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, RoleStats, Suit, Table,
+    table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, RoleStats,
+    Suit, Table,
 };
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
+use super::meta_sections::{EveningPresence, TariffSection};
 use super::stat_widgets::{
     DivergingRow, DonutWithLegend, DoublerSection, ResultStrip, SegmentBar, ShareBar, StackedBar,
     ToutSection, WinDonut, GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
@@ -345,6 +347,7 @@ pub fn StatsScreen(
         .filter(|p| p.games_played + p.games_sat_out > 0)
         .map(evening_peer)
         .collect();
+    let meta = table_meta(t);
     let doubler_rows: Vec<DoublerRow> = stats
         .players
         .iter()
@@ -447,6 +450,8 @@ pub fn StatsScreen(
 
             DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
             ToutSection { rows: tout_rows }
+            TariffSection { tariffs: meta.tariffs.clone(), tariff_changes: meta.tariff_changes, rule_sets: meta.rule_sets.clone(), rule_set_changes: meta.rule_set_changes, evenings: None }
+            EveningPresence { rows: meta.presence.clone(), offset_min: t.utc_offset_min }
 
             section {
                 h3 { "Dieser Abend" }

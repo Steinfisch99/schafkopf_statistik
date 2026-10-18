@@ -467,7 +467,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.4" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.5" (passend zu `Cargo.toml`).
 
 ### 28. Re pro Spieler
 - [ ] Die Spiele-CSV hat die Spalten "Re_von", "Doppler_Anzahl" und "Verlangter_Preis_Cent". "Geklopft", "Kontra" und "Re_von" nennen jeweils, wer gedoppelt hat.
@@ -475,13 +475,19 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Re ist ausgegraut, solange niemand Kontra gegeben hat, und bei den Gegenspielern immer. Es gibt nur ein Re: Ein anderer Spieler der Partei übernimmt es, ein zweiter Tipp nimmt es zurück.
 - [ ] Nimmst du das Kontra weg oder änderst die Rollen, fällt Re mit weg. In der Statistik zählt Re beim richtigen Spieler, in der CSV steht die Spalte "Re_von".
 
-### 29. Wer doppelt am häufigsten, Tout, Bockrunden
+### 29. Metadaten (Tarife, Kommen und Gehen)
+- [ ] Die Statistik zeigt "Tarif und Regelwerk" mit Spielen je Tarif (Balken) und der Zahl der Wechsel. Nach einem Tarifwechsel mitten im Abend steigt sie um 1.
+- [ ] "Wer kam, wer ging" nennt für jeden Spieler Uhrzeit und Spiel beim Kommen und Gehen ("blieb bis zum Ende", wenn er nicht ging).
+- [ ] In der Gesamtstatistik steht "Wann kommt wer, wann geht wer?" mit Ø Zeiten und frühestem/spätestem Mal, dazu Ø Beginn und Dauer der Abende.
+- [ ] Die CSV hat die Spalten "Tarif" und "Regelwerk".
+
+### 30. Wer doppelt am häufigsten, Tout, Bockrunden
 - [ ] In der Statistik gibt es den Abschnitt "Wer doppelt am häufigsten?" mit Klopfen, Kontra und Re je Spieler, die meisten zuerst, ebenso in der Gesamtstatistik.
 - [ ] Der Abschnitt "Tout" zeigt, wer wie oft Tout gespielt und gewonnen hat (ohne Tout steht ein Hinweis). In der Gesamtstatistik passt die Zahl zu allen Abenden zusammen.
 - [ ] In der Spielerkarte sind "Selbst gedoppelt" und "Tout gespielt" antippbar und zeigen die Rangliste.
 - [ ] Unter "Dieser Abend" steht "Bockrunden entstanden" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
 
-### 30. Darstellung
+### 31. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

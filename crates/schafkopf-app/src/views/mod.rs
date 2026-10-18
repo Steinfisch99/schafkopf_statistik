@@ -6,6 +6,7 @@ mod export_screen;
 mod game_form;
 mod game_list;
 mod library_screen;
+mod meta_sections;
 mod offence_screen;
 mod overall_screen;
 mod past;

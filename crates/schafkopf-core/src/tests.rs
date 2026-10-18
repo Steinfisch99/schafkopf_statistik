@@ -3314,3 +3314,120 @@ fn the_csv_names_everyone_who_doubled_and_the_demanded_price() {
     );
     assert_eq!(at("Verlangter_Preis_Cent"), "300");
 }
+
+fn evening_with_names() -> Table {
+    let mut t = evening(&["Anna", "Ben", "Cem", "Dora"], vec![]);
+    t.created_at = Some(1_700_000_000);
+    t.use_tariff(Some("20/50".into()), Tariff::default());
+    t.use_rules(Some("Unsere Runde".into()), &GameKind::ALL)
+        .unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_game(sauspiel(1, 0, 2)).unwrap();
+    let cheap = Tariff {
+        sauspiel: 10,
+        ..Tariff::default()
+    };
+    t.use_tariff(Some("10/50".into()), cheap);
+    t.add_game(sauspiel(2, 1, 3)).unwrap();
+    t.use_tariff(Some("20/50".into()), Tariff::default());
+    t.add_game(sauspiel(3, 1, 3)).unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t
+}
+
+#[test]
+fn the_meta_counts_games_per_tariff_and_how_often_it_changed() {
+    let t = evening_with_names();
+    let meta = table_meta(&t);
+    assert_eq!(
+        meta.tariffs
+            .iter()
+            .map(|u| (u.name.as_str(), u.games))
+            .collect::<Vec<_>>(),
+        vec![("20/50", 4), ("10/50", 1)]
+    );
+    assert_eq!(meta.tariff_changes, 2);
+    assert_eq!(meta.rule_sets.len(), 1);
+    assert_eq!(meta.rule_set_changes, 0);
+    // Wird ein Spiel bearbeitet, bleibt sein Tarifname.
+    let mut t = t;
+    t.replace_game(2, sauspiel(2, 0, 3)).unwrap();
+    assert_eq!(t.games()[2].tariff_name.as_deref(), Some("10/50"));
+    let csv = t.to_csv_with(',');
+    assert!(csv.lines().next().unwrap().contains("Tarif,Regelwerk"));
+    assert!(csv.lines().nth(3).unwrap().contains("10/50,Unsere Runde"));
+}
+
+#[test]
+fn games_without_names_are_grouped_as_custom_tariffs_and_old_games_load() {
+    let mut t = evening(&["Anna", "Ben", "Cem", "Dora"], vec![sauspiel(0, 1, 3)]);
+    t.set_tariff(Tariff {
+        sauspiel: 30,
+        ..Tariff::default()
+    });
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    let meta = table_meta(&t);
+    let names: Vec<&str> = meta.tariffs.iter().map(|u| u.name.as_str()).collect();
+    assert_eq!(names, vec!["Eigener Tarif 1", "Eigener Tarif 2"]);
+    assert_eq!(meta.tariff_changes, 1);
+    assert_eq!(meta.rule_sets[0].name, "Eigene Auswahl");
+    let json = t
+        .to_json()
+        .unwrap()
+        .replace("\"tariff_name\": null,", "")
+        .replace("\"rule_set_name\": null,", "");
+    assert_eq!(Table::from_json(&json).unwrap().games().len(), 2);
+}
+
+#[test]
+fn the_meta_tells_when_players_came_and_went() {
+    let mut t = evening(&["Anna", "Ben", "Cem", "Dora"], vec![sauspiel(0, 1, 3)]);
+    t.created_at = Some(1_700_000_000);
+    t.leave(2, Some(1_700_003_600)).unwrap();
+    t.add_player("Emil", Some(0), Some(1_700_007_200)).unwrap();
+    t.ended_at = Some(1_700_010_800);
+    let meta = table_meta(&t);
+    let by_name = |n: &str| meta.presence.iter().find(|p| p.name == n).unwrap().clone();
+    let anna = by_name("Anna");
+    assert!(anna.from_start && !anna.left_early);
+    assert_eq!(anna.arrived, Some(1_700_000_000));
+    let cem = by_name("Cem");
+    assert!(cem.left_early);
+    assert_eq!(
+        (cem.left, cem.left_after_games),
+        (Some(1_700_003_600), Some(1))
+    );
+    let emil = by_name("Emil");
+    assert!(!emil.from_start);
+    assert_eq!(
+        (emil.arrived, emil.arrived_after_games),
+        (Some(1_700_007_200), 1)
+    );
+    assert_eq!(meta.ended, Some(1_700_010_800));
+}
+
+#[test]
+fn overall_stats_average_arrival_and_departure_times_per_player() {
+    let mut a = evening(&["Anna", "Ben", "Cem", "Dora"], vec![sauspiel(0, 1, 3)]);
+    a.created_at = Some(1_700_000_000); // 22:13 UTC
+    a.ended_at = Some(1_700_010_000);
+    let mut b = evening(&["Anna", "Ben", "Cem", "Dora"], vec![sauspiel(0, 1, 3)]);
+    b.created_at = Some(1_700_000_000 + 7_200);
+    b.ended_at = Some(1_700_000_000 + 7_200 + 7_200);
+    b.leave(3, Some(1_700_000_000 + 7_200 + 3_600)).unwrap();
+    let all = overall_stats(&[&a, &b]);
+    let anna = all.players.iter().find(|p| p.name == "Anna").unwrap();
+    assert_eq!(anna.arrivals.len(), 2);
+    let (avg, min, max) = time_spread(&anna.arrivals).unwrap();
+    assert!(min < avg && avg < max);
+    let dora = all.players.iter().find(|p| p.name == "Dora").unwrap();
+    assert_eq!(dora.early_departures, 1);
+    assert_eq!(dora.departures.len(), 2);
+    assert_eq!(all.evening_starts.len(), 2);
+    assert_eq!(all.tariffs[0].games, 2);
+    assert_eq!(minutes_after_noon(1_700_000_000, 0), (22 * 60 + 13) - 720);
+    assert_eq!(
+        format_minutes_after_noon(minutes_after_noon(1_700_000_000, 0)),
+        "22:13"
+    );
+}

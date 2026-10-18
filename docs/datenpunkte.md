@@ -417,3 +417,17 @@ deshalb nach der Richtung des Preises:
 - **Selbst gedoppelt** ist in der Spielerkarte antippbar (Abend und Gesamtstatistik), die Rangliste sortiert nach der Summe.
 - **Bockrunden:** "Bockrunden entstanden" steht unter "Dieser Abend" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
 - Alte Dateien laden wie bisher, die Zahlen werden aus den Spielen berechnet.
+
+### Metadaten: Tarife, Regelwerke, Kommen und Gehen
+
+- **Tarif und Regelwerk:** Jedes Spiel merkt sich den Namen des Tarifs und des Regelwerks aus der Bibliothek, mit denen es gespielt
+  wurde (`tariff_name`, `rule_set_name`; Bearbeiten ändert das nicht). Die Statistik zeigt **Spiele je Tarif** und je Regelwerk und
+  **wie oft gewechselt wurde**, gezählt von einem Spiel zum nächsten (ein Wechsel nach dem letzten Spiel zählt nicht). Spiele mit
+  eigenem, nicht gespeichertem Tarif heißen "Eigener Tarif" (bei mehreren verschiedenen "Eigener Tarif 1", "2", ...); ältere Spiele ohne
+  Namen bekommen den Namen des jetzigen Tarifs, wenn die Werte gleich sind. In der CSV stehen die Spalten `Tarif` und `Regelwerk`.
+- **Wer kam, wer ging** (Abend): je Spieler, wann er kam (von Anfang an mit Uhrzeit, sonst Uhrzeit und "nach Spiel N") und wann er
+  ging oder "blieb bis zum Ende", dazu wie oft er zwischendurch weg war.
+- **Wann kommt wer, wann geht wer?** (Gesamtstatistik): je Spieler Ø Ankunft und Ø Ende mit frühestem und spätestem Mal, an wie vielen
+  Abenden er später kam und früher ging; dazu Ø Beginn und Ø Dauer der Abende. Uhrzeiten werden als Minuten seit 12:00 Uhr gemittelt,
+  damit 01:00 Uhr nach 23:00 Uhr liegt. Wer bis zum Ende blieb, geht mit dem Ende des Abends ein (bei einem offenen Abend die letzte
+  Aktivität). Abende ohne Zeitstempel (alte Dateien) fehlen in den Uhrzeiten.
