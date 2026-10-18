@@ -51,8 +51,8 @@ impl SuitShape {
                 r##"fill="#E53935" stroke="#8E1A17" stroke-width="1" stroke-linejoin="round"/>"##,
             ),
             SuitShape::Schellen => concat!(
-                r##"<path d="M10.2 3.4a1.8 1.8 0 0 1 3.6 0z" fill="#F6C90E" stroke="#3A2A00" stroke-width="1" stroke-linejoin="round"/>"##,
-                r##"<path d="M12 22.2c-1.3 0-2-.6-2-1.5h4c0 .9-.7 1.5-2 1.5z" fill="#2E8B3E" stroke="#1B5E20" stroke-width="1" stroke-linejoin="round"/>"##,
+                r##"<path d="M10.2 19.6h3.6v1.7a1.8 1.8 0 0 1-3.6 0z" fill="#2E8B3E" stroke="#3A2A00" stroke-width="1" stroke-linejoin="round"/>"##,
+                r##"<g transform="translate(0 -1.2) translate(12 12.5) scale(.9) translate(-12 -12.5)">"##,
                 r##"<path d="M3.2 9A9.5 9.5 0 0 1 20.8 9z" fill="#F6C90E"/>"##,
                 r##"<path d="M3.2 9h17.6l.2 6.5H3z" fill="#D62828"/>"##,
                 r##"<path d="M3 15.5h18A9.5 9.5 0 0 1 3 15.5z" fill="#2E8B3E"/>"##,
@@ -61,6 +61,7 @@ impl SuitShape {
                 r##"<circle cx="17" cy="12.25" r="1.7" fill="#7A1212"/>"##,
                 r##"<path d="M12 20.4c0-2.2-2.4-3.6-5.4-3.4M12 20.4c0-2.2 2.4-3.6 5.4-3.4" fill="none" stroke="#1B5E20" stroke-width="1" stroke-linecap="round"/>"##,
                 r##"<circle cx="12" cy="12.5" r="9.5" fill="none" stroke="#3A2A00" stroke-width="1.2"/>"##,
+                r##"</g>"##,
             ),
         }
     }
