@@ -94,6 +94,67 @@ pub struct TableEvent {
     pub after_games: usize,
 }
 
+/// Was ein Spieler falsch gemacht hat. Das Neumischen nach einem Fehler beim Geben gehört dazu: Der
+/// Geber bleibt dann derselbe und mischt neu.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum OffenceKind {
+    /// Nicht bedient, obwohl man konnte (Farbe oder Trumpf).
+    NotFollowed,
+    /// Aus der Reihe gespielt oder zu früh ausgespielt.
+    OutOfTurn,
+    /// Karten gezeigt oder hineingeschaut.
+    ShowedCards,
+    /// Absprache oder Zeichen gegeben.
+    Collusion,
+    /// Fehler beim Geben: Neu mischen, derselbe Geber.
+    Misdeal,
+    /// Etwas anderes.
+    Other,
+}
+
+impl OffenceKind {
+    pub const ALL: [OffenceKind; 6] = [
+        OffenceKind::NotFollowed,
+        OffenceKind::OutOfTurn,
+        OffenceKind::ShowedCards,
+        OffenceKind::Collusion,
+        OffenceKind::Misdeal,
+        OffenceKind::Other,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            OffenceKind::NotFollowed => "Nicht bedient",
+            OffenceKind::OutOfTurn => "Aus der Reihe gespielt",
+            OffenceKind::ShowedCards => "Karten gezeigt",
+            OffenceKind::Collusion => "Absprache oder Zeichen",
+            OffenceKind::Misdeal => "Falsch gegeben (neu gemischt)",
+            OffenceKind::Other => "Etwas anderes",
+        }
+    }
+}
+
+/// Ein Vergehen oder Neumischen im Lauf des Abends, mit der Strafzahlung, die dabei festgeschrieben
+/// wurde (auch wenn der Tarif sich später ändert).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Offence {
+    pub kind: OffenceKind,
+    /// Wer das Vergehen begangen hat (beim Neumischen: der Geber).
+    pub offender: Seat,
+    /// Strafe, die der Täter jedem anderen am Tisch zahlt, in Cent. 0: keine Strafe.
+    pub amount: Cents,
+    /// Gewinn/Verlust pro Sitzplatz in Cent. Die Summe ist null.
+    pub payouts: Vec<Cents>,
+    /// Zeitpunkt in Unix-Sekunden, falls bekannt.
+    #[serde(default)]
+    pub at: Option<i64>,
+    /// Wie viele Spiele zu dem Zeitpunkt schon gespielt waren (für den Verlauf).
+    #[serde(default)]
+    pub after_games: usize,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Table {
@@ -142,6 +203,9 @@ pub struct Table {
     /// Wer im Lauf des Abends kam, ging oder sich umsetzte.
     #[serde(default)]
     pub events: Vec<TableEvent>,
+    /// Vergehen und Neumischen mit ihren Strafzahlungen. Alte Dateien: keine.
+    #[serde(default)]
+    pub offences: Vec<Offence>,
     #[serde(default)]
     pub created_at: Option<i64>,
     games: Vec<Game>,
@@ -189,6 +253,7 @@ impl Table {
             ended_at: None,
             debug: false,
             events: Vec::new(),
+            offences: Vec::new(),
             created_at: None,
             games: Vec::new(),
         })
@@ -311,6 +376,9 @@ impl Table {
         for game in &mut self.games {
             game.payouts.push(0);
         }
+        for offence in &mut self.offences {
+            offence.payouts.push(0);
+        }
         let behind = self.ring_before(seat);
         self.record(at, EventKind::Joined, seat, behind);
         Ok(seat)
@@ -389,6 +457,7 @@ impl Table {
             .iter()
             .filter_map(|g| g.input.played_at)
             .chain(self.events.iter().filter_map(|e| e.at))
+            .chain(self.offences.iter().filter_map(|o| o.at))
             .chain(self.created_at)
             .max()
     }
@@ -621,11 +690,77 @@ impl Table {
         self.games.pop()
     }
 
-    /// Aktueller Kontostand pro Sitzplatz in Cent.
+    /// Die Strafe, die der Tarif des Abends für diese Art von Vergehen vorsieht, je Mitspieler. 0, wenn
+    /// es keine Strafzahlungen gibt.
+    pub fn penalty_for(&self, kind: OffenceKind) -> Cents {
+        match (self.tariff.penalties_enabled, kind) {
+            (false, _) => 0,
+            (true, OffenceKind::Misdeal) => self.tariff.misdeal_penalty,
+            (true, _) => self.tariff.offence_penalty,
+        }
+    }
+
+    /// Hält ein Vergehen oder Neumischen fest. Der Täter zahlt `amount` an jeden anderen, der gerade am
+    /// Tisch sitzt; ohne Angabe gilt die Strafe aus dem Tarif ([`Table::penalty_for`]). Gibt der Tarif
+    /// keine Strafzahlungen vor, kostet es nichts, es wird aber gezählt.
+    pub fn add_offence(
+        &mut self,
+        kind: OffenceKind,
+        offender: Seat,
+        amount: Option<Cents>,
+        at: Option<i64>,
+    ) -> Result<&Offence> {
+        if offender >= self.players.len() {
+            return Err(Error::UnknownSeat(offender));
+        }
+        if !self.is_present(offender) {
+            return Err(Error::SeatNotAtTable(offender));
+        }
+        let amount = if self.tariff.penalties_enabled {
+            amount.unwrap_or_else(|| self.penalty_for(kind))
+        } else {
+            0
+        };
+        if amount < 0 {
+            return Err(Error::NegativePrice(amount));
+        }
+        let others: Vec<Seat> = self
+            .present_seats()
+            .into_iter()
+            .filter(|&s| s != offender)
+            .collect();
+        let mut payouts = vec![0; self.players.len()];
+        for &s in &others {
+            payouts[s] = amount;
+        }
+        payouts[offender] = -amount * others.len() as Cents;
+        self.offences.push(Offence {
+            kind,
+            offender,
+            amount,
+            payouts,
+            at,
+            after_games: self.games.len(),
+            note: None,
+        });
+        Ok(self.offences.last().expect("gerade eingefügt"))
+    }
+
+    /// Nimmt ein Vergehen zurück. `None`, wenn es den Index nicht gibt.
+    pub fn remove_offence(&mut self, index: usize) -> Option<Offence> {
+        (index < self.offences.len()).then(|| self.offences.remove(index))
+    }
+
+    /// Aktueller Kontostand pro Sitzplatz in Cent, mit Strafzahlungen.
     pub fn balances(&self) -> Vec<Cents> {
         let mut sum = vec![0; self.players.len()];
-        for g in &self.games {
-            for (s, p) in sum.iter_mut().zip(&g.payouts) {
+        let payouts = self
+            .games
+            .iter()
+            .map(|g| &g.payouts)
+            .chain(self.offences.iter().map(|o| &o.payouts));
+        for payouts in payouts {
+            for (s, p) in sum.iter_mut().zip(payouts) {
                 *s += p;
             }
         }

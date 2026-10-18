@@ -48,6 +48,15 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - **Falsch verlangt:** nur die **Gewinnerseite** verlangt (beide beim Sauspiel), automatisch vorgewählt. Zu viel
   verlangt: Verlierer dürfen das **Doppelte des Mehrbetrags** zurückverlangen, immer in voller Höhe
   (`reclaimed_value`, Preis = verlangt − 2·Mehrbetrag, nie unter 0). Tarif-Option schaltet es ab.
+- **Falsch-verlangt-Fehlerarten** hängen von der Richtung ab (`PriceMistake::for_price`): zu viel = "dazugedichtet",
+  zu wenig = "vergessen/nicht verlangt". Alte Varianten bleiben im Enum, damit gespeicherte Daten laden.
+- **Sie** (`GameKind::Sie`) ist als Solo ohne Farbe mit 8 Trümpfen umgesetzt. Das ist meine Annahme, der Nutzer hat die
+  Regel nie beschrieben. Falls sie anders gespielt wird, anpassen (`max_laufende`, Tarif-Gruppe in `laufende_min`).
+- **Vergehen/Neumischen** sind `Table.offences` (`Offence`, Auszahlung wird beim Eintragen festgeschrieben). Täter zahlt
+  jedem anderen am Tisch. Neumischen = `OffenceKind::Misdeal`, der Geber bleibt (er ist aus den Spielen abgeleitet).
+  Tarif: `penalties_enabled`, `offence_penalty`, `misdeal_penalty` (Standard 0). Strafen stecken im Stand nach
+  `after_games` (`balance_history`) und in `PlayerStats::balance`. In der CSV als Zeilen in der Ereignis-Datei.
+- Spieleliste färbt nach `GameKind::is_team_game`/`is_solo` (CSS `kind-team`, `kind-solo`, `kind-ramsch`).
 - Gesamtstatistik führt Spieler über den **Namen** zusammen. Testabende (`Table.debug`) zählen nie mit.
 
 ## Bauen und prüfen in der VM
@@ -60,7 +69,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: ca. 242 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 248 Tests, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
@@ -83,4 +92,7 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 - ZIP-Dateien haben als Zeitstempel 1980 (keine Zeitfunktion in der ZIP-Bibliothek eingeschaltet), harmlos.
 - Die Frage "falsch verlangen aktiviert?" wurde als Option **fürs Zurückverlangen** umgesetzt (Tarif). Der Nutzer hat
   nicht bestätigt, ob er stattdessen das ganze Falsch-verlangen-Feature abschaltbar haben wollte.
+- Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
+  Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, aus dem Gedächtnis gezeichnet, keine
+  Recherche möglich: Netz gesperrt). Die Regel für "Sie" ist geraten.
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

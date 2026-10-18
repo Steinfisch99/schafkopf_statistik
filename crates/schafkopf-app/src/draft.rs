@@ -595,6 +595,9 @@ pub struct TariffDraft {
     pub ramsch_knock_doubles: bool,
     pub ramsch_bock_doubles: bool,
     pub reclaim_enabled: bool,
+    pub penalties_enabled: bool,
+    pub offence_penalty: String,
+    pub misdeal_penalty: String,
 }
 
 impl TariffDraft {
@@ -613,6 +616,9 @@ impl TariffDraft {
             ramsch_knock_doubles: t.ramsch_knock_doubles,
             ramsch_bock_doubles: t.ramsch_bock_doubles,
             reclaim_enabled: t.reclaim_enabled,
+            penalties_enabled: t.penalties_enabled,
+            offence_penalty: format_amount(t.offence_penalty),
+            misdeal_penalty: format_amount(t.misdeal_penalty),
         }
     }
 
@@ -639,6 +645,9 @@ impl TariffDraft {
             ramsch_knock_doubles: self.ramsch_knock_doubles,
             ramsch_bock_doubles: self.ramsch_bock_doubles,
             reclaim_enabled: self.reclaim_enabled,
+            penalties_enabled: self.penalties_enabled,
+            offence_penalty: money("Strafe für ein Vergehen", &self.offence_penalty)?,
+            misdeal_penalty: money("Strafe fürs Neumischen", &self.misdeal_penalty)?,
         })
     }
 }
@@ -1206,6 +1215,22 @@ mod tests {
         let back = GameDraft::from_game(&table, 0).unwrap();
         assert!(back.reclaimed);
         assert_eq!(back.reclaimed_by(), vec![2]);
+    }
+
+    #[test]
+    fn the_penalty_options_survive_the_tariff_draft() {
+        let tariff = Tariff {
+            penalties_enabled: false,
+            offence_penalty: 150,
+            misdeal_penalty: 20,
+            ..Tariff::default()
+        };
+        let draft = TariffDraft::from_tariff(&tariff);
+        assert!(!draft.penalties_enabled);
+        assert_eq!(draft.to_tariff().unwrap(), tariff);
+        let mut bad = draft;
+        bad.misdeal_penalty = "viel".into();
+        assert!(bad.to_tariff().unwrap_err().contains("Neumischen"));
     }
 
     #[test]

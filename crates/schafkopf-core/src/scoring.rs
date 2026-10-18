@@ -35,6 +35,18 @@ pub struct Tariff {
     /// Tarife ohne diese Angabe: ja.
     #[serde(default = "yes")]
     pub reclaim_enabled: bool,
+    /// Gibt es Strafzahlungen für Vergehen und Neumischen? Aus: Vergehen werden trotzdem erfasst und
+    /// gezählt, kosten aber nichts. Alte Tarife ohne diese Angabe: ja.
+    #[serde(default = "yes")]
+    pub penalties_enabled: bool,
+    /// Strafe für ein Vergehen (nicht bedient, aus der Reihe gespielt, ...), die der Täter jedem
+    /// anderen am Tisch zahlt.
+    #[serde(default = "default_offence_penalty")]
+    pub offence_penalty: Cents,
+    /// Strafe fürs Neumischen nach einem Fehler beim Geben, die der Geber jedem anderen am Tisch
+    /// zahlt. 0: Neumischen kostet nichts.
+    #[serde(default)]
+    pub misdeal_penalty: Cents,
 }
 
 impl Default for Tariff {
@@ -53,6 +65,9 @@ impl Default for Tariff {
             ramsch_knock_doubles: true,
             ramsch_bock_doubles: true,
             reclaim_enabled: true,
+            penalties_enabled: true,
+            offence_penalty: default_offence_penalty(),
+            misdeal_penalty: 0,
         }
     }
 }
@@ -270,4 +285,8 @@ pub fn payouts(tariff: &Tariff, input: &GameInput, player_count: usize) -> Vec<C
 
 fn yes() -> bool {
     true
+}
+
+fn default_offence_penalty() -> Cents {
+    50
 }

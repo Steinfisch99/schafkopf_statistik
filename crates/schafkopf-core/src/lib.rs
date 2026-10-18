@@ -33,7 +33,7 @@ pub use scoring::{
 pub use stats::{
     balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
 };
-pub use table::{EventKind, Game, Table, TableEvent};
+pub use table::{EventKind, Game, Offence, OffenceKind, Table, TableEvent};
 
 #[cfg(test)]
 mod tests;

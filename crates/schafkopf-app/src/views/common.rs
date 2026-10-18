@@ -170,6 +170,26 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
             }
         }
         p { class: "hint", "An: Verlangen die Gewinner zu viel und fällt es den Verlierern auf, tragen sie beim Spiel \"zurückverlangt\" ein, dann gilt der richtige Preis. Aus: Der verlangte Preis gilt immer." }
+        p { class: "hint", "Strafzahlungen:" }
+        div { class: "chips",
+            Chip {
+                label: "Vergehen und Neumischen kosten eine Strafe".to_string(),
+                on: d.penalties_enabled,
+                onclick: move |_| {
+                    let on = !draft.read().penalties_enabled;
+                    draft.write().penalties_enabled = on;
+                },
+            }
+        }
+        if d.penalties_enabled {
+            div { class: "grid2",
+                TextField { label: "Vergehen je Mitspieler (€)", value: d.offence_penalty, mode: "decimal", oninput: move |v| draft.write().offence_penalty = v }
+                TextField { label: "Neumischen je Mitspieler (€)", value: d.misdeal_penalty, mode: "decimal", oninput: move |v| draft.write().misdeal_penalty = v }
+            }
+            p { class: "hint", "Der Täter zahlt die Strafe an jeden anderen am Tisch. Beim Neumischen (Fehler beim Geben) ist es der Geber, 0 heißt: Neumischen kostet nichts." }
+        } else {
+            p { class: "hint", "Aus: Vergehen und Neumischen werden trotzdem eingetragen und gezählt, kosten aber nichts." }
+        }
     }
 }
 

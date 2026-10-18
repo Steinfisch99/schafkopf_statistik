@@ -9,7 +9,7 @@ use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, T
 
 use super::common::{Chip, Notice};
 use super::stat_widgets::{DivergingRow, ShareBar, StackedBar, WinDonut};
-use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv};
+use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection};
 use crate::stats_text::{kind_rows, max_abs, percent, share, streak};
 use crate::summary::{evening_date, evening_times, games_text, signed_euro};
 use crate::{storage, Screen};
@@ -135,6 +135,17 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
             Kv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string() }
             Kv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string() }
 
+            if p.offences + p.misdeals > 0 || p.penalty_received > 0 {
+                h4 { "Vergehen und Neumischen" }
+                Kv { label: "Vergehen", value: format!("{}×", p.offences) }
+                Kv { label: "Neu gemischt", value: format!("{}×", p.misdeals) }
+                if p.penalty_paid > 0 {
+                    Kv { label: "Strafen gezahlt", value: format_euro(p.penalty_paid) }
+                }
+                if p.penalty_received > 0 {
+                    Kv { label: "Strafen bekommen", value: format_euro(p.penalty_received) }
+                }
+            }
             if p.wrong_demands > 0 {
                 h4 { "Falsch verlangt" }
                 Kv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands) }
@@ -332,6 +343,14 @@ fn OverallNumbers(stats: OverallStats) -> Element {
                     }
                 }
             }
+        }
+
+        OffenceSection {
+            offences: stats.offences,
+            misdeals: stats.misdeals,
+            penalty_cents: stats.penalty_cents,
+            by_kind: stats.offences_by_kind.iter().map(|(k, c)| (*k, *c)).collect::<Vec<_>>(),
+            players: ranked.iter().map(|p| (p.name.clone(), p.offences, p.misdeals, p.penalty_paid, p.penalty_received)).collect::<Vec<_>>(),
         }
 
         section {

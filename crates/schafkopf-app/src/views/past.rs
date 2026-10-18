@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
 use super::export_screen::ExportScreen;
-use super::game_list::GameList;
+use super::game_list::{GameList, OffenceList};
 use super::seats_screen::EventLog;
 use super::stats_screen::StatsScreen;
 use crate::navigation::back_target;
@@ -163,6 +163,7 @@ pub fn PastEveningView(
             }
             EventLog { table: viewed }
             GameList { table: viewed, screen, editable: false }
+            OffenceList { table: viewed, notice, editable: false }
             div { class: "actions stack",
                 button {
                     class: "secondary",

@@ -6,7 +6,7 @@ use schafkopf_core::{BockMode, Table};
 
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
-use super::game_list::GameList;
+use super::game_list::{GameList, OffenceList};
 use crate::summary::evening_times;
 use crate::{now_secs, storage, Screen};
 
@@ -123,7 +123,9 @@ pub fn TableView(
             on_player: move |seat| screen.set(Screen::Stats { player: Some(seat) }),
         }
         GameList { table, screen, editable: true }
+        OffenceList { table, notice, editable: true }
         div { class: "actions stack",
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Offence), "Vergehen oder Neumischen" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Seats), "Am Tisch: Spieler kommen und gehen" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Stats { player: None }), "Statistik" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Frühere Abende" }

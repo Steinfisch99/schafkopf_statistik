@@ -228,3 +228,21 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .evening-pick { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.4rem 0; }
 .evening-pick .chip { text-align: left; border-radius: 0.8rem; }
 .pick-file { display: inline-block; padding: 0.7rem 1rem; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--soft); cursor: pointer; margin: 0.3rem 0 0.6rem; font-weight: 600; }
+
+/* Spieleliste: Spiele zu zweit (Sauspiel, Hochzeit), Alleinspiele (Solo, Wenz, ...) und Ramsch unterscheiden sich
+   in der Farbe des Randes und des Hintergrunds. Der Name der Spielart steht zusätzlich im Text. */
+:root { --kind-team: #0072b2; --kind-solo: #b5518a; --kind-ramsch: #7a7a7a; }
+.history li.kind-team, .history li.kind-solo, .history li.kind-ramsch {
+  border-left: 0.3rem solid var(--kind-color);
+  padding-left: 0.6rem;
+  background: color-mix(in srgb, var(--kind-color) 9%, transparent);
+}
+.history li.kind-team { --kind-color: var(--kind-team); }
+.history li.kind-solo { --kind-color: var(--kind-solo); }
+.history li.kind-ramsch { --kind-color: var(--kind-ramsch); }
+.kind-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; margin: 0 0 0.4rem; }
+.kind-legend span::before { content: ""; display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 0.2rem; margin-right: 0.35rem; vertical-align: -0.1rem; background: var(--kind-color); }
+.kind-legend .kind-team { --kind-color: var(--kind-team); }
+.kind-legend .kind-solo { --kind-color: var(--kind-solo); }
+.kind-legend .kind-ramsch { --kind-color: var(--kind-ramsch); }
+.history li.offence { border-left: 0.3rem solid var(--danger); padding-left: 0.6rem; }

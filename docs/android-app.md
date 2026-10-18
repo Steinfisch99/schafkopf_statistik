@@ -136,7 +136,7 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
       ihm und die zwei danach.
 - [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
 - [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
-- [ ] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Glocke) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
+- [ ] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Rollschelle) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
 - [ ] **Solo:** Beim Farbsolo, Farbwenz und Farbgeier geht ein **Lauf** nur bis 8 (der Solospieler hat 8 Karten), ein **Gegenlauf** darf länger sein (Farbsolo bis 14, Farbwenz und Farbgeier bis 11).
 - [ ] **Ramsch:** Unter "Regeln und Tarif" gibt es im Tarif "Klopfen verdoppelt den Preis". Ist es aus, wird das Klopfen beim Ramsch trotzdem eingetragen und gezählt, der Preis bleibt aber einfach. Im Formular steht dann ein Hinweis.
 - [ ] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
@@ -425,7 +425,37 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
       zurückverlangt hat, auch in der Gesamtstatistik und in der Spielerkarte.
 - [ ] Spiele, die schon vorher mit abweichendem Preis gespeichert waren, bleiben wie sie waren (Preis gilt).
 
-### 22. Darstellung
+### 22. Fehlerarten bei zu hohem oder zu niedrigem Preis
+- [ ] Gibst du einen **höheren** Preis ein, heißen die Arten "Schneider dazugedichtet", "Schwarz dazugedichtet" und
+      "Bock dazugedichtet". "… nicht verlangt" und "Bockrunde vergessen" fehlen.
+- [ ] Bei einem **niedrigeren** Preis gibt es dagegen "Schneider nicht verlangt", "Schwarz nicht verlangt" und
+      "Bockrunde vergessen".
+- [ ] Die Statistik ("Falsch verlangt") zählt "Schneider dazugedichtet" wie jede andere Art.
+
+### 23. Sie
+- [ ] Im Regelwerk lässt sich "Sie" an- und abschalten, bei "Alle Spielarten" ist sie an.
+- [ ] Eintragen: "Sie" hat keine Farbwahl, rechnet wie ein Solo (Preis, der Spieler dreifach), Laufende bis 8, Tout geht.
+- [ ] Ein altes Regelwerk (zum Beispiel "Unsere Runde") zeigt "Sie" nicht.
+- [ ] Wenn die Regel für "Sie" bei euch anders ist, schreib mir wie.
+
+### 24. Vergehen, Strafzahlungen und Neumischen
+- [ ] Am Tisch gibt es "Vergehen oder Neumischen". Du wählst die Art und den Spieler, "Eintragen" ist erst dann bedienbar.
+- [ ] Bei "Falsch gegeben (neu gemischt)" ist der Geber vorgewählt, nach dem Eintragen ist **derselbe** Geber dran.
+- [ ] Im Tarif gibt es "Vergehen und Neumischen kosten eine Strafe" mit zwei Beträgen. Standard: Vergehen 0,50 €, Neumischen 0.
+- [ ] Der Täter zahlt jedem anderen die Strafe, der Geldstand und das Diagramm ändern sich, die Summe bleibt 0.
+- [ ] Der Betrag lässt sich beim Eintragen ändern. Ist die Option im Tarif aus, kostet nichts etwas, es wird nur gezählt.
+- [ ] Unter den Spielen steht "Vergehen und Neumischen" mit Uhrzeit und Strafe, "Zurücknehmen" macht es rückgängig.
+- [ ] Die Statistik zeigt den Abschnitt "Vergehen und Neumischen" (Art, wer, Strafen), in der Gesamtstatistik und
+      in der Spielerkarte auch.
+- [ ] Die CSV der Ereignisse enthält die Vergehen.
+
+### 25. Farben in der Spieleliste und Schellen-Symbol
+- [ ] Sauspiel und Hochzeit sind blau, Wenz, Geier, Solos, Sie und Bettel violett, Ramsch grau, mit Legende. Im
+      Dunkelmodus gut lesbar.
+- [ ] Das Schellen-Symbol sieht wie eine Rollschelle aus (Kugel mit Schlitz und Loch). Sieht es bei euch anders
+      aus, schick mir ein Foto der Karte.
+
+### 26. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

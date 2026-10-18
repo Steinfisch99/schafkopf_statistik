@@ -929,6 +929,7 @@ fn max_laufende_per_game_kind_and_side() {
         (GameKind::Geier, 4, 4),
         (GameKind::Farbwenz, 8, 11),
         (GameKind::Farbgeier, 8, 11),
+        (GameKind::Sie, 8, 8),
         (GameKind::Bettel, 0, 0),
         (GameKind::Ramsch, 0, 0),
     ];
@@ -1845,15 +1846,15 @@ fn the_evening_log_records_who_came_left_and_moved() {
     let lines: Vec<&str> = csv.lines().collect();
     assert_eq!(
         lines[0],
-        "Zeit,Zeit_Unix,Ereignis,Spieler,Hinter,Nach_Spiel_Nr"
+        "Zeit,Zeit_Unix,Ereignis,Spieler,Hinter,Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent"
     );
-    assert_eq!(lines[1], "2001-09-09 03:46,1000000000,Abend beginnt,,,0");
+    assert_eq!(lines[1], "2001-09-09 03:46,1000000000,Abend beginnt,,,0,");
     assert_eq!(
         lines[2],
-        "2001-09-09 03:56,1000000600,Kommt dazu,Eva,Anna,1"
+        "2001-09-09 03:56,1000000600,Kommt dazu,Eva,Anna,1,"
     );
-    assert_eq!(lines[3], "2001-09-09 04:06,1000001200,Geht,Cem,,1");
-    assert!(lines[4].ends_with("Setzt sich um,Eva,Dora,1"));
+    assert_eq!(lines[3], "2001-09-09 04:06,1000001200,Geht,Cem,,1,");
+    assert!(lines[4].ends_with("Setzt sich um,Eva,Dora,1,"));
     assert!(lines[6].contains("Abend endet"));
     assert_eq!(lines.len(), 7);
 }
@@ -2265,7 +2266,7 @@ fn schneider_and_schwarz_can_be_forgotten_separately() {
         PriceMistake::SchwarzMissed.label()
     );
     assert!(PriceMistake::ALL.contains(&PriceMistake::SchwarzMissed));
-    assert_eq!(PriceMistake::ALL.len(), 9);
+    assert_eq!(PriceMistake::ALL.len(), 12);
 }
 
 fn sample_files() -> Vec<(String, Vec<u8>)> {
@@ -2761,4 +2762,263 @@ fn the_losers_reclaim_twice_what_was_demanded_too_much() {
     // Ohne Zurückverlangen gilt der verlangte Preis.
     let g = t.add_game(asked(80)).unwrap();
     assert_eq!(g.value, 80);
+}
+
+#[test]
+fn mistakes_fit_the_direction_of_the_wrong_price() {
+    let high = PriceMistake::for_price(true);
+    let low = PriceMistake::for_price(false);
+    // Zu viel verlangt: dazugedichtet, nichts vergessen.
+    assert!(high.contains(&PriceMistake::SchneiderInvented));
+    assert!(high.contains(&PriceMistake::SchwarzInvented));
+    assert!(high.contains(&PriceMistake::BockInvented));
+    assert!(!high.contains(&PriceMistake::SchneiderMissed));
+    assert!(!high.contains(&PriceMistake::SchwarzMissed));
+    assert!(!high.contains(&PriceMistake::BockForgotten));
+    // Zu wenig verlangt: vergessen, nichts dazugedichtet.
+    assert!(low.contains(&PriceMistake::SchneiderMissed));
+    assert!(!low.contains(&PriceMistake::SchneiderInvented));
+    // Der Rest passt zu beidem.
+    for m in [
+        PriceMistake::WrongBase,
+        PriceMistake::Miscalculated,
+        PriceMistake::Other,
+    ] {
+        assert!(high.contains(&m) && low.contains(&m));
+    }
+    // Jede Fehlerart gibt es in mindestens einer Richtung.
+    for m in PriceMistake::ALL {
+        assert!(high.contains(&m) || low.contains(&m));
+    }
+}
+
+#[test]
+fn invented_schneider_is_stored_and_counted() {
+    let mut t = table();
+    let g = t
+        .add_game(GameInput {
+            price_override: Some(30),
+            mistakes: vec![PriceMistake::SchneiderInvented],
+            ..sauspiel(0, 1, 3)
+        })
+        .unwrap();
+    assert!(g.overcharged());
+    assert_eq!(g.input.mistakes, vec![PriceMistake::SchneiderInvented]);
+    let s = table_stats(&t);
+    assert_eq!(s.mistake_counts[&PriceMistake::SchneiderInvented], 1);
+    let json = t.to_json().unwrap();
+    assert_eq!(Table::from_json(&json).unwrap(), t);
+}
+
+#[test]
+fn sie_is_a_solo_without_suit_and_old_rule_sets_do_not_get_it() {
+    assert_eq!(GameKind::Sie.label(), "Sie");
+    assert!(GameKind::Sie.is_solo() && GameKind::Sie.allows_tout());
+    assert!(!GameKind::Sie.needs_trump_suit() && !GameKind::Sie.is_team_game());
+    assert!(!GameKind::Ramsch.is_solo() && !GameKind::Sauspiel.is_solo());
+    assert!(GameKind::Bettel.is_solo() && GameKind::Wenz.is_solo());
+    let mut t = table();
+    // Solo-Preis 50, dreifach; Laufende ab 3, höchstens 8 beim Spieler.
+    let g = t
+        .add_game(GameInput {
+            laufende: 3,
+            ..GameInput::new(0, GameKind::Sie, 1)
+        })
+        .unwrap();
+    assert_eq!(g.value, 50 + 30);
+    assert_eq!(g.payouts, vec![-80, 240, -80, -80]);
+    assert!(t
+        .add_game(GameInput {
+            laufende: 9,
+            ..GameInput::new(0, GameKind::Sie, 1)
+        })
+        .is_err());
+    assert!(t
+        .add_game(GameInput {
+            suit: Some(Suit::Eichel),
+            ..GameInput::new(0, GameKind::Sie, 1)
+        })
+        .is_err());
+    // Ein gespeichertes Regelwerk ohne Sie bekommt sie nicht dazu.
+    let json = t.to_json().unwrap();
+    let mut old: serde_json::Value = serde_json::from_str(&json).unwrap();
+    old["enabled_kinds"] = serde_json::json!(["Sauspiel", "Wenz"]);
+    let loaded = Table::from_json(&old.to_string()).unwrap();
+    assert!(!loaded.is_enabled(GameKind::Sie));
+}
+
+#[test]
+fn an_offence_costs_the_offender_a_penalty_from_every_other_player() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    let o = t
+        .add_offence(OffenceKind::NotFollowed, 2, None, Some(100))
+        .unwrap();
+    assert_eq!((o.amount, o.after_games), (50, 1));
+    assert_eq!(o.payouts, vec![50, 50, -150, 50]);
+    assert_eq!(t.balances(), vec![-20 + 50, 20 + 50, -20 - 150, 20 + 50]);
+    assert_eq!(t.balances().iter().sum::<Cents>(), 0);
+    // Eigener Betrag.
+    let o = t
+        .add_offence(OffenceKind::Collusion, 0, Some(100), None)
+        .unwrap();
+    assert_eq!(o.payouts, vec![-300, 100, 100, 100]);
+    assert_eq!(t.last_activity(), Some(100));
+    // Zurücknehmen.
+    assert!(t.remove_offence(1).is_some());
+    assert!(t.remove_offence(5).is_none());
+    assert_eq!(t.balances().iter().sum::<Cents>(), 0);
+    assert_eq!(t.offences.len(), 1);
+}
+
+#[test]
+fn offences_check_the_seat_and_the_amount() {
+    let mut t = table();
+    assert!(t.add_offence(OffenceKind::Other, 9, None, None).is_err());
+    assert!(t
+        .add_offence(OffenceKind::Other, 1, Some(-5), None)
+        .is_err());
+    t.leave(3, None).unwrap();
+    assert!(t.add_offence(OffenceKind::Other, 3, None, None).is_err());
+    // Wer nicht am Tisch sitzt, zahlt und bekommt nichts.
+    let o = t.add_offence(OffenceKind::Other, 1, None, None).unwrap();
+    assert_eq!(o.payouts, vec![50, -100, 50, 0]);
+}
+
+#[test]
+fn a_misdeal_keeps_the_dealer_and_is_free_unless_the_tariff_says_so() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    assert_eq!(t.next_dealer(), 1);
+    // Standard: Neumischen kostet nichts, wird aber gezählt.
+    let o = t
+        .add_offence(OffenceKind::Misdeal, t.next_dealer(), None, None)
+        .unwrap();
+    assert_eq!((o.amount, o.payouts.clone()), (0, vec![0; 4]));
+    assert_eq!(t.next_dealer(), 1, "derselbe Geber mischt neu");
+    t.set_tariff(Tariff {
+        misdeal_penalty: 20,
+        ..Tariff::default()
+    });
+    let o = t.add_offence(OffenceKind::Misdeal, 1, None, None).unwrap();
+    assert_eq!(o.payouts, vec![20, -60, 20, 20]);
+    let s = table_stats(&t);
+    assert_eq!((s.misdeals, s.offences), (2, 0));
+    assert_eq!(s.penalty_cents, 60);
+    assert_eq!(s.players[1].misdeals, 2);
+    assert_eq!(s.players[1].penalty_paid, 60);
+    assert_eq!(s.players[0].penalty_received, 20);
+}
+
+#[test]
+fn without_penalties_offences_are_counted_but_free() {
+    let mut t = table();
+    t.set_tariff(Tariff {
+        penalties_enabled: false,
+        misdeal_penalty: 20,
+        ..Tariff::default()
+    });
+    assert_eq!(t.penalty_for(OffenceKind::NotFollowed), 0);
+    assert_eq!(t.penalty_for(OffenceKind::Misdeal), 0);
+    let o = t
+        .add_offence(OffenceKind::NotFollowed, 1, Some(100), None)
+        .unwrap();
+    assert_eq!((o.amount, o.payouts.clone()), (0, vec![0; 4]));
+    let s = table_stats(&t);
+    assert_eq!((s.offences, s.penalty_cents), (1, 0));
+    assert_eq!(s.players[1].offences, 1);
+    assert_eq!(s.players[1].offences_by_kind[&OffenceKind::NotFollowed], 1);
+}
+
+#[test]
+fn penalties_flow_into_balances_stats_and_the_history_chart() {
+    let mut t = table();
+    t.add_offence(OffenceKind::OutOfTurn, 0, None, None)
+        .unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_offence(OffenceKind::ShowedCards, 2, None, None)
+        .unwrap();
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    let history = balance_history(&t);
+    assert_eq!(history.len(), 3);
+    assert_eq!(
+        history[0],
+        vec![-150, 50, 50, 50],
+        "Strafe vor dem ersten Spiel"
+    );
+    // Die Strafe nach Spiel 1 steckt im Stand nach Spiel 1.
+    assert_eq!(history[1], vec![-120, 120, -120, 120]);
+    assert_eq!(history[2], vec![-140, 140, -140, 140]);
+    assert_eq!(
+        history[2],
+        t.balances(),
+        "der Endstand stimmt mit den Kontoständen überein"
+    );
+    let s = table_stats(&t);
+    for (p, b) in s.players.iter().zip(t.balances()) {
+        assert_eq!(p.balance, b);
+    }
+    assert_eq!(s.offences, 2);
+}
+
+#[test]
+fn old_files_have_no_offences_and_old_tariffs_have_penalties_on() {
+    let mut json: serde_json::Value = serde_json::to_value(Tariff::default()).unwrap();
+    for key in ["penalties_enabled", "offence_penalty", "misdeal_penalty"] {
+        json.as_object_mut().unwrap().remove(key);
+    }
+    let old: Tariff = serde_json::from_value(json).unwrap();
+    assert!(old.penalties_enabled);
+    assert_eq!((old.offence_penalty, old.misdeal_penalty), (50, 0));
+    let mut t = table();
+    t.add_offence(OffenceKind::Other, 0, None, None).unwrap();
+    let mut value: serde_json::Value = serde_json::from_str(&t.to_json().unwrap()).unwrap();
+    value.as_object_mut().unwrap().remove("offences");
+    let loaded = Table::from_json(&value.to_string()).unwrap();
+    assert!(loaded.offences.is_empty());
+    assert_eq!(loaded.balances(), vec![0; 4]);
+    // Ein neuer Spieler bekommt für frühere Strafen 0.
+    let mut t = table();
+    t.add_offence(OffenceKind::Other, 0, None, None).unwrap();
+    t.add_player("Eva", None, None).unwrap();
+    assert_eq!(t.offences[0].payouts.len(), 5);
+    assert_eq!(t.balances().iter().sum::<Cents>(), 0);
+}
+
+#[test]
+fn overall_stats_add_up_offences_across_evenings() {
+    let mut a = table();
+    a.add_offence(OffenceKind::NotFollowed, 1, None, None)
+        .unwrap();
+    a.add_offence(OffenceKind::Misdeal, 0, None, None).unwrap();
+    let mut b = Table::new(
+        "B",
+        ["Ben", "Anna", "Cem", "Dora"].map(String::from).to_vec(),
+        0,
+        Tariff::default(),
+    )
+    .unwrap();
+    b.add_offence(OffenceKind::NotFollowed, 0, None, None)
+        .unwrap();
+    let all = overall_stats(&[&a, &b]);
+    assert_eq!((all.offences, all.misdeals), (2, 1));
+    assert_eq!(all.offences_by_kind[&OffenceKind::NotFollowed], 2);
+    assert_eq!(all.penalty_cents, 150 + 150);
+    let ben = all.players.iter().find(|p| p.name == "Ben").unwrap();
+    assert_eq!((ben.offences, ben.penalty_paid), (2, 300));
+}
+
+#[test]
+fn offences_appear_in_the_protocol_csv_in_the_order_of_the_games() {
+    let mut t = table();
+    t.add_offence(OffenceKind::NotFollowed, 2, None, Some(50))
+        .unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_offence(OffenceKind::Misdeal, 1, Some(20), None)
+        .unwrap();
+    let csv = t.events_csv();
+    let lines: Vec<&str> = csv.lines().collect();
+    assert!(lines[0].ends_with("Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent"));
+    assert!(lines[2].contains("Vergehen: Nicht bedient,Cem,,0,50"));
+    assert!(lines[3].contains("Vergehen: Falsch gegeben (neu gemischt),Ben,,1,20"));
 }

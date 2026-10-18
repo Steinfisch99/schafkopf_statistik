@@ -5,7 +5,7 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
-    table_stats, Cents, GameKind, LaufendeStats, PlayerStats, RoleStats, Suit, Table,
+    table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, RoleStats, Suit, Table,
 };
 
 use super::stat_widgets::{
@@ -128,6 +128,17 @@ fn PlayerDetail(player: PlayerStats, results: Vec<Option<bool>>, open: bool) -> 
             Kv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string() }
             Kv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string() }
             Kv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string() }
+            if p.offences + p.misdeals > 0 || p.penalty_received > 0 {
+                h4 { "Vergehen und Neumischen" }
+                Kv { label: "Vergehen", value: format!("{}×", p.offences) }
+                Kv { label: "Neu gemischt", value: format!("{}×", p.misdeals) }
+                if p.penalty_paid > 0 {
+                    Kv { label: "Strafen gezahlt", value: format_euro(p.penalty_paid) }
+                }
+                if p.penalty_received > 0 {
+                    Kv { label: "Strafen bekommen", value: format_euro(p.penalty_received) }
+                }
+            }
             if p.wrong_demands > 0 {
                 h4 { "Falsch verlangt" }
                 Kv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands) }
@@ -489,6 +500,14 @@ pub fn StatsScreen(
                 }
             }
 
+            OffenceSection {
+                offences: stats.offences,
+                misdeals: stats.misdeals,
+                penalty_cents: stats.penalty_cents,
+                by_kind: stats.offences_by_kind.iter().map(|(k, c)| (*k, *c)).collect::<Vec<_>>(),
+                players: stats.players.iter().map(|p| (p.name.clone(), p.offences, p.misdeals, p.penalty_paid, p.penalty_received)).collect::<Vec<_>>(),
+            }
+
             if !lauf_rows.is_empty() {
                 section {
                     h3 { "Lauf und Gegenlauf" }
@@ -638,6 +657,67 @@ pub(super) fn DemandNumbers(
         }
         for (label, cents) in money.iter().filter(|(_, c)| *c > 0) {
             Kv { key: "{label}", label: label.to_string(), value: format_euro(*cents) }
+        }
+    }
+}
+
+/// Vergehen und Neumischen: wie oft, welche Art, wer wie oft, und was an Strafen floss. Zeigt nichts,
+/// wenn es keine gab.
+#[component]
+pub(super) fn OffenceSection(
+    offences: u32,
+    misdeals: u32,
+    penalty_cents: Cents,
+    by_kind: Vec<(OffenceKind, u32)>,
+    /// Pro Spieler: Name, Vergehen, Neumischen, gezahlte und bekommene Strafen.
+    players: Vec<(String, u32, u32, Cents, Cents)>,
+) -> Element {
+    let total = offences + misdeals;
+    if total == 0 {
+        return rsx! {};
+    }
+    let mut kinds = by_kind;
+    kinds.sort_by_key(|(k, c)| (std::cmp::Reverse(*c), *k));
+    let mut rows: Vec<&(String, u32, u32, Cents, Cents)> =
+        players.iter().filter(|p| p.1 + p.2 > 0).collect();
+    rows.sort_by_key(|p| std::cmp::Reverse(p.1 + p.2));
+    let scale = rows.first().map_or(0, |p| p.1 + p.2);
+    rsx! {
+        section {
+            h3 { "Vergehen und Neumischen" }
+            p { class: "hint", "Nicht bedient, aus der Reihe gespielt und Ähnliches, dazu Fehler beim Geben (neu gemischt). Wer das Vergehen begangen hat, zahlt die Strafe laut Tarif." }
+            Kv { label: "Vergehen", value: format!("{offences}×") }
+            Kv { label: "Neu gemischt", value: format!("{misdeals}×") }
+            if penalty_cents > 0 {
+                Kv { label: "Strafen insgesamt", value: format_euro(penalty_cents) }
+            }
+            h4 { "Welche Art" }
+            for (kind, count) in kinds.iter() {
+                ShareBar {
+                    key: "{kind.label()}",
+                    label: kind.label().to_string(),
+                    part: *count,
+                    total: total,
+                    value: format!("{count}×"),
+                }
+            }
+            h4 { "Wer" }
+            for (name, o, m, paid, received) in rows.iter().map(|p| (&p.0, p.1, p.2, p.3, p.4)) {
+                ShareBar {
+                    key: "{name}",
+                    label: name.clone(),
+                    part: o + m,
+                    total: scale,
+                    value: if paid > 0 {
+                        format!("{}× · zahlt {}", o + m, format_euro(paid))
+                    } else {
+                        format!("{}×", o + m)
+                    },
+                }
+                if received > 0 {
+                    p { class: "muted small", "{name} bekam {format_euro(received)} an Strafen von anderen." }
+                }
+            }
         }
     }
 }

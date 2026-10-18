@@ -10,7 +10,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Geber | Anna | ja |
 | Mitspielende | 2 bis 4 Plätze, die in diesem Spiel dabei sind (Voreinstellung: Geber, der Spieler vor ihm und die zwei nach ihm) | nein |
 | Verlangter Preis | Einzelwert in Cent, falls am Tisch etwas anderes verlangt wurde als der Tarif ergibt | nein |
-| Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Bettel, Ramsch | ja |
+| Spielart | Sauspiel, Hochzeit, Wenz, Geier, Farbsolo, Farbwenz, Farbgeier, Sie, Bettel, Ramsch | ja |
 | Farbe | beim Sauspiel die gerufene Sau (nicht Herz), beim Farbsolo die Trumpffarbe | je nach Spielart |
 | Spieler | Ben. Beim Ramsch: der Verlierer, oder bei "Durchmarsch" der, der alle Stiche gemacht hat | ja |
 | Mitspieler | Dora (Sauspiel, Hochzeit) | je nach Spielart |
@@ -21,7 +21,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Gewonnen | Spielerpartei ja/nein | ja |
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
 | Schwarz | Verlierer hat keinen Stich, zählt zusätzlich zu Schneider | nein |
-| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier | nein |
+| Laufende | Anzahl; gezählt beim Sauspiel und Farbsolo ab 3, bei Wenz und Geier ab 2 (im Tarif einstellbar). Höchstens 14 beim Sauspiel, der Hochzeit und dem Farbsolo, 4 beim Wenz und Geier, 11 beim Farbwenz und Farbgeier, 8 beim Sie | nein |
 | Gegenlauf | Ja, wenn die **Gegner** die Laufenden hatten (Gegenlauf) statt der Spielerpartei (Lauf). Der Preis ist in beiden Fällen derselbe, es zählt für die Statistik | nein |
 | Bockspiel | Ja, wenn das Spiel ein Bockspiel war (doppelter Preis). Vorgewählt, solange ein Bock offen ist | nein |
 | Bockrunde entstanden | Ja, wenn das Spiel eine Bockrunde ausgelöst hat. Schwarz schaltet es von selbst ein | nein |
@@ -323,3 +323,50 @@ verlangen. Die App nimmt immer den **Höchstbetrag** (zu wenig zurückverlangt w
   Strich für die Gewinner" ist die Summe aus dem, was sie mehr oder (nach dem Zurückverlangen) weniger bekommen
   haben als berechnet (hier −20 je Gewinner). Je Spieler: "Zurückgeben müssen" (Gewinner) und "Zurückverlangt
   (zurückgeholt)" (Verlierer) in diesem Sinn.
+
+### Fehlerarten bei falsch verlangtem Preis
+
+Wer zu viel verlangt, hat nichts vergessen, sondern **dazugedichtet**. Die Auswahl der Fehlerarten richtet sich
+deshalb nach der Richtung des Preises:
+
+- **Zu viel verlangt:** Falscher Grundtarif, Falsche Anzahl Doppler, Laufende nicht alle oder keine, Falsche Partei
+  gewonnen, Verrechnet, Etwas anderes und zusätzlich **Schneider dazugedichtet**, **Schwarz dazugedichtet**,
+  **Bock dazugedichtet**.
+- **Zu wenig verlangt:** dieselben gemeinsamen Arten und zusätzlich **Bockrunde vergessen**, **Schneider nicht
+  verlangt**, **Schwarz nicht verlangt**.
+- Eine schon gewählte Fehlerart bleibt sichtbar, auch wenn sie nach einer Preisänderung nicht mehr zur Richtung
+  passt. Alte Spiele mit "nicht verlangt" bleiben unverändert lesbar.
+
+### Sie
+
+Die Spielart **Sie** ist ein **Solo ohne Farbe**, bei dem alle acht Ober und Unter Trumpf sind. Die App rechnet
+sie wie die anderen Solospiele: Solo-Preis, der Spieler zahlt oder bekommt ihn dreifach, Schneider, Schwarz,
+Laufende (ab der Zahl "Solo" im Tarif, höchstens 8), Tout möglich, keine Farbe. Wer eine andere Regel spielt,
+sagt es mir, dann ändere ich sie. Ein Regelwerk muss "Sie" ausdrücklich einschalten, bestehende Regelwerke und
+Abende bleiben, wie sie waren. "Alle Spielarten" enthält sie.
+
+### Vergehen, Strafzahlungen und Neumischen
+
+- Im Abend gibt es "Vergehen oder Neumischen". Eingetragen werden die **Art** (Nicht bedient, Aus der Reihe
+  gespielt, Karten gezeigt, Absprache oder Zeichen, Falsch gegeben (neu gemischt), Etwas anderes) und **wer** es
+  war. Beim **Neumischen** ist der Geber der Täter und bleibt derselbe (der Geber rückt nicht weiter).
+- **Strafe:** Der Täter zahlt jedem anderen, der am Tisch sitzt, den Betrag aus dem Tarif ("Vergehen je
+  Mitspieler", Standard 0,50 €; "Neumischen je Mitspieler", Standard **0**, also keine Strafe). Der Betrag lässt
+  sich beim Eintragen ändern. Er wird festgeschrieben, eine spätere Tarifänderung berührt ihn nicht.
+- **Option im Tarif:** "Vergehen und Neumischen kosten eine Strafe" (Standard an, auch für alte Tarife). Aus:
+  Alles wird trotzdem eingetragen und gezählt, kostet aber nichts.
+- Die Strafen zählen zum Kontostand und stehen im Verlauf: Eine Strafe nach n Spielen steckt im Stand nach
+  Spiel n (vor dem ersten Spiel im Startwert). Ein Eintrag lässt sich zurücknehmen.
+- **Statistik** (Abend und Gesamtstatistik, Abschnitt "Vergehen und Neumischen"): Zahl der Vergehen und des
+  Neumischens, nach Art, nach Spieler, die Strafen insgesamt; je Spieler gezahlte und bekommene Strafen.
+- **Liste:** Unter den Spielen steht "Vergehen und Neumischen" mit Uhrzeit, Spieler, Art und Strafe.
+- **CSV:** Die Ereignis-Datei (`schafkopf-ereignisse.csv`) enthält die Vergehen als Zeilen "Vergehen: Art" und hat
+  eine zusätzliche Spalte "Strafe_je_Mitspieler_Cent".
+- Alte Dateien ohne Vergehen laden wie bisher (`offences` fehlt = keine).
+
+### Darstellung der Spiele
+
+- In der Spieleliste haben **Spiele zu zweit** (Sauspiel, Hochzeit, blau), **Alleinspiele** (Wenz, Geier, Farbsolo,
+  Farbwenz, Farbgeier, Sie, Bettel, violett) und **Ramsch** (grau) einen farbigen Rand und eine leichte
+  Hintergrundfarbe. Eine Legende steht über der Liste, der Name der Spielart steht zusätzlich im Text.
+- Das Symbol für **Schellen** ist eine runde Rollschelle (Kugel mit Schlitz, Loch und Öse) statt einer Kirchenglocke.

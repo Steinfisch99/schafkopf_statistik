@@ -19,8 +19,8 @@ use dioxus::prelude::*;
 use navigation::{back_target, effective_screen, history_action, HistoryAction};
 use views::{
     use_setup_state, BackupScreen, ExportScreen, GameForm, LibraryScreen, Notice, NoticeBar,
-    OverallScreen, PastEveningView, PastList, PastSection, SeatsScreen, SettingsScreen, Setup,
-    StatsScreen, TableView,
+    OffenceScreen, OverallScreen, PastEveningView, PastList, PastSection, SeatsScreen,
+    SettingsScreen, Setup, StatsScreen, TableView,
 };
 
 const CSS: &str = include_str!("style.css");
@@ -37,6 +37,8 @@ pub enum Screen {
     Settings,
     /// Wer am Tisch sitzt: Spieler dazusetzen, gehen lassen, zurückholen.
     Seats,
+    /// Ein Vergehen oder Neumischen eintragen.
+    Offence,
     /// Verwaltung der gespeicherten Regelwerke und Tarife. `from_setup` sagt, wohin "Zurück" führt.
     Library {
         from_setup: bool,
@@ -164,6 +166,7 @@ fn App() -> Element {
                     Screen::EditGame(index) => rsx! { GameForm { key: "{index}", table, screen, notice, editing: Some(index) } },
                     Screen::Settings => rsx! { SettingsScreen { table, screen, notice, library } },
                     Screen::Seats => rsx! { SeatsScreen { table, screen, notice, library } },
+                    Screen::Offence => rsx! { OffenceScreen { table, screen, notice } },
                     Screen::Library { from_setup } => rsx! { LibraryScreen { screen, notice, library, from_setup } },
                     Screen::Export => rsx! { ExportScreen { table, screen, notice, back: Screen::Table } },
                     Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },

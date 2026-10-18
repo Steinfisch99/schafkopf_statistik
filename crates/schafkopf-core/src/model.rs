@@ -96,10 +96,16 @@ pub enum PriceMistake {
     Miscalculated,
     /// Etwas anderes.
     Other,
+    /// Schneider verlangt, obwohl keiner erreicht wurde (dazugedichtet).
+    SchneiderInvented,
+    /// Schwarz verlangt, obwohl keiner erreicht wurde (dazugedichtet).
+    SchwarzInvented,
+    /// Bock verlangt, obwohl es keinen gab.
+    BockInvented,
 }
 
 impl PriceMistake {
-    pub const ALL: [PriceMistake; 9] = [
+    pub const ALL: [PriceMistake; 12] = [
         PriceMistake::WrongBase,
         PriceMistake::WrongDoublings,
         PriceMistake::BockForgotten,
@@ -109,6 +115,9 @@ impl PriceMistake {
         PriceMistake::WrongWinner,
         PriceMistake::Miscalculated,
         PriceMistake::Other,
+        PriceMistake::SchneiderInvented,
+        PriceMistake::SchwarzInvented,
+        PriceMistake::BockInvented,
     ];
 
     pub fn label(self) -> &'static str {
@@ -122,7 +131,32 @@ impl PriceMistake {
             PriceMistake::WrongWinner => "Falsche Partei gewonnen",
             PriceMistake::Miscalculated => "Verrechnet",
             PriceMistake::Other => "Etwas anderes",
+            PriceMistake::SchneiderInvented => "Schneider dazugedichtet",
+            PriceMistake::SchwarzInvented => "Schwarz dazugedichtet",
+            PriceMistake::BockInvented => "Bock dazugedichtet",
         }
+    }
+
+    /// Nur bei zu hohem (`Some(true)`) oder nur bei zu niedrigem Preis (`Some(false)`) sinnvoll, sonst
+    /// bei beidem. Wer zu viel verlangt, hat nichts vergessen, sondern etwas dazugedichtet.
+    pub fn only_when_too_high(self) -> Option<bool> {
+        match self {
+            PriceMistake::BockForgotten
+            | PriceMistake::SchneiderMissed
+            | PriceMistake::SchwarzMissed => Some(false),
+            PriceMistake::SchneiderInvented
+            | PriceMistake::SchwarzInvented
+            | PriceMistake::BockInvented => Some(true),
+            _ => None,
+        }
+    }
+
+    /// Die Fehlerarten, die zu einem zu hohen (`too_high`) oder zu niedrigen Preis passen.
+    pub fn for_price(too_high: bool) -> Vec<PriceMistake> {
+        Self::ALL
+            .into_iter()
+            .filter(|m| m.only_when_too_high().is_none_or(|high| high == too_high))
+            .collect()
     }
 }
 
@@ -183,6 +217,8 @@ pub enum GameKind {
     Farbsolo,
     Farbwenz,
     Farbgeier,
+    /// Sie: ein Solo ohne Farbe, bei dem alle Ober und Unter Trumpf sind (acht Trümpfe).
+    Sie,
     /// Spieler gewinnt, wenn er keinen Stich macht.
     Bettel,
     /// Wer die meisten Augen hat, verliert. `declarer` ist der Verlierer (bzw. Durchmarschierer).
@@ -190,7 +226,7 @@ pub enum GameKind {
 }
 
 impl GameKind {
-    pub const ALL: [GameKind; 9] = [
+    pub const ALL: [GameKind; 10] = [
         GameKind::Sauspiel,
         GameKind::Hochzeit,
         GameKind::Wenz,
@@ -198,6 +234,7 @@ impl GameKind {
         GameKind::Farbsolo,
         GameKind::Farbwenz,
         GameKind::Farbgeier,
+        GameKind::Sie,
         GameKind::Bettel,
         GameKind::Ramsch,
     ];
@@ -211,6 +248,7 @@ impl GameKind {
             GameKind::Farbsolo => "Farbsolo",
             GameKind::Farbwenz => "Farbwenz",
             GameKind::Farbgeier => "Farbgeier",
+            GameKind::Sie => "Sie",
             GameKind::Bettel => "Bettel",
             GameKind::Ramsch => "Ramsch",
         }
@@ -230,7 +268,14 @@ impl GameKind {
                 | GameKind::Farbsolo
                 | GameKind::Farbwenz
                 | GameKind::Farbgeier
+                | GameKind::Sie
         )
+    }
+
+    /// Alleinspiele, bei denen der Spieler gegen alle anderen spielt (alles außer Sauspiel, Hochzeit
+    /// und Ramsch). Die Spieleliste färbt sie anders als die Spiele zu zweit.
+    pub fn is_solo(self) -> bool {
+        !self.is_team_game() && self != GameKind::Ramsch
     }
 
     /// Spiele mit Trumpffarbe.
@@ -260,6 +305,7 @@ impl GameKind {
         let trumps = match self {
             GameKind::Sauspiel | GameKind::Hochzeit | GameKind::Farbsolo => 14,
             GameKind::Wenz | GameKind::Geier => 4,
+            GameKind::Sie => 8,
             GameKind::Farbwenz | GameKind::Farbgeier => 11,
             GameKind::Bettel | GameKind::Ramsch => 0,
         };

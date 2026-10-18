@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::{Cents, GameKind, PriceMistake, Seat, Suit};
 use crate::scoring::payouts;
+use crate::table::OffenceKind;
 use crate::table::{Game, Table};
 
 /// Spiele und Siege in einer Rolle, Position oder Kategorie.
@@ -117,6 +118,13 @@ pub struct PlayerStats {
     /// Ergebnis nach Platz unter den Mitspielenden, gezählt ab links vom Geber: 0 = Vorhand, dann
     /// Mittelhand, Hinterhand und 3 = der Letzte (bei vier Spielern der Geber).
     pub by_position: [RoleStats; 4],
+    /// Vergehen (ohne Neumischen) und Neumischen des Spielers, und alle Arten zusammen.
+    pub offences: u32,
+    pub misdeals: u32,
+    pub offences_by_kind: BTreeMap<OffenceKind, u32>,
+    /// Strafen, die er gezahlt und bekommen hat, in Cent (beides positiv).
+    pub penalty_paid: Cents,
+    pub penalty_received: Cents,
 }
 
 impl PlayerStats {
@@ -156,6 +164,11 @@ impl PlayerStats {
             current_streak: 0,
             by_kind: BTreeMap::new(),
             by_position: [RoleStats::default(); 4],
+            offences: 0,
+            misdeals: 0,
+            offences_by_kind: BTreeMap::new(),
+            penalty_paid: 0,
+            penalty_received: 0,
         }
     }
 
@@ -199,6 +212,11 @@ pub struct TableStats {
     pub bock_started: u32,
     /// Läufe und Gegenläufe je Spielart, nur für Spielarten mit Zuschlägen.
     pub laufende_by_kind: BTreeMap<GameKind, LaufendeStats>,
+    /// Vergehen (ohne Neumischen), Neumischen, die Arten und das Geld, das als Strafe bewegt wurde.
+    pub offences: u32,
+    pub misdeals: u32,
+    pub offences_by_kind: BTreeMap<OffenceKind, u32>,
+    pub penalty_cents: Cents,
     pub players: Vec<PlayerStats>,
     /// `partner_matrix[a][b]`: Sauspiele/Hochzeiten, in denen a und b zusammen gespielt haben.
     pub partner_matrix: Vec<Vec<RoleStats>>,
@@ -237,6 +255,10 @@ pub fn table_stats(table: &Table) -> TableStats {
         bock_games: 0,
         bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
+        offences: 0,
+        misdeals: 0,
+        offences_by_kind: BTreeMap::new(),
+        penalty_cents: 0,
         players: Vec::new(),
         partner_matrix: vec![vec![RoleStats::default(); n]; n],
     };
@@ -428,6 +450,31 @@ pub fn table_stats(table: &Table) -> TableStats {
             }
         }
     }
+    for o in &table.offences {
+        if o.kind == OffenceKind::Misdeal {
+            stats.misdeals += 1;
+        } else {
+            stats.offences += 1;
+        }
+        *stats.offences_by_kind.entry(o.kind).or_default() += 1;
+        stats.penalty_cents += o.payouts.iter().filter(|&&p| p > 0).sum::<Cents>();
+        if let Some(p) = players.get_mut(o.offender) {
+            if o.kind == OffenceKind::Misdeal {
+                p.misdeals += 1;
+            } else {
+                p.offences += 1;
+            }
+            *p.offences_by_kind.entry(o.kind).or_default() += 1;
+        }
+        for (p, &payout) in players.iter_mut().zip(&o.payouts) {
+            p.balance += payout;
+            if payout < 0 {
+                p.penalty_paid -= payout;
+            } else {
+                p.penalty_received += payout;
+            }
+        }
+    }
     stats.players = players;
     stats
 }
@@ -435,13 +482,27 @@ pub fn table_stats(table: &Table) -> TableStats {
 /// Kontostand pro Sitzplatz für einen Verlaufsgraphen.
 ///
 /// Der erste Eintrag ist der Start bei 0, danach folgt der Stand nach jedem Spiel. Der Graph hat
-/// also eine Position mehr als es Spiele gibt, und Kontostände können negativ sein.
+/// also eine Position mehr als es Spiele gibt, und Kontostände können negativ sein. Strafzahlungen
+/// stecken in dem Stand, der zu dem Zeitpunkt gehört, an dem sie anfielen: Vor dem ersten Spiel im
+/// Startwert, sonst im Stand nach dem letzten Spiel davor.
 pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
+    let games = table.games().len();
     let mut sum = vec![0; table.players.len()];
-    let mut history = vec![sum.clone()];
-    for g in table.games() {
-        for (s, p) in sum.iter_mut().zip(&g.payouts) {
-            *s += p;
+    let mut history = Vec::with_capacity(games + 1);
+    for step in 0..=games {
+        if step > 0 {
+            for (s, p) in sum.iter_mut().zip(&table.games()[step - 1].payouts) {
+                *s += p;
+            }
+        }
+        for o in table
+            .offences
+            .iter()
+            .filter(|o| o.after_games.min(games) == step)
+        {
+            for (s, p) in sum.iter_mut().zip(&o.payouts) {
+                *s += p;
+            }
         }
         history.push(sum.clone());
     }

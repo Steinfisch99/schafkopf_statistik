@@ -160,6 +160,33 @@ pub fn event_text(table: &Table, event: &schafkopf_core::TableEvent) -> String {
     )
 }
 
+/// Der Satz zu einem Vergehen: "21:05 · Cem: Nicht bedient (nach Spiel 4), zahlt 0,50 € an jeden".
+pub fn offence_text(table: &Table, offence: &schafkopf_core::Offence) -> String {
+    let who = table
+        .players
+        .get(offence.offender)
+        .map_or("?", String::as_str);
+    let time = offence
+        .at
+        .map(|t| {
+            format!(
+                "{} · ",
+                schafkopf_core::format_clock(t, table.utc_offset_min)
+            )
+        })
+        .unwrap_or_default();
+    let when = match offence.after_games {
+        0 => "vor dem ersten Spiel".to_owned(),
+        n => format!("nach Spiel {n}"),
+    };
+    let cost = if offence.amount > 0 {
+        format!(", zahlt {} an jeden", format_euro(offence.amount))
+    } else {
+        ", ohne Strafe".to_owned()
+    };
+    format!("{time}{who}: {} ({when}{cost})", offence.kind.label())
+}
+
 /// "1 Spiel" oder "14 Spiele".
 pub fn games_text(count: usize) -> String {
     if count == 1 {
@@ -377,6 +404,29 @@ mod tests {
         assert!(
             text.contains("Zu viel verlangt, zurückverlangt von Cem"),
             "{text}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod offence_tests {
+    use super::*;
+    use schafkopf_core::{OffenceKind, Tariff};
+
+    #[test]
+    fn an_offence_reads_as_one_sentence() {
+        let players = ["Anna", "Ben", "Cem", "Dora"].map(String::from).to_vec();
+        let mut t = Table::new("T", players, 0, Tariff::default()).unwrap();
+        t.add_offence(OffenceKind::NotFollowed, 2, None, None)
+            .unwrap();
+        t.add_offence(OffenceKind::Misdeal, 1, None, None).unwrap();
+        assert_eq!(
+            offence_text(&t, &t.offences[0]),
+            "Cem: Nicht bedient (vor dem ersten Spiel, zahlt 0,50\u{a0}€ an jeden)"
+        );
+        assert_eq!(
+            offence_text(&t, &t.offences[1]),
+            "Ben: Falsch gegeben (neu gemischt) (vor dem ersten Spiel, ohne Strafe)"
         );
     }
 }

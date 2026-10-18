@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
 use crate::stats::{table_stats, KindStats, PlayerStats, RoleStats};
-use crate::table::Table;
+use crate::table::{OffenceKind, Table};
 
 /// Ein Spieler über alle gewählten Abende.
 #[derive(Debug, Clone, PartialEq)]
@@ -49,6 +49,12 @@ pub struct OverallPlayer {
     /// Spiele, bei denen er mitgespielt hat und der Preis mindestens einmal (zweimal) verdoppelt war.
     pub doubled_games: u32,
     pub quadrupled_games: u32,
+    /// Vergehen (ohne Neumischen), Neumischen, die Arten und die Strafen, die er gezahlt und bekommen hat.
+    pub offences: u32,
+    pub misdeals: u32,
+    pub offences_by_kind: BTreeMap<OffenceKind, u32>,
+    pub penalty_paid: Cents,
+    pub penalty_received: Cents,
 }
 
 impl OverallPlayer {
@@ -89,6 +95,11 @@ impl OverallPlayer {
             by_kind: BTreeMap::new(),
             doubled_games: 0,
             quadrupled_games: 0,
+            offences: 0,
+            misdeals: 0,
+            offences_by_kind: BTreeMap::new(),
+            penalty_paid: 0,
+            penalty_received: 0,
         }
     }
 
@@ -149,6 +160,13 @@ impl OverallPlayer {
         for (m, n) in &p.wrong_by_kind {
             *self.wrong_by_kind.entry(*m).or_default() += n;
         }
+        self.offences += p.offences;
+        self.misdeals += p.misdeals;
+        self.penalty_paid += p.penalty_paid;
+        self.penalty_received += p.penalty_received;
+        for (k, n) in &p.offences_by_kind {
+            *self.offences_by_kind.entry(*k).or_default() += n;
+        }
         self.longest_win_streak = self.longest_win_streak.max(p.longest_win_streak);
         self.longest_loss_streak = self.longest_loss_streak.max(p.longest_loss_streak);
         for (kind, k) in &p.by_kind {
@@ -196,6 +214,11 @@ pub struct OverallStats {
     /// Unterm Strich für die Gewinner bei zu hohem Preis: mehr bekommen (plus) oder durch das
     /// Zurückverlangen weniger als zustand (minus), summiert über alle Gewinner.
     pub overcharge_net_cents: Cents,
+    /// Vergehen (ohne Neumischen), Neumischen, die Arten und das als Strafe bewegte Geld.
+    pub offences: u32,
+    pub misdeals: u32,
+    pub offences_by_kind: BTreeMap<OffenceKind, u32>,
+    pub penalty_cents: Cents,
     pub players: Vec<OverallPlayer>,
 }
 
@@ -238,6 +261,12 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
         out.overcharge_cents += stats.overcharge_cents;
         out.reclaimed_cents += stats.reclaimed_cents;
         out.overcharge_net_cents += stats.overcharge_net_cents;
+        out.offences += stats.offences;
+        out.misdeals += stats.misdeals;
+        out.penalty_cents += stats.penalty_cents;
+        for (k, n) in &stats.offences_by_kind {
+            *out.offences_by_kind.entry(*k).or_default() += n;
+        }
         out.bock_games += stats.bock_games;
         out.bock_started += stats.bock_started;
         for (m, n) in &stats.mistake_counts {

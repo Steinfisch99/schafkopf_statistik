@@ -1,5 +1,5 @@
 use crate::model::{Cents, Seat};
-use crate::table::Table;
+use crate::table::{Offence, Table, TableEvent};
 
 /// Maskiert ein Feld nach RFC 4180: Felder mit Trennzeichen, Anführungszeichen oder Zeilenumbruch
 /// kommen in Anführungszeichen, enthaltene Anführungszeichen werden verdoppelt.
@@ -167,6 +167,7 @@ impl Table {
             "Spieler",
             "Hinter",
             "Nach_Spiel_Nr",
+            "Strafe_je_Mitspieler_Cent",
         ];
         let mut lines = vec![row(header.map(String::from), separator)];
         let time = |at: Option<i64>| {
@@ -176,10 +177,23 @@ impl Table {
                 at.map(|t| t.to_string()).unwrap_or_default(),
             )
         };
-        let mut push = |at: Option<i64>, what: &str, who: String, behind: String, games: usize| {
+        let mut push = |at: Option<i64>,
+                        what: &str,
+                        who: String,
+                        behind: String,
+                        games: usize,
+                        penalty: String| {
             let (local, unix) = time(at);
             lines.push(row(
-                [local, unix, what.to_owned(), who, behind, games.to_string()],
+                [
+                    local,
+                    unix,
+                    what.to_owned(),
+                    who,
+                    behind,
+                    games.to_string(),
+                    penalty,
+                ],
                 separator,
             ));
         };
@@ -189,14 +203,44 @@ impl Table {
             String::new(),
             String::new(),
             0,
+            String::new(),
         );
-        for e in &self.events {
-            let behind = e
-                .behind
-                .and_then(|b| self.players.get(b).cloned())
-                .unwrap_or_default();
-            let who = self.players.get(e.seat).cloned().unwrap_or_default();
-            push(e.at, e.kind.label(), who, behind, e.after_games);
+        // Kommen und Gehen sowie Vergehen in der Reihenfolge der Spiele, bei gleichem Stand wie eingetragen.
+        let mut entries: Vec<(usize, Option<&TableEvent>, Option<&Offence>)> = self
+            .events
+            .iter()
+            .map(|e| (e.after_games, Some(e), None))
+            .chain(self.offences.iter().map(|o| (o.after_games, None, Some(o))))
+            .collect();
+        entries.sort_by_key(|&(games, ..)| games);
+        for (_, event, offence) in entries {
+            if let Some(e) = event {
+                let behind = e
+                    .behind
+                    .and_then(|b| self.players.get(b).cloned())
+                    .unwrap_or_default();
+                let who = self.players.get(e.seat).cloned().unwrap_or_default();
+                push(
+                    e.at,
+                    e.kind.label(),
+                    who,
+                    behind,
+                    e.after_games,
+                    String::new(),
+                );
+            }
+            if let Some(o) = offence {
+                let who = self.players.get(o.offender).cloned().unwrap_or_default();
+                let what = format!("Vergehen: {}", o.kind.label());
+                push(
+                    o.at,
+                    &what,
+                    who,
+                    String::new(),
+                    o.after_games,
+                    o.amount.to_string(),
+                );
+            }
         }
         if let Some(end) = self.ended_at {
             push(
@@ -205,6 +249,7 @@ impl Table {
                 String::new(),
                 String::new(),
                 self.games().len(),
+                String::new(),
             );
         }
         let mut out = lines.join("\n");

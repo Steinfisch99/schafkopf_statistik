@@ -62,6 +62,20 @@ pub fn GameForm(
     let problem = d.problem();
     // Die Fehlerarten gibt es nur, wenn der Preis wirklich korrigiert wird.
     let price_corrected = matches!(&preview, Some(Ok(g)) if g.demanded_wrong());
+    // Wer zu viel verlangt, hat nichts vergessen, sondern dazugedichtet: Die Auswahl passt zur Richtung.
+    // Schon gewählte Fehlerarten bleiben sichtbar, auch wenn sie nicht mehr dazu passen.
+    let mistake_choices: Vec<PriceMistake> = {
+        let too_high = matches!(&preview, Some(Ok(g)) if g.overcharged());
+        let mut choices = PriceMistake::for_price(too_high);
+        choices.extend(
+            d.mistakes
+                .iter()
+                .filter(|m| !choices.contains(m))
+                .copied()
+                .collect::<Vec<_>>(),
+        );
+        choices
+    };
     // Zu viel verlangt und der Tarif erlaubt das Zurückverlangen: Die Verlierer können es zurückholen.
     let price_too_high = matches!(
         &preview,
@@ -437,9 +451,9 @@ pub fn GameForm(
                         }
                     }
                 }
-                p { class: "hint", "Was wurde vergessen oder falsch gemacht? (Mehrfachauswahl)" }
+                p { class: "hint", "Was ging beim Verlangen schief? (Mehrfachauswahl)" }
                 div { class: "chips",
-                    for mistake in PriceMistake::ALL {
+                    for mistake in mistake_choices.clone() {
                         Chip {
                             key: "{mistake.label()}",
                             label: mistake.label().to_string(),
