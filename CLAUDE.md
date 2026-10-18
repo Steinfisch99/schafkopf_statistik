@@ -16,7 +16,7 @@ Entscheidung zur Oberfläche: `docs/ui-entscheidung.md`.
   unten in der Tischübersicht und oben in der Einrichtung gezeigt (`AppVersion` in `views/common.rs`). Wenn ein neuer Tag gesetzt wird,
   vorher die **zweite** Stelle erhöhen (0.3.x → 0.4.0), sonst bei Änderungen die **dritte**. Wenn der Nutzer fertig ist: 1.0.0.
 - Pushen geht von der VM nicht (keine SSH-Schlüssel). Tags und Commits liegen nur lokal, der Nutzer pusht auf dem
-  Host (`git push sync <tag>`). Aktuelle Marken: `schafkopf-v0.1.0`, `v0.2.0`, `v0.3.0` (Stand `b8725b9`).
+  Host (`git push sync <tag>`). Aktuelle Marken: `schafkopf-v0.1.0`, `v0.2.0`, `v0.3.0` (Stand `b8725b9`), `v0.4.0`.
 - **Bestehende Statistiken nie entfernen**, Grafiken kommen dazu. Haltbarkeit der Daten ist wichtig: Neue Felder
   immer mit `#[serde(default)]`, alte Dateien müssen weiter laden (dafür gibt es in `tests.rs` Tests).
 - Jede neue Funktion bekommt: Tests, einen Abschnitt in `docs/datenpunkte.md`, einen Abschnitt in der Checkliste
