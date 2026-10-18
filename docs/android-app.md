@@ -136,7 +136,7 @@ Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder si
       ihm und die zwei danach.
 - [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
 - [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
-- [ ] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Rollschelle) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
+- [ ] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Kugel mit gelbem, rotem und grünem Feld, drei Löchern im roten Band) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
 - [ ] **Solo:** Beim Farbsolo, Farbwenz und Farbgeier geht ein **Lauf** nur bis 8 (der Solospieler hat 8 Karten), ein **Gegenlauf** darf länger sein (Farbsolo bis 14, Farbwenz und Farbgeier bis 11).
 - [ ] **Ramsch:** Unter "Regeln und Tarif" gibt es im Tarif "Klopfen verdoppelt den Preis". Ist es aus, wird das Klopfen beim Ramsch trotzdem eingetragen und gezählt, der Preis bleibt aber einfach. Im Formular steht dann ein Hinweis.
 - [ ] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
@@ -454,7 +454,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 ### 25. Farben in der Spieleliste und Schellen-Symbol
 - [ ] Sauspiel und Hochzeit sind blau, Wenz, Geier, Solos, Sie und Bettel violett, Ramsch grau, mit Legende. Im
       Dunkelmodus gut lesbar.
-- [ ] Das Schellen-Symbol sieht wie eine Rollschelle aus (Kugel mit Schlitz und Loch). Sieht es bei euch anders
+- [ ] Das Schellen-Symbol ist eine Kugel mit gelbem, rotem (drei Löcher) und grünem Feld. Sieht es bei euch anders
       aus, schick mir ein Foto der Karte.
 
 ### 26. Darstellung

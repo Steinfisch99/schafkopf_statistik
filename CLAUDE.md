@@ -93,6 +93,6 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 - Die Frage "falsch verlangen aktiviert?" wurde als Option **fürs Zurückverlangen** umgesetzt (Tarif). Der Nutzer hat
   nicht bestätigt, ob er stattdessen das ganze Falsch-verlangen-Feature abschaltbar haben wollte.
 - Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
-  Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, aus dem Gedächtnis gezeichnet, keine
+  Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, nach dem Bild des Nutzers vereinfacht, vorher geraten, keine
   Recherche möglich: Netz gesperrt).
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

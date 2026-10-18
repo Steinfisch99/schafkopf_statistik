@@ -375,4 +375,4 @@ deshalb nach der Richtung des Preises:
 - In der Spieleliste haben **Spiele zu zweit** (Sauspiel, Hochzeit, blau), **Alleinspiele** (Wenz, Geier, Farbsolo,
   Farbwenz, Farbgeier, Sie, Bettel, violett) und **Ramsch** (grau) einen farbigen Rand und eine leichte
   Hintergrundfarbe. Eine Legende steht über der Liste, der Name der Spielart steht zusätzlich im Text.
-- Das Symbol für **Schellen** ist eine runde Rollschelle (Kugel mit Schlitz, Loch und Öse) statt einer Kirchenglocke.
+- Das Symbol für **Schellen** ist wie auf dem bayerischen Blatt eine Kugel mit gelbem Feld oben, rotem Band mit drei Löchern und grünem Blatt unten (vorher eine Kirchenglocke).

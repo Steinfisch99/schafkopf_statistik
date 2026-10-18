@@ -1,7 +1,7 @@
 //! Symbole der vier Farben als SVG-Text: Eichel, Gras, Herz und Schellen.
 //!
-//! Jede Farbe hat eine eigene Form (Eichel mit Hütchen, Blatt, Herz, Rollschelle mit Schlitz), die Farbe allein trägt
-//! also keine Aussage und das Symbol bleibt auch bei Farbschwäche eindeutig. Jede Form hat einen
+//! Jede Farbe hat eine eigene Form (Eichel mit Hütchen, Blatt, Herz, Schellen als Kugel mit gelbem, rotem und
+//! grünem Feld wie auf dem Blatt), die Farbe allein trägt also keine Aussage und das Symbol bleibt auch bei Farbschwäche eindeutig. Jede Form hat einen
 //! dunklen Rand, damit sie auf hellem und dunklem Grund zu sehen ist.
 
 /// Eine der vier Farben des bayerischen Blatts.
@@ -51,12 +51,16 @@ impl SuitShape {
                 r##"fill="#E53935" stroke="#8E1A17" stroke-width="1" stroke-linejoin="round"/>"##,
             ),
             SuitShape::Schellen => concat!(
-                r##"<circle cx="12" cy="3.7" r="1.7" fill="none" stroke="#8A5A00" stroke-width="1.3"/>"##,
-                r##"<circle cx="12" cy="13.6" r="8.4" fill="#F4B71F" stroke="#8A5A00" stroke-width="1"/>"##,
-                r##"<path d="M3.8 12.4h16.4" stroke="#8A5A00" stroke-width="1.1" stroke-linecap="round"/>"##,
-                r##"<circle cx="12" cy="15.7" r="1.3" fill="#5A3A00"/>"##,
-                r##"<path d="M8.6 18.6h6.8" stroke="#5A3A00" stroke-width="1.4" stroke-linecap="round"/>"##,
-                r##"<path d="M6.9 9.6a6 6 0 0 1 3.4-3" stroke="#FFF3BF" stroke-width="1.2" stroke-linecap="round" fill="none"/>"##,
+                r##"<path d="M10.2 3.4a1.8 1.8 0 0 1 3.6 0z" fill="#F6C90E" stroke="#3A2A00" stroke-width="1" stroke-linejoin="round"/>"##,
+                r##"<path d="M12 22.2c-1.3 0-2-.6-2-1.5h4c0 .9-.7 1.5-2 1.5z" fill="#2E8B3E" stroke="#1B5E20" stroke-width="1" stroke-linejoin="round"/>"##,
+                r##"<path d="M3.2 9A9.5 9.5 0 0 1 20.8 9z" fill="#F6C90E"/>"##,
+                r##"<path d="M3.2 9h17.6l.2 6.5H3z" fill="#D62828"/>"##,
+                r##"<path d="M3 15.5h18A9.5 9.5 0 0 1 3 15.5z" fill="#2E8B3E"/>"##,
+                r##"<circle cx="7" cy="12.25" r="1.7" fill="#7A1212"/>"##,
+                r##"<circle cx="12" cy="12.25" r="1.7" fill="#7A1212"/>"##,
+                r##"<circle cx="17" cy="12.25" r="1.7" fill="#7A1212"/>"##,
+                r##"<path d="M12 20.4c0-2.2-2.4-3.6-5.4-3.4M12 20.4c0-2.2 2.4-3.6 5.4-3.4" fill="none" stroke="#1B5E20" stroke-width="1" stroke-linecap="round"/>"##,
+                r##"<circle cx="12" cy="12.5" r="9.5" fill="none" stroke="#3A2A00" stroke-width="1.2"/>"##,
             ),
         }
     }

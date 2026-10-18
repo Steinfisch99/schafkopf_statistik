@@ -121,7 +121,7 @@ Entscheidungen:
 - [x] Fehlerarten richten sich nach der Richtung des Preises (zu viel: dazugedichtet, zu wenig: vergessen)
 - [x] Sie als Steigerung des Tout beim Farbsolo (8 Laufende, kein Schneider/Schwarz, keine zusätzliche Verdopplung)
 - [x] Vergehen und Neumischen mit Strafzahlungen (Tarif-Option), Statistik, Verlauf und CSV
-- [x] Spieleliste farbig nach Sauspiel, Solo und Ramsch; Schellen als Rollschelle
+- [x] Spieleliste farbig nach Sauspiel, Solo und Ramsch; Schellen wie auf dem Blatt
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
       Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am
