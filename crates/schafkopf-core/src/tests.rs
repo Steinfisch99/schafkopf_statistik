@@ -3195,3 +3195,28 @@ fn doubles_given_adds_knocking_kontra_and_re() {
     let cem = all.players.iter().find(|p| p.name == "Cem").unwrap();
     assert_eq!(cem.doubles_given(), 3);
 }
+
+#[test]
+fn reclaiming_never_takes_more_than_the_winners_received() {
+    let mut t = table();
+    // Berechnet 20, verlangt 600: Mehrbetrag 580, zurückverlangen dürften sie 1160, aber die Gewinner haben nur 600 bekommen.
+    let g = t
+        .add_game(GameInput {
+            reclaimed: true,
+            ..asked(600)
+        })
+        .unwrap();
+    assert_eq!(g.value, 0, "der Preis sinkt höchstens auf 0, nie darunter");
+    assert_eq!(
+        g.payouts,
+        vec![0, 0, 0, 0],
+        "die Gewinner stehen wie vor dem Spiel da"
+    );
+    let s = table_stats(&t);
+    assert_eq!(
+        s.reclaimed_cents, 1200,
+        "zurückgeholt werden die 600 je Gewinner, nicht 2 * 580"
+    );
+    assert_eq!(s.players[1].reclaim_returned, 600);
+    assert_eq!(s.players[0].reclaim_saved, 600);
+}

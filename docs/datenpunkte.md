@@ -322,7 +322,9 @@ verlangen. Die App nimmt immer den **Höchstbetrag** (zu wenig zurückverlangt w
 - Der Preis sinkt auf **verlangt − 2 · Mehrbetrag**, nie unter 0.
 - Beispiel: Das Spiel kostet 60, verlangt werden 80. Mehrbetrag 20, die Verlierer verlangen 40 zurück, es
   bleiben **40**. Die Gewinner bekommen damit 20 weniger, als ihnen zugestanden hätte.
-- Bei 60 und verlangten 120 (oder mehr) bleibt 0.
+- Bei 60 und verlangten 120 (oder mehr) bleibt 0. Die Gewinner können durchs Falschverlangen nie ins Minus kommen: Sie geben höchstens das
+  zurück, was sie bekommen haben, und stehen dann wie vor dem Spiel da. Wer statt 1 € 20 € verlangt, gibt höchstens die 20 € zurück,
+  nicht 2 · 19 €. Das Geld, das als zurückgeholt zählt, ist der tatsächlich zurückgegebene Betrag.
 - Statistik: "Zurückverlangt (Geld)" ist das tatsächlich zurückgegebene Geld (hier 40 je Gewinner). "Unterm
   Strich für die Gewinner" ist die Summe aus dem, was sie mehr oder (nach dem Zurückverlangen) weniger bekommen
   haben als berechnet (hier −20 je Gewinner). Je Spieler: "Zurückgeben müssen" (Gewinner) und "Zurückverlangt
