@@ -3220,3 +3220,69 @@ fn reclaiming_never_takes_more_than_the_winners_received() {
     assert_eq!(s.players[1].reclaim_returned, 600);
     assert_eq!(s.players[0].reclaim_saved, 600);
 }
+
+#[test]
+fn re_is_given_by_one_player_of_the_declarer_team_after_a_kontra() {
+    let mut t = table();
+    let base = GameInput {
+        kontra_by: Some(2),
+        re: true,
+        ..sauspiel(0, 1, 3)
+    };
+    for wrong in [0, 2] {
+        assert_eq!(
+            t.add_game(GameInput {
+                re_by: Some(wrong),
+                ..base.clone()
+            })
+            .unwrap_err(),
+            Error::ReFromOtherTeam,
+            "Platz {wrong} gehört nicht zur Spielerpartei"
+        );
+    }
+    assert_eq!(
+        t.add_game(GameInput {
+            re_by: Some(3),
+            re: false,
+            ..base.clone()
+        })
+        .unwrap_err(),
+        Error::ReFromOtherTeam,
+        "Re von einem Spieler braucht Re"
+    );
+    t.add_game(GameInput {
+        re_by: Some(3),
+        ..base.clone()
+    })
+    .unwrap();
+    t.add_game(base).unwrap();
+    let s = table_stats(&t);
+    assert_eq!(
+        s.players[3].re_given.games, 1,
+        "der Mitspieler hat Re gegeben"
+    );
+    assert_eq!(
+        s.players[1].re_given.games, 1,
+        "ohne Angabe (ältere Spiele) war es der Spieler"
+    );
+    assert!(t
+        .to_csv_with(';')
+        .lines()
+        .nth(1)
+        .unwrap()
+        .contains(";Cem;ja;Dora;"));
+}
+
+#[test]
+fn games_saved_before_re_by_still_load() {
+    let mut t = table();
+    t.add_game(GameInput {
+        kontra_by: Some(2),
+        re: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let json = t.to_json().unwrap().replace("\"re_by\": null,", "");
+    let loaded = Table::from_json(&json).unwrap();
+    assert_eq!(loaded.games()[0].input.re_giver(), Some(1));
+}

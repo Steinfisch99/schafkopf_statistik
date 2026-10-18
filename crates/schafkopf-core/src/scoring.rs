@@ -168,6 +168,12 @@ pub fn validate(input: &GameInput, player_count: usize) -> Result<()> {
             return Err(Error::KontraFromOwnTeam);
         }
     }
+    if let Some(r) = input.re_by {
+        check_active(r)?;
+        if !input.re || !input.is_on_declarer_team(r) {
+            return Err(Error::ReFromOtherTeam);
+        }
+    }
     if input.re && input.kontra_by.is_none() {
         return Err(Error::ReWithoutKontra);
     }

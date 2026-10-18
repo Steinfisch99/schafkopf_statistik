@@ -448,7 +448,7 @@ pub fn table_stats(table: &Table) -> TableStats {
                     p.sies.record(won);
                 }
             }
-            if g.re && seat == g.declarer {
+            if g.re_giver() == Some(seat) {
                 p.re_given.record(won);
             }
             if won {

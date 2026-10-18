@@ -338,9 +338,12 @@ pub struct GameInput {
     /// Wer hat Kontra gegeben (Verdopplung)?
     #[serde(default)]
     pub kontra_by: Option<Seat>,
-    /// Hat der Spieler mit Re geantwortet (Verdopplung)?
+    /// Hat die Spielerpartei mit Re geantwortet (Verdopplung)?
     #[serde(default)]
     pub re: bool,
+    /// Wer von der Spielerpartei Re gegeben hat. Fehlt bei älteren Spielen: dann gilt der Spieler.
+    #[serde(default)]
+    pub re_by: Option<Seat>,
     /// Tout: Spieler sagt an, alle Stiche zu machen (Verdopplung).
     #[serde(default)]
     pub tout: bool,
@@ -422,6 +425,7 @@ impl GameInput {
             knockers: Vec::new(),
             kontra_by: None,
             re: false,
+            re_by: None,
             tout: false,
             sie: false,
             won: true,
@@ -449,6 +453,11 @@ impl GameInput {
         let mut team = vec![self.declarer];
         team.extend(self.partner);
         team
+    }
+
+    /// Wer Re gegeben hat, falls Re gefallen ist (bei älteren Spielen ohne Angabe der Spieler).
+    pub fn re_giver(&self) -> Option<Seat> {
+        self.re.then(|| self.re_by.unwrap_or(self.declarer))
     }
 
     pub fn is_on_declarer_team(&self, seat: Seat) -> bool {

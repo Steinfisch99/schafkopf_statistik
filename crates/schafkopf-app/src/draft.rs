@@ -17,7 +17,8 @@ pub struct GameDraft {
     pub partner: Option<Seat>,
     pub knockers: Vec<Seat>,
     pub kontra_by: Option<Seat>,
-    pub re: bool,
+    /// Wer von der Spielerpartei Re gegeben hat (Re fällt weg, sobald das Kontra wegfällt).
+    pub re_by: Option<Seat>,
     pub tout: bool,
     /// Sie, die Steigerung des Tout beim Farbsolo: Der Spieler hat immer alle 8 Laufende.
     pub sie: bool,
@@ -84,7 +85,7 @@ impl GameDraft {
             partner: None,
             knockers: Vec::new(),
             kontra_by: None,
-            re: false,
+            re_by: None,
             tout: false,
             sie: false,
             won: true,
@@ -131,7 +132,7 @@ impl GameDraft {
             partner: i.partner,
             knockers: i.knockers.clone(),
             kontra_by: i.kontra_by,
-            re: i.re,
+            re_by: i.re_giver(),
             tout: i.tout,
             sie: i.sie,
             won: i.won,
@@ -168,6 +169,7 @@ impl GameDraft {
         self.declarer = self.declarer.filter(keep);
         self.partner = self.partner.filter(keep);
         self.kontra_by = self.kontra_by.filter(keep);
+        self.re_by = self.re_by.filter(keep);
         let participants = self.participants.clone();
         if let Some(manual) = &mut self.reclaim_manual {
             manual.retain(|s| participants.contains(s));
@@ -177,7 +179,7 @@ impl GameDraft {
         }
         self.knockers.retain(|s| participants.contains(s));
         if self.kontra_by.is_none() {
-            self.re = false;
+            self.re_by = None;
         }
     }
 
@@ -245,9 +247,12 @@ impl GameDraft {
     }
 
     fn drop_kontra_if_own_team(&mut self) {
+        if self.re_by.is_some_and(|r| !self.is_on_declarer_team(r)) {
+            self.re_by = None;
+        }
         if self.kontra_by.is_some_and(|k| self.is_on_declarer_team(k)) {
             self.kontra_by = None;
-            self.re = false;
+            self.re_by = None;
         }
     }
 
@@ -299,15 +304,19 @@ impl GameDraft {
     pub fn toggle_kontra(&mut self, seat: Seat) {
         if self.kontra_by == Some(seat) {
             self.kontra_by = None;
-            self.re = false;
+            self.re_by = None;
         } else if !self.is_on_declarer_team(seat) {
             self.kontra_by = Some(seat);
         }
     }
 
-    pub fn toggle_re(&mut self) {
-        if self.kontra_by.is_some() {
-            self.re = !self.re;
+    /// Re kommt von der Spielerpartei und nur nach einem Kontra. Wer Re schon gegeben hat, nimmt es mit
+    /// einem zweiten Tipp zurück; ein anderer aus der Partei übernimmt es.
+    pub fn toggle_re(&mut self, seat: Seat) {
+        if self.re_by == Some(seat) {
+            self.re_by = None;
+        } else if self.kontra_by.is_some() && self.is_on_declarer_team(seat) {
+            self.re_by = Some(seat);
         }
     }
 
@@ -561,7 +570,8 @@ impl GameDraft {
         input.partner = self.partner;
         input.knockers = self.knockers.clone();
         input.kontra_by = self.kontra_by;
-        input.re = self.re;
+        input.re = self.re_by.is_some();
+        input.re_by = self.re_by;
         input.tout = self.tout;
         input.sie = self.sie && self.tout && self.kind == GameKind::Farbsolo;
         input.won = self.won;
@@ -738,18 +748,29 @@ mod tests {
         d.toggle_declarer(1);
         assert_eq!((d.declarer, d.partner), (Some(1), None));
         d.toggle_partner(2);
+        d.toggle_re(1);
+        assert_eq!(d.re_by, None, "Re gibt es erst nach einem Kontra");
         d.toggle_kontra(2);
         assert_eq!(d.kontra_by, None, "Mitspieler gibt kein Kontra");
         d.toggle_kontra(3);
-        d.toggle_re();
-        assert!(d.re);
+        d.toggle_re(3);
+        assert_eq!(d.re_by, None, "ein Gegenspieler gibt kein Re");
+        d.toggle_re(2);
+        assert_eq!(d.re_by, Some(2), "der Mitspieler gibt Re");
+        d.toggle_re(1);
+        assert_eq!(d.re_by, Some(1), "ein anderer aus der Partei übernimmt es");
+        d.toggle_re(1);
+        assert_eq!(d.re_by, None, "ein zweiter Tipp nimmt es zurück");
+        d.toggle_re(2);
         d.toggle_kontra(3);
-        assert!(!d.re, "Re fällt mit Kontra weg");
+        assert_eq!(d.re_by, None, "Re fällt mit Kontra weg");
         d.toggle_kontra(3);
+        d.toggle_re(2);
         d.toggle_partner(3);
         assert_eq!(d.kontra_by, None, "wer Mitspieler wird, gibt kein Kontra");
-        d.toggle_re();
-        assert!(!d.re);
+        assert_eq!(d.re_by, None);
+        d.toggle_re(1);
+        assert_eq!(d.re_by, None);
     }
 
     #[test]
@@ -847,6 +868,7 @@ mod tests {
             knockers: vec![2],
             kontra_by: Some(0),
             re: true,
+            re_by: Some(1),
             schneider: true,
             laufende: 3,
             price_override: Some(150),

@@ -42,6 +42,8 @@ pub enum Error {
     DuplicateKnock(Seat),
     #[error("Kontra muss von einem Gegenspieler kommen")]
     KontraFromOwnTeam,
+    #[error("Re muss von der Spielerpartei kommen")]
+    ReFromOtherTeam,
     #[error("Re ohne Kontra gibt es nicht")]
     ReWithoutKontra,
     #[error("Tout gibt es nur bei Solospielen (Wenz, Geier, Farbsolo, ...)")]

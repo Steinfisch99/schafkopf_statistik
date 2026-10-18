@@ -121,33 +121,33 @@ Daten.
 Gehe einen Abend durch, so wie ihr ihn spielt. Notiere, was nicht klappt oder sich umständlich anfühlt.
 
 ### 1. Abend einrichten
-- [ ] **Beim allerersten Mal** gibt es noch keine gespeicherten Spieler: Die Plätze sind Eingabefelder. Vier Namen mit Umlauten eintragen, die Tastatur verdeckt das Feld nicht.
-- [ ] Nach "Abend starten" meldet die App, dass neue Spieler gemerkt wurden. Beim **nächsten Abend** sind die Plätze Auswahllisten mit den gespeicherten Namen, die Spieler des letzten Abends sind vorbelegt.
-- [ ] In der Auswahl sind schon gewählte Namen ausgegraut, "+ Neuer Spieler …" öffnet ein Eingabefeld, "▾" daneben führt zurück zur Liste.
-- [ ] "+ Spieler" und "−" gehen von 2 bis 10 Spielern. Bei 2 ist "−" ausgegraut, bei 10 "+ Spieler".
-- [ ] Ein leerer Name ergibt einen roten Hinweis oben, kein Absturz. Ein doppelter Name auch.
-- [ ] Der erste Geber ist wählbar.
-- [ ] **Regelwerk** und **Tarif** sind vorgewählt (die Standards) und lassen sich per Auswahl wechseln. Unter dem Regelwerk steht, was gespielt wird.
-- [ ] "Für diesen Abend anpassen" öffnet die Tarif-Felder. Komma geht (`0,20`), "abc" ergibt einen Hinweis. Die Felder "Laufende zählen ab" heißen Sauspiel, **Wenz, Geier** und Solo.
-- [ ] "Abend starten" zeigt die Tischansicht mit dem gewählten Geber und `0,00 €` für alle.
+- [x] **Beim allerersten Mal** gibt es noch keine gespeicherten Spieler: Die Plätze sind Eingabefelder. Vier Namen mit Umlauten eintragen, die Tastatur verdeckt das Feld nicht.
+- [x] Nach "Abend starten" meldet die App, dass neue Spieler gemerkt wurden. Beim **nächsten Abend** sind die Plätze Auswahllisten mit den gespeicherten Namen, die Spieler des letzten Abends sind vorbelegt.
+- [x] In der Auswahl sind schon gewählte Namen ausgegraut, "+ Neuer Spieler …" öffnet ein Eingabefeld, "▾" daneben führt zurück zur Liste.
+- [x] "+ Spieler" und "−" gehen von 2 bis 10 Spielern. Bei 2 ist "−" ausgegraut, bei 10 "+ Spieler".
+- [x] Ein leerer Name ergibt einen roten Hinweis oben, kein Absturz. Ein doppelter Name auch.
+- [x] Der erste Geber ist wählbar.
+- [x] **Regelwerk** und **Tarif** sind vorgewählt (die Standards) und lassen sich per Auswahl wechseln. Unter dem Regelwerk steht, was gespielt wird.
+- [x] "Für diesen Abend anpassen" öffnet die Tarif-Felder. Komma geht (`0,20`), "abc" ergibt einen Hinweis. Die Felder "Laufende zählen ab" heißen Sauspiel, **Wenz, Geier** und Solo.
+- [x] "Abend starten" zeigt die Tischansicht mit dem gewählten Geber und `0,00 €` für alle.
 
 ### 2. Spiel eintragen (der Hauptablauf)
-- [ ] Als Geber ist der Richtige vorgewählt, bei den Mitspielenden stehen der Geber, der Spieler vor
+- [x] Als Geber ist der Richtige vorgewählt, bei den Mitspielenden stehen der Geber, der Spieler vor
       ihm und die zwei danach.
-- [ ] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
-- [ ] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
-- [ ] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Kugel mit gelbem, rotem und grünem Feld, drei Löchern im roten Band, kleiner Nupsi unten am Grün) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
+- [x] "Spiel speichern" bleibt ausgegraut, bis alles gewählt ist. Der Hinweis darüber sagt, was fehlt.
+- [x] Beim Antippen von Spieler, Mitspieler, Geklopft, Kontra und Re **springt nichts** auf dem Bildschirm.
+- [x] **Symbole:** Bei der gerufenen Sau, bei der Trumpffarbe, in der Spieleliste und bei der gerufenen Sau in der Statistik stehen Eichel (Eichel mit Hütchen), Gras (Blatt), Herz und Schellen (Kugel mit gelbem, rotem und grünem Feld, drei Löchern im roten Band, kleiner Nupsi unten am Grün) als Symbol vor dem Namen. Sie sind auf hellem und dunklem Grund gut zu erkennen.
 - [ ] **Solo:** Beim Farbsolo, Farbwenz und Farbgeier geht ein **Lauf** nur bis 8 (der Solospieler hat 8 Karten), ein **Gegenlauf** darf länger sein (Farbsolo bis 14, Farbwenz und Farbgeier bis 11).
-- [ ] **Ramsch:** Unter "Regeln und Tarif" gibt es im Tarif "Klopfen verdoppelt den Preis". Ist es aus, wird das Klopfen beim Ramsch trotzdem eingetragen und gezählt, der Preis bleibt aber einfach. Im Formular steht dann ein Hinweis.
-- [ ] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
-- [ ] **Laufende:** Beim Sauspiel, der Hochzeit und dem Farbsolo gehen sie bis **14**, beim Wenz und Geier bis 4, beim Farbwenz und Farbgeier bis 11. Wechselst du die Spielart, kürzt sich ein zu hoher Wert.
-- [ ] Bei Spieler und Mitspieler ist "Kontra" ausgegraut.
-- [ ] Der Preis ändert sich sofort. Rechenprobe beim Sauspiel: 0,20 €, Schneider +0,10 €, ab 3 Laufenden
+- [x] **Ramsch:** Unter "Regeln und Tarif" gibt es im Tarif "Klopfen verdoppelt den Preis". Ist es aus, wird das Klopfen beim Ramsch trotzdem eingetragen und gezählt, der Preis bleibt aber einfach. Im Formular steht dann ein Hinweis.
+- [x] **Gegenlauf:** Unter dem Zähler für die Laufenden gibt es einen Knopf "Gegenlauf (die Gegner hatten sie)". Er ist ohne Laufende ausgegraut, der Preis ändert sich nicht. In der Spieleliste steht dann "… Laufende (Gegenlauf)".
+- [x] **Laufende:** Beim Sauspiel, der Hochzeit und dem Farbsolo gehen sie bis **14**, beim Wenz und Geier bis 4, beim Farbwenz und Farbgeier bis 11. Wechselst du die Spielart, kürzt sich ein zu hoher Wert.
+- [x] Bei Spieler und Mitspieler ist "Kontra" ausgegraut.
+- [x] Der Preis ändert sich sofort. Rechenprobe beim Sauspiel: 0,20 €, Schneider +0,10 €, ab 3 Laufenden
       je +0,10 €, jedes Klopfen, Kontra und Re verdoppelt.
-- [ ] Die Auszahlung darunter ergibt zusammen null. Beim Solo (Wenz, Farbsolo) bekommt der Spieler das
+- [x] Die Auszahlung darunter ergibt zusammen null. Beim Solo (Wenz, Farbsolo) bekommt der Spieler das
       Dreifache.
-- [ ] Ein verlangter Preis (`0,80`) ersetzt die Rechnung. "abc" ergibt einen Hinweis.
-- [ ] Die Spielart-Auswahl zeigt nur die Spielarten des gewählten Regelwerks.
+- [x] Ein verlangter Preis (`0,80`) ersetzt die Rechnung. "abc" ergibt einen Hinweis.
+- [x] Die Spielart-Auswahl zeigt nur die Spielarten des gewählten Regelwerks.
 - [ ] **Geier:** Laufende zählen schon ab 2 (wie beim Wenz) und gehen in den Preis ein. Beim Farbsolo erst ab 3.
 - [ ] **Ramsch:** Ohne Haken wählst du den **Verlierer**. Mit "Durchmarsch" wählst du, wer ihn gemacht hat. "Gewonnen/Verloren" gibt es beim Ramsch nicht.
 - [ ] Wenz, Farbsolo und Bettel zeigen nur passende Felder (Farbe, Tout, kein Mitspieler).
@@ -467,15 +467,20 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.2" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.3" (passend zu `Cargo.toml`).
 
-### 28. Wer doppelt am häufigsten, Tout, Bockrunden
+### 28. Re pro Spieler
+- [ ] Im Formular steht "Re" bei jedem Spieler der Spielerpartei (bei Sauspiel und Hochzeit auch beim Mitspieler), nicht mehr als einzelner Knopf.
+- [ ] Re ist ausgegraut, solange niemand Kontra gegeben hat, und bei den Gegenspielern immer. Es gibt nur ein Re: Ein anderer Spieler der Partei übernimmt es, ein zweiter Tipp nimmt es zurück.
+- [ ] Nimmst du das Kontra weg oder änderst die Rollen, fällt Re mit weg. In der Statistik zählt Re beim richtigen Spieler, in der CSV steht die Spalte "Re_von".
+
+### 29. Wer doppelt am häufigsten, Tout, Bockrunden
 - [ ] In der Statistik gibt es den Abschnitt "Wer doppelt am häufigsten?" mit Klopfen, Kontra und Re je Spieler, die meisten zuerst, ebenso in der Gesamtstatistik.
 - [ ] Der Abschnitt "Tout" zeigt, wer wie oft Tout gespielt und gewonnen hat (ohne Tout steht ein Hinweis). In der Gesamtstatistik passt die Zahl zu allen Abenden zusammen.
 - [ ] In der Spielerkarte sind "Selbst gedoppelt" und "Tout gespielt" antippbar und zeigen die Rangliste.
 - [ ] Unter "Dieser Abend" steht "Bockrunden entstanden" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
 
-### 29. Darstellung
+### 30. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

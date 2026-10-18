@@ -289,18 +289,18 @@ pub fn GameForm(
                                 onclick: move |_| draft.write().toggle_kontra(seat),
                             }
                         }
+                        if kind != GameKind::Ramsch {
+                            Chip {
+                                label: "Re".to_string(),
+                                on: d.re_by == Some(seat),
+                                disabled: d.kontra_by.is_none() || !d.is_on_declarer_team(seat),
+                                onclick: move |_| draft.write().toggle_re(seat),
+                            }
+                        }
                     }
                 }
             }
             div { class: "chips",
-                if kind != GameKind::Ramsch {
-                    Chip {
-                        label: "Re".to_string(),
-                        on: d.re,
-                        disabled: d.kontra_by.is_none(),
-                        onclick: move |_| draft.write().toggle_re(),
-                    }
-                }
                 if kind.allows_tout() {
                     Chip { label: "Tout".to_string(), on: d.tout, onclick: move |_| { let on = !draft.read().tout; draft.write().set_tout(on); } }
                 }

@@ -16,7 +16,7 @@ Nicht jede Runde spielt alles; Unbenutztes lässt man beim Eintragen einfach weg
 | Mitspieler | Dora (Sauspiel, Hochzeit) | je nach Spielart |
 | Klopfer | Cem, Dora (jeder Klopfer verdoppelt) | nein |
 | Kontra von | Cem (verdoppelt) | nein |
-| Re | ja/nein (verdoppelt, nur nach Kontra) | nein |
+| Re | wer von der Spielerpartei (Spieler oder Mitspieler) Re gegeben hat; verdoppelt, nur nach Kontra. Das Team, das Kontra gegeben hat, kann kein Re geben. Ältere Spiele ohne Angabe: der Spieler | nein |
 | Tout | ja/nein (verdoppelt, nur bei Solospielen) | nein |
 | Gewonnen | Spielerpartei ja/nein | ja |
 | Schneider | Verlierer hat höchstens 30 Augen | nein |
@@ -74,7 +74,7 @@ Dateien unlesbar zu machen, weil neue Felder mit Standardwerten gelesen werden.
 ## CSV-Datei
 
 Eine Zeile pro Spiel, Beträge in Cent, Kopfzeile mit Spaltennamen. Spalten: `Nr`, `Zeit`, `Geber`,
-`Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Tout`,
+`Spielart`, `Farbe`, `Spieler`, `Mitspieler`, `Mitspielende`, `Geklopft`, `Kontra`, `Re`, `Re_von`, `Tout`,
 `Gewonnen`, `Schneider`, `Schwarz`, `Laufende`, `Gegenlauf`, `Bockspiel`, `Bockrunde_ausgeloest`, `Augen`, `Preis_Cent`, `Preis_berechnet_Cent`, `Notiz`,
 danach pro Spieler `<Name> Gewinn_Cent` und `<Name> Stand_Cent`. `Preis_Cent` ist der abgerechnete
 Einzelwert, `Preis_berechnet_Cent` der nach Tarif berechnete. Felder mit Komma oder Anführungszeichen
