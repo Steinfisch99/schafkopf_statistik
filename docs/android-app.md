@@ -466,7 +466,10 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Gesamtstatistik zeigt die Rangliste alle Spieler der gewählten Abende, auch nach dem Ab-/Anwählen von Abenden.
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
-### 27. Darstellung
+### 27. Version
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.1" (passend zu `Cargo.toml`).
+
+### 28. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

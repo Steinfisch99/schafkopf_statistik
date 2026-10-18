@@ -259,3 +259,4 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .rank-list .place { min-width: 2rem; font-variant-numeric: tabular-nums; }
 .rank-list .who { flex: 1; }
 .rank-list li.me { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; border-radius: 0.3rem; }
+.app-version { text-align: center; margin: 1.5rem 0 0.5rem; }

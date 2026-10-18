@@ -250,6 +250,10 @@ Spiele Bockspiele mit doppeltem Preis.
 - Ältere Spiele mit Tout und Schneider oder Schwarz, die schon gespeichert sind, behalten ihren
   festgeschriebenen Preis. Beim Bearbeiten wird nach der neuen Regel gerechnet.
 
+## Version
+
+Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.
+
 ## Wo die Daten liegen und Sicherung
 
 Die App legt alles in ihrem **Datenordner** ab: auf Android `/data/data/de.schafkopf.statistik/files`

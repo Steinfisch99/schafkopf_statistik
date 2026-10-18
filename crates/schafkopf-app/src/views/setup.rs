@@ -3,7 +3,7 @@
 use dioxus::prelude::*;
 use schafkopf_core::{GameKind, Library, RuleSet, Table};
 
-use super::common::{persist_library, Chip, Notice, TariffFields};
+use super::common::{persist_library, AppVersion, Chip, Notice, TariffFields};
 use crate::draft::TariffDraft;
 use crate::{now_secs, storage, Screen};
 
@@ -307,6 +307,7 @@ pub fn Setup(
 
     rsx! {
         h2 { "Neuer Abend" }
+        AppVersion {}
         section {
             h3 { "Spieler in Sitzreihenfolge" }
             p { class: "hint", "Im Uhrzeigersinn, so wie ihr sitzt. Zwei bis zehn Spieler." }

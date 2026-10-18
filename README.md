@@ -124,6 +124,7 @@ Entscheidungen:
 - [x] Spieleliste farbig nach Sauspiel, Solo und Ramsch; Schellen wie auf dem Blatt
 - [x] Doppler aufgeschlüsselt (ohne, mal 2, mal 4, mal 8, ...) für Abend, Gesamtstatistik und jeden Spieler
 - [x] Vergleich: Tipp auf eine Zahl in der Spielerkarte zeigt die Rangliste aller Spieler dazu
+- [x] Versionsnummer in der App sichtbar (aus `Cargo.toml`)
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
       Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am

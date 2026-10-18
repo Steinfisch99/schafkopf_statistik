@@ -199,3 +199,11 @@ pub fn persist_library(library: &schafkopf_core::Library) -> Result<(), String> 
         .map(|_| ())
         .map_err(|e| format!("Die Bibliothek konnte nicht gespeichert werden: {e}"))
 }
+
+/// Versionsnummer der App (kommt aus `Cargo.toml`, `[workspace.package]`).
+#[component]
+pub fn AppVersion() -> Element {
+    rsx! {
+        p { class: "muted app-version", "Version {env!(\"CARGO_PKG_VERSION\")}" }
+    }
+}

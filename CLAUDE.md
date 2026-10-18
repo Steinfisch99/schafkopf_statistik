@@ -12,6 +12,9 @@ Entscheidung zur Oberfläche: `docs/ui-entscheidung.md`.
   Wegwerf-Branch, am Ende `git merge --ff-only` und aufräumen. Das habe ich zuletzt so gemacht.
 - Der Nutzer **baut und installiert auf dem Handy selbst**: `./scripts/build-apk.sh` (Kabellos über wormhole-rs).
   Ich kann die APK in der VM nicht installieren und das Handy nicht testen.
+- **Versionsnummer:** steht nur in `Cargo.toml` (`[workspace.package] version`, plus die drei Einträge in `Cargo.lock`) und wird in der App
+  unten in der Tischübersicht und oben in der Einrichtung gezeigt (`AppVersion` in `views/common.rs`). Wenn ein neuer Tag gesetzt wird,
+  vorher die **zweite** Stelle erhöhen (0.3.x → 0.4.0), sonst bei Änderungen die **dritte**. Wenn der Nutzer fertig ist: 1.0.0.
 - Pushen geht von der VM nicht (keine SSH-Schlüssel). Tags und Commits liegen nur lokal, der Nutzer pusht auf dem
   Host (`git push sync <tag>`). Aktuelle Marken: `schafkopf-v0.1.0`, `v0.2.0`, `v0.3.0` (Stand `b8725b9`).
 - **Bestehende Statistiken nie entfernen**, Grafiken kommen dazu. Haltbarkeit der Daten ist wichtig: Neue Felder

@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use schafkopf_core::{BockMode, Table};
 
 use super::balance_chart::BalanceChart;
-use super::common::{ConfirmButton, Notice};
+use super::common::{AppVersion, ConfirmButton, Notice};
 use super::game_list::{GameList, OffenceList};
 use crate::summary::evening_times;
 use crate::{now_secs, storage, Screen};
@@ -149,5 +149,6 @@ pub fn TableView(
                 onconfirm: move |_| screen.set(Screen::Setup),
             }
         }
+        AppVersion {}
     }
 }
