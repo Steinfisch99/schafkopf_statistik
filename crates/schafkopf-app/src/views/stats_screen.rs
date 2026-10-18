@@ -450,8 +450,6 @@ pub fn StatsScreen(
 
             DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
             ToutSection { rows: tout_rows }
-            TariffSection { tariffs: meta.tariffs.clone(), tariff_changes: meta.tariff_changes, rule_sets: meta.rule_sets.clone(), rule_set_changes: meta.rule_set_changes, evenings: None }
-            EveningPresence { rows: meta.presence.clone(), offset_min: t.utc_offset_min }
 
             section {
                 h3 { "Dieser Abend" }
@@ -693,6 +691,9 @@ pub fn StatsScreen(
                     }
                 }
             }
+
+            TariffSection { tariffs: meta.tariffs.clone(), tariff_changes: meta.tariff_changes, rule_sets: meta.rule_sets.clone(), rule_set_changes: meta.rule_set_changes, evenings: None }
+            EveningPresence { rows: meta.presence.clone(), offset_min: t.utc_offset_min }
         }
 
         div { class: "actions",

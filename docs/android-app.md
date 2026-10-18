@@ -467,7 +467,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
 
 ### 27. Version
-- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.6" (passend zu `Cargo.toml`).
+- [ ] In der Tischübersicht ganz unten und bei der Einrichtung oben steht "Version 0.3.7" (passend zu `Cargo.toml`).
 
 ### 28. Re pro Spieler
 - [ ] Die Spiele-CSV hat die Spalten "Re_von", "Doppler_Anzahl" und "Verlangter_Preis_Cent". "Geklopft", "Kontra" und "Re_von" nennen jeweils, wer gedoppelt hat.

@@ -179,15 +179,16 @@ pub fn DoublerSection(rows: Vec<DoublerRow>, intro: String) -> Element {
             h3 { "Wer doppelt am häufigsten?" }
             p { class: "legend-note", "{intro}" }
             for (place, r) in ranked {
-                ShareBar {
-                    key: "{r.name}",
-                    label: format!("{place}. {}", r.name),
-                    part: r.total(),
-                    total: scale,
-                    value: format!(
-                        "{} (Klopfen {}, Kontra {}, Re {}) in {} Spielen, {}",
-                        r.total(), r.knocks, r.kontra, r.re, r.played, percent(r.total(), r.played)
-                    ),
+                div { key: "{r.name}",
+                    ShareBar {
+                        label: format!("{place}. {}", r.name),
+                        part: r.total(),
+                        total: scale,
+                        value: r.total().to_string(),
+                    }
+                    p { class: "muted small",
+                        "Klopfen {r.knocks}, Kontra {r.kontra}, Re {r.re} in {r.played} Spielen, {percent(r.total(), r.played)}"
+                    }
                 }
             }
         }
