@@ -344,7 +344,7 @@ pub fn GameForm(
                     Chip { label: "Schwarz".to_string(), on: d.schwarz, onclick: move |_| { let on = !draft.read().schwarz; draft.write().set_schwarz(on); } }
                 }
                 if d.sie {
-                    p { class: "hint", "Beim Sie hat der Spieler immer alle 8 Laufende, Schneider und Schwarz zählen nicht zum Preis. Sie ist eine Verdopplung mehr als das Tout." }
+                    p { class: "hint", "Beim Sie hat der Spieler immer alle 8 Laufende, Schneider und Schwarz zählen nicht zum Preis. Der Preis ist sonst wie beim Tout." }
                 } else if d.tout {
                     p { class: "hint", "Beim Tout zählen Schneider und Schwarz nicht zum Preis, der Spieler muss ohnehin alle Stiche machen. Sie werden trotzdem eingetragen." }
                 }

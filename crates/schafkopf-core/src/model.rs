@@ -344,8 +344,9 @@ pub struct GameInput {
     /// Tout: Spieler sagt an, alle Stiche zu machen (Verdopplung).
     #[serde(default)]
     pub tout: bool,
-    /// Sie: die Steigerung des Tout beim Farbsolo (noch eine Verdopplung). Der Spieler hat dabei immer alle
-    /// 8 Laufende, Schneider und Schwarz zählen nicht zum Preis. Geht nur zusammen mit Tout.
+    /// Sie: die Steigerung des Tout beim Farbsolo. Der Spieler hat dabei immer alle 8 Laufende,
+    /// Schneider und Schwarz zählen nicht zum Preis. Eine Verdopplung über das Tout hinaus gibt es nicht.
+    /// Geht nur zusammen mit Tout.
     #[serde(default)]
     pub sie: bool,
     /// Hat die Spielerpartei gewonnen?
@@ -473,13 +474,12 @@ impl GameInput {
             .collect()
     }
 
-    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout, Sie und Bock.
+    /// Anzahl der Verdopplungen durch Klopfen, Kontra, Re, Tout und Bock (Sie verdoppelt nicht zusätzlich).
     pub fn doublings(&self) -> u32 {
         self.knockers.len() as u32
             + u32::from(self.kontra_by.is_some())
             + u32::from(self.re)
             + u32::from(self.tout)
-            + u32::from(self.sie)
             + self.bock_doublings()
     }
 

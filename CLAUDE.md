@@ -51,7 +51,7 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - **Falsch-verlangt-Fehlerarten** hängen von der Richtung ab (`PriceMistake::for_price`): zu viel = "dazugedichtet",
   zu wenig = "vergessen/nicht verlangt". Alte Varianten bleiben im Enum, damit gespeicherte Daten laden.
 - **Sie** ist **keine Spielart**, sondern `GameInput.sie`: Steigerung des Tout, nur beim Farbsolo. Immer 8 Laufende, Schneider/
-  Schwarz zählen nicht, eine Verdopplung mehr als Tout (letzteres ist meine Auslegung von "Steigerung").
+  Schwarz zählen nicht, **keine** Verdopplung über Tout hinaus (der Nutzer hat das ausdrücklich so gesagt).
 - **Vergehen/Neumischen** sind `Table.offences` (`Offence`, Auszahlung wird beim Eintragen festgeschrieben). Täter zahlt
   nur den **Mitspielern der laufenden Runde** (`default_penalty_recipients`), nicht allen am Tisch. Neumischen = `OffenceKind::Misdeal`, der Geber bleibt (er ist aus den Spielen abgeleitet).
   Tarif: `penalties_enabled`, `offence_penalty`, `misdeal_penalty` (Standard 0). Strafen stecken im Stand nach
@@ -94,5 +94,5 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
   nicht bestätigt, ob er stattdessen das ganze Falsch-verlangen-Feature abschaltbar haben wollte.
 - Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
   Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, aus dem Gedächtnis gezeichnet, keine
-  Recherche möglich: Netz gesperrt). Der Sie-Preis (eine Verdopplung mehr als Tout) ist Auslegung.
+  Recherche möglich: Netz gesperrt).
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

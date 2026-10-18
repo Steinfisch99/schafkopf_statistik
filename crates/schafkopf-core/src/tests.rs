@@ -3011,7 +3011,7 @@ fn sie_is_the_step_up_from_tout_in_a_farbsolo() {
     // Tout: (50 + 3 Laufende zählen nicht, es gibt keine) mal 2.
     let g = t.add_game(farbsolo(true, false)).unwrap();
     assert_eq!(g.value, 100);
-    // Sie: immer 8 Laufende (50 + 80), Schneider und Schwarz zählen nicht, eine Verdopplung mehr als Tout.
+    // Sie: immer 8 Laufende (50 + 80), Schneider und Schwarz zählen nicht, keine Verdopplung über das Tout hinaus.
     let g = t
         .add_game(GameInput {
             schneider: true,
@@ -3022,9 +3022,9 @@ fn sie_is_the_step_up_from_tout_in_a_farbsolo() {
         })
         .unwrap();
     assert_eq!((g.input.laufende, g.input.gegenlauf), (8, false));
-    assert_eq!(g.value, (50 + 80) * 4);
-    assert_eq!(g.payouts, vec![-520, 1560, -520, -520]);
-    assert_eq!(g.input.doublings(), 2);
+    assert_eq!(g.value, (50 + 80) * 2);
+    assert_eq!(g.payouts, vec![-260, 780, -260, -260]);
+    assert_eq!(g.input.doublings(), 1);
     // Bock und Klopfen kommen darüber.
     let g = t
         .add_game(GameInput {
@@ -3032,7 +3032,7 @@ fn sie_is_the_step_up_from_tout_in_a_farbsolo() {
             ..farbsolo(true, true)
         })
         .unwrap();
-    assert_eq!(g.value, (50 + 80) * 8);
+    assert_eq!(g.value, (50 + 80) * 4);
 }
 
 #[test]

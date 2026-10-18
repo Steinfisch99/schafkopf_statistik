@@ -767,7 +767,7 @@ mod tests {
         let input = d.to_input(None).unwrap();
         assert!(input.sie && input.tout && input.laufende == 8);
         let game = t.preview_game(input).unwrap();
-        assert_eq!(game.value, (50 + 80) * 4);
+        assert_eq!(game.value, (50 + 80) * 2);
         // Tout aus oder andere Spielart: Sie fällt weg.
         d.set_tout(false);
         assert!(!d.sie && d.laufende == 0);

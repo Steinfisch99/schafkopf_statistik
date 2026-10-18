@@ -436,7 +436,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Beim Farbsolo gibt es neben "Tout" den Knopf "Sie". Er ist ausgegraut, solange Tout aus ist; bei anderen
       Spielarten fehlt er.
 - [ ] Mit Sie stehen die Laufende fest auf 8 (kein Zähler), Schneider und Schwarz ändern den Preis nicht.
-- [ ] Der Preis ist doppelt so hoch wie beim Tout (Standardtarif: Tout 260, Sie 520 je Gegner).
+- [ ] Der Preis ist wie beim Tout mit 8 Laufenden, ohne weitere Verdopplung (Standardtarif: 260 je Gegner).
 - [ ] Tout abschalten schaltet Sie mit ab. In der Liste steht "Tout, Sie".
 
 ### 24. Vergehen, Strafzahlungen und Neumischen

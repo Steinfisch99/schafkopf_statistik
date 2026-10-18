@@ -344,8 +344,9 @@ deshalb nach der Richtung des Preises:
 
 - Der Spieler hat **immer alle 8 Laufende** (sie werden von selbst eingetragen, der Zähler und "Gegenlauf" entfallen).
 - **Schneider und Schwarz zählen nicht** zum Preis (wie beim Tout, sie bleiben für die Statistik eingetragen).
-- Der Preis ist **eine Verdopplung mehr** als beim Tout (Tout und Sie sind je ein Doppler, dazu kommen Klopfen,
-  Kontra, Re und Bock). Beispiel mit Standardtarif: (50 + 8 · 10) mal 4 = 520 je Gegner, der Spieler bekommt dreifach.
+- Der Preis ist **wie beim Tout**, Sie verdoppelt nicht noch einmal (Klopfen, Kontra, Re und Bock gelten wie sonst).
+  Der Unterschied zum Tout sind die 8 Laufende, die immer zählen. Beispiel mit Standardtarif: (50 + 8 · 10) mal 2 = 260
+  je Gegner, der Spieler bekommt dreifach.
 - Wird Tout abgeschaltet oder die Spielart gewechselt, fällt Sie weg. Die Spieleliste zeigt "Tout, Sie", die CSV hat
   eine Spalte "Sie". Alte Dateien ohne das Feld laden wie bisher (kein Sie).
 
