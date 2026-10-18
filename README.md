@@ -122,6 +122,8 @@ Entscheidungen:
 - [x] Sie als Steigerung des Tout beim Farbsolo (8 Laufende, kein Schneider/Schwarz, keine zusätzliche Verdopplung)
 - [x] Vergehen und Neumischen mit Strafzahlungen (Tarif-Option), Statistik, Verlauf und CSV
 - [x] Spieleliste farbig nach Sauspiel, Solo und Ramsch; Schellen wie auf dem Blatt
+- [x] Doppler aufgeschlüsselt (ohne, mal 2, mal 4, mal 8, ...) für Abend, Gesamtstatistik und jeden Spieler
+- [x] Vergleich: Tipp auf eine Zahl in der Spielerkarte zeigt die Rangliste aller Spieler dazu
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
       Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am

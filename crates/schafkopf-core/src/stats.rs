@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::model::{Cents, GameKind, PriceMistake, Seat, Suit};
 use crate::scoring::payouts;
+use crate::scoring::price_doublings;
 use crate::table::OffenceKind;
 use crate::table::{Game, Table};
 
@@ -118,6 +119,8 @@ pub struct PlayerStats {
     /// Ergebnis nach Platz unter den Mitspielenden, gezählt ab links vom Geber: 0 = Vorhand, dann
     /// Mittelhand, Hinterhand und 3 = der Letzte (bei vier Spielern der Geber).
     pub by_position: [RoleStats; 4],
+    /// In wie vielen seiner Spiele der Preis genau so oft verdoppelt war (0 = gar nicht, 1 = mal 2, 2 = mal 4, ...).
+    pub by_doublings: BTreeMap<u32, u32>,
     /// Vergehen (ohne Neumischen) und Neumischen des Spielers, und alle Arten zusammen.
     pub offences: u32,
     pub misdeals: u32,
@@ -164,6 +167,7 @@ impl PlayerStats {
             current_streak: 0,
             by_kind: BTreeMap::new(),
             by_position: [RoleStats::default(); 4],
+            by_doublings: BTreeMap::new(),
             offences: 0,
             misdeals: 0,
             offences_by_kind: BTreeMap::new(),
@@ -212,6 +216,8 @@ pub struct TableStats {
     pub bock_started: u32,
     /// Läufe und Gegenläufe je Spielart, nur für Spielarten mit Zuschlägen.
     pub laufende_by_kind: BTreeMap<GameKind, LaufendeStats>,
+    /// Wie viele Spiele wie oft verdoppelt waren: 0 = gar nicht, 1 = mal 2, 2 = mal 4, 3 = mal 8, ...
+    pub by_doublings: BTreeMap<u32, u32>,
     /// Vergehen (ohne Neumischen), Neumischen, die Arten und das Geld, das als Strafe bewegt wurde.
     pub offences: u32,
     pub misdeals: u32,
@@ -255,6 +261,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         bock_games: 0,
         bock_started: 0,
         laufende_by_kind: BTreeMap::new(),
+        by_doublings: BTreeMap::new(),
         offences: 0,
         misdeals: 0,
         offences_by_kind: BTreeMap::new(),
@@ -355,6 +362,8 @@ pub fn table_stats(table: &Table) -> TableStats {
                 }
             }
         }
+        let times = price_doublings(game.tariff.as_ref().unwrap_or(&table.tariff), g);
+        *stats.by_doublings.entry(times).or_default() += 1;
         stats.bock_games += u32::from(g.bock);
         stats.bock_started += g.bock_triggers();
         if let Some(partner) = g.partner {
@@ -404,6 +413,7 @@ pub fn table_stats(table: &Table) -> TableStats {
             }
 
             p.games_played += 1;
+            *p.by_doublings.entry(times).or_default() += 1;
             p.balance += payout;
             p.best_game = p.best_game.max(payout);
             p.worst_game = p.worst_game.min(payout);

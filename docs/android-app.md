@@ -457,7 +457,16 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Das Schellen-Symbol ist eine Kugel mit gelbem, rotem (drei Löcher) und grünem Feld. Sieht es bei euch anders
       aus, schick mir ein Foto der Karte.
 
-### 26. Darstellung
+### 26. Doppler aufgeschlüsselt und Vergleich
+- [ ] Die Statistik des Abends hat "Wie oft wurde gedoppelt?" mit Ohne Doppler, Nur verdoppelt, Vervierfacht, Verachtfacht (je mit Anteil).
+- [ ] Dasselbe in der Gesamtstatistik und in der Karte jedes Spielers (seine Spiele).
+- [ ] In der Spielerkarte öffnet ein Tipp auf eine Zahl (zum Beispiel "Bilanz", "Gespielt", einen Balken bei "Siege nach Rolle")
+      darunter die **Rangliste** aller Spieler des Abends. Der Spieler der Karte ist hervorgehoben.
+- [ ] Ein zweiter Tipp schließt sie, ein Tipp auf eine andere Zahl öffnet die neue. Gleiche Werte teilen sich den Platz.
+- [ ] In der Gesamtstatistik zeigt die Rangliste alle Spieler der gewählten Abende, auch nach dem Ab-/Anwählen von Abenden.
+- [ ] Es lässt sich weiter scrollen und die Karte auf- und zuklappen, ohne dass ein Tipp ungewollt eine Rangliste öffnet.
+
+### 27. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

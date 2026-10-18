@@ -376,3 +376,24 @@ deshalb nach der Richtung des Preises:
   Farbwenz, Farbgeier, Sie, Bettel, violett) und **Ramsch** (grau) einen farbigen Rand und eine leichte
   Hintergrundfarbe. Eine Legende steht über der Liste, der Name der Spielart steht zusätzlich im Text.
 - Das Symbol für **Schellen** ist wie auf dem bayerischen Blatt eine Kugel mit gelbem Feld oben, rotem Band mit drei Löchern und grünem Blatt unten (vorher eine Kirchenglocke).
+
+### Doppler aufgeschlüsselt
+
+- Die Statistik zeigt, in wie vielen Spielen der Preis **genau** so oft verdoppelt war: ohne Doppler, nur verdoppelt
+  (mal 2), vervierfacht (mal 4), verachtfacht (mal 8), und so weiter. Gezählt werden Klopfen, Kontra, Re, Tout und Bock
+  (beim Ramsch nur, was der Tarif zählen lässt).
+- Das gibt es für **den Abend**, für **alle gewählten Abende** und **je Spieler** (seine Spiele, bei denen er
+  mitgespielt hat). Die Zahlen "in gedoppelten Spielen" und "in vervierfachten Spielen" bleiben und zählen
+  "mindestens".
+
+### Spieler vergleichen
+
+- In der Karte eines Spielers (Abend und Gesamtstatistik) lässt sich fast jede Zahl **antippen**: Darunter erscheint die
+  **Rangliste dieser Zahl** für alle Spieler, die an dem Abend (bzw. den gewählten Abenden) dabei waren. Wer die Karte
+  geöffnet hat, ist hervorgehoben, gleiche Werte teilen sich den Platz, der größte Wert steht oben. Ein zweiter Tipp
+  schließt die Liste, pro Karte ist eine offen.
+- Antippbar sind: Bilanz, Ø pro Spiel und Abend, bestes und schlechtestes Spiel, bester und schlechtester Abend, Abende
+  und Abende im Plus, gespielt, ausgesetzt, gegeben, die Siegquote als Spieler, Mitspieler und Gegenspieler, Klopfen,
+  Kontra, Re, jede Doppler-Stufe, Siege mit Schneider und Schwarz, Lauf eigene und andere Seite, Serien, Vergehen,
+  Neumischen, Strafen und falsch verlangte Preise. Quoten werden nach dem Anteil sortiert (mit Spiele-Zahl dahinter),
+  wer keine Spiele in der Rolle hat, steht nicht in der Liste.

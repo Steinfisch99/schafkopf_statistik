@@ -8,28 +8,22 @@ use schafkopf_charts::{format_euro, player_color};
 use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, Table};
 
 use super::common::{Chip, Notice};
+use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
 use super::stat_widgets::{DivergingRow, ShareBar, StackedBar, WinDonut};
 use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection};
-use crate::stats_text::{kind_rows, max_abs, percent, share, streak};
+use crate::stats_text::{doubling_label, kind_rows, max_abs, percent, share, streak};
 use crate::summary::{evening_date, evening_times, games_text, signed_euro};
 use crate::{storage, Screen};
 
 /// Der laufende Abend hat keinen Zeitstempel im Archiv, er zählt unter dieser Nummer.
 const CURRENT: u64 = 0;
 
-/// Wie oft das Spiel verdoppelt war, als Text: 0 "Ohne Doppler", 1 "Gedoppelt (mal 2)", ...
-fn doubling_label(times: u32) -> String {
-    match times {
-        0 => "Ohne Doppler".to_owned(),
-        1 => "Gedoppelt".to_owned(),
-        2 => "Vervierfacht".to_owned(),
-        n => format!("Mal {}", 1u64 << n),
-    }
-}
-
 #[component]
-fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
+fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow>) -> Element {
     let p = player;
+    let compare = use_signal(|| None::<Metric>);
+    let me = p.name.clone();
+    let doubling_scale = p.by_doublings.values().copied().max().unwrap_or(0);
     let total = p.overall();
     let kinds = kind_rows(&p.by_kind);
     let average_game = if p.games_played > 0 {
@@ -43,17 +37,17 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
         "–".to_owned()
     };
     let roles = [
-        ("Spieler", p.as_declarer),
-        ("Mitspieler", p.as_partner),
-        ("Gegenspieler", p.as_defender),
+        ("Spieler", p.as_declarer, Metric::AsDeclarer),
+        ("Mitspieler", p.as_partner, Metric::AsPartner),
+        ("Gegenspieler", p.as_defender, Metric::AsDefender),
     ];
-    let role_scale = roles.iter().map(|(_, r)| r.games).max().unwrap_or(0);
+    let role_scale = roles.iter().map(|(_, r, _)| r.games).max().unwrap_or(0);
     let calls = [
-        ("Geklopft", p.knocks),
-        ("Kontra", p.kontra_given),
-        ("Re", p.re_given),
+        ("Geklopft", p.knocks, Metric::Knocks),
+        ("Kontra", p.kontra_given, Metric::Kontra),
+        ("Re", p.re_given, Metric::Re),
     ];
-    let call_scale = calls.iter().map(|(_, r)| r.games).max().unwrap_or(0);
+    let call_scale = calls.iter().map(|(_, r, _)| r.games).max().unwrap_or(0);
     let evening_scale = max_abs(p.evening_balances.iter().copied());
     let _ = games_total;
 
@@ -72,23 +66,25 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
             }
 
             h4 { "Bilanz" }
-            Kv { label: "Abende", value: p.evenings.to_string() }
-            Kv { label: "Abende im Plus", value: format!("{} von {}", p.evenings_won(), p.evenings) }
-            Kv { label: "Ø pro Abend", value: average_evening }
-            Kv { label: "Ø pro Spiel", value: average_game }
+            p { class: "legend-note", "Tippe auf eine Zahl: Dann siehst du die Rangliste aller Spieler dazu." }
+            TapKv { label: "Bilanz", value: signed_euro(p.balance), metric: Metric::Balance, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Abende", value: p.evenings.to_string(), metric: Metric::Evenings, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Abende im Plus", value: format!("{} von {}", p.evenings_won(), p.evenings), metric: Metric::EveningsWon, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Ø pro Abend", value: average_evening, metric: Metric::AveragePerEvening, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Ø pro Spiel", value: average_game, metric: Metric::AveragePerGame, me: me.clone(), peers: peers.clone(), open: compare }
             if let Some(best) = p.best_evening() {
-                Kv { label: "Bester Abend", value: signed_euro(best) }
+                TapKv { label: "Bester Abend", value: signed_euro(best), metric: Metric::BestEvening, me: me.clone(), peers: peers.clone(), open: compare }
             }
             if let Some(worst) = p.worst_evening() {
-                Kv { label: "Schlechtester Abend", value: signed_euro(worst) }
+                TapKv { label: "Schlechtester Abend", value: signed_euro(worst), metric: Metric::WorstEvening, me: me.clone(), peers: peers.clone(), open: compare }
             }
-            Kv { label: "Bestes Spiel", value: signed_euro(p.best_game) }
-            Kv { label: "Schlechtestes Spiel", value: signed_euro(p.worst_game) }
-            Kv { label: "Gespielt", value: p.games_played.to_string() }
-            Kv { label: "Ausgesetzt", value: p.games_sat_out.to_string() }
-            Kv { label: "Gegeben", value: p.games_dealt.to_string() }
-            Kv { label: "Längste Siegesserie", value: streak(p.longest_win_streak as i32) }
-            Kv { label: "Längste Verlustserie", value: streak(-(p.longest_loss_streak as i32)) }
+            TapKv { label: "Bestes Spiel", value: signed_euro(p.best_game), metric: Metric::BestGame, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Schlechtestes Spiel", value: signed_euro(p.worst_game), metric: Metric::WorstGame, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Gespielt", value: p.games_played.to_string(), metric: Metric::Played, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Ausgesetzt", value: p.games_sat_out.to_string(), metric: Metric::SatOut, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Gegeben", value: p.games_dealt.to_string(), metric: Metric::Dealt, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Längste Siegesserie", value: streak(p.longest_win_streak as i32), metric: Metric::LongestWinStreak, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Längste Verlustserie", value: streak(-(p.longest_loss_streak as i32)), metric: Metric::LongestLossStreak, me: me.clone(), peers: peers.clone(), open: compare }
 
             if p.evening_balances.len() > 1 {
                 h4 { "Ergebnis je Abend" }
@@ -105,50 +101,63 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32) -> Element {
             }
 
             h4 { "Siege nach Rolle" }
-            for (label, role) in roles {
-                StackedBar {
-                    key: "{label}",
-                    label: label.to_string(),
-                    won: role.wins,
-                    lost: lost(role),
-                    max: role_scale,
-                    value: share(role),
+            for (label, role, metric) in roles {
+                Tap { key: "{label}", metric, me: me.clone(), peers: peers.clone(), open: compare,
+                    StackedBar {
+                        label: label.to_string(),
+                        won: role.wins,
+                        lost: lost(role),
+                        max: role_scale,
+                        value: share(role),
+                    }
                 }
             }
 
             h4 { "Doppler" }
-            for (label, role) in calls {
-                StackedBar {
-                    key: "{label}",
-                    label: label.to_string(),
-                    won: role.wins,
-                    lost: lost(role),
-                    max: call_scale,
-                    value: if role.games == 0 { "–".to_string() } else { share(role) },
+            for (label, role, metric) in calls {
+                Tap { key: "{label}", metric, me: me.clone(), peers: peers.clone(), open: compare,
+                    StackedBar {
+                        label: label.to_string(),
+                        won: role.wins,
+                        lost: lost(role),
+                        max: call_scale,
+                        value: if role.games == 0 { "–".to_string() } else { share(role) },
+                    }
                 }
             }
             Kv { label: "Selbst gedoppelt", value: count_share(p.doubles_given(), p.games_played) }
-            Kv { label: "In gedoppelten Spielen", value: count_share(p.doubled_games, p.games_played) }
-            Kv { label: "In vervierfachten Spielen", value: count_share(p.quadrupled_games, p.games_played) }
-            Kv { label: "Siege mit Schneider", value: p.schneider_wins.to_string() }
-            Kv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string() }
-            Kv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string() }
-            Kv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string() }
+            Kv { label: "In gedoppelten Spielen (mindestens)", value: count_share(p.doubled_games, p.games_played) }
+            Kv { label: "In vervierfachten Spielen (mindestens)", value: count_share(p.quadrupled_games, p.games_played) }
+            p { class: "legend-note", "Seine Spiele genau nach der Zahl der Doppler im Preis (Klopfen, Kontra, Re, Tout, Bock)." }
+            for (times, count) in p.by_doublings.iter().map(|(t, c)| (*t, *c)) {
+                Tap { key: "{times}", metric: Metric::Doubled(times), me: me.clone(), peers: peers.clone(), open: compare,
+                    ShareBar {
+                        label: doubling_label(times),
+                        part: count,
+                        total: doubling_scale,
+                        value: count_share(count, p.games_played),
+                    }
+                }
+            }
+            TapKv { label: "Siege mit Schneider", value: p.schneider_wins.to_string(), metric: Metric::SchneiderWins, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Siege mit Schwarz", value: p.schwarz_wins.to_string(), metric: Metric::SchwarzWins, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Lauf auf der eigenen Seite", value: p.lauf_own_side.to_string(), metric: Metric::LaufOwn, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Lauf auf der Gegenseite", value: p.lauf_other_side.to_string(), metric: Metric::LaufOther, me: me.clone(), peers: peers.clone(), open: compare }
 
             if p.offences + p.misdeals > 0 || p.penalty_received > 0 {
                 h4 { "Vergehen und Neumischen" }
-                Kv { label: "Vergehen", value: format!("{}×", p.offences) }
-                Kv { label: "Neu gemischt", value: format!("{}×", p.misdeals) }
+                TapKv { label: "Vergehen", value: format!("{}×", p.offences), metric: Metric::Offences, me: me.clone(), peers: peers.clone(), open: compare }
+                TapKv { label: "Neu gemischt", value: format!("{}×", p.misdeals), metric: Metric::Misdeals, me: me.clone(), peers: peers.clone(), open: compare }
                 if p.penalty_paid > 0 {
-                    Kv { label: "Strafen gezahlt", value: format_euro(p.penalty_paid) }
+                    TapKv { label: "Strafen gezahlt", value: format_euro(p.penalty_paid), metric: Metric::PenaltyPaid, me: me.clone(), peers: peers.clone(), open: compare }
                 }
                 if p.penalty_received > 0 {
-                    Kv { label: "Strafen bekommen", value: format_euro(p.penalty_received) }
+                    TapKv { label: "Strafen bekommen", value: format_euro(p.penalty_received), metric: Metric::PenaltyReceived, me: me.clone(), peers: peers.clone(), open: compare }
                 }
             }
             if p.wrong_demands > 0 {
                 h4 { "Falsch verlangt" }
-                Kv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands) }
+                TapKv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands), metric: Metric::WrongDemands, me: me.clone(), peers: peers.clone(), open: compare }
                 for (mistake, count) in p.wrong_by_kind.iter() {
                     Kv { key: "{mistake.label()}", label: mistake.label(), value: format!("{count}×") }
                 }
@@ -192,6 +201,8 @@ fn OverallNumbers(stats: OverallStats) -> Element {
     let mut ranked: Vec<OverallPlayer> = stats.players.clone();
     ranked.sort_by_key(|p| (std::cmp::Reverse(p.balance), p.name.clone()));
     let money_scale = max_abs(ranked.iter().map(|p| p.balance));
+    // Alle Spieler der gewählten Abende für die Ranglisten beim Antippen einer Zahl.
+    let peers: Vec<PeerRow> = ranked.iter().map(overall_peer).collect();
     let kinds = kind_rows(&stats.by_kind);
     let kind_scale = kinds.iter().map(|(_, k)| k.games).max().unwrap_or(0);
     let top_doublings = stats.by_doublings.keys().next_back().copied().unwrap_or(0);
@@ -356,7 +367,7 @@ fn OverallNumbers(stats: OverallStats) -> Element {
         section {
             h3 { "Spieler" }
             for p in ranked.iter() {
-                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games }
+                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games, peers: peers.clone() }
             }
         }
     }
@@ -466,19 +477,5 @@ pub fn OverallScreen(
                 OverallNumbers { stats }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn names_the_doubling_levels() {
-        assert_eq!(doubling_label(0), "Ohne Doppler");
-        assert_eq!(doubling_label(1), "Gedoppelt");
-        assert_eq!(doubling_label(2), "Vervierfacht");
-        assert_eq!(doubling_label(3), "Mal 8");
-        assert_eq!(doubling_label(5), "Mal 32");
     }
 }

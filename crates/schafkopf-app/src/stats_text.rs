@@ -42,6 +42,17 @@ pub fn streak(current: i32) -> String {
     }
 }
 
+/// Wie oft ein Spiel verdoppelt war, als Text: 0 "Ohne Doppler", 1 "Nur verdoppelt (mal 2)", 2 "Vervierfacht (mal 4)", 3 "Verachtfacht (mal 8)", ...
+pub fn doubling_label(times: u32) -> String {
+    match times {
+        0 => "Ohne Doppler".to_owned(),
+        1 => "Nur verdoppelt (mal 2)".to_owned(),
+        2 => "Vervierfacht (mal 4)".to_owned(),
+        3 => "Verachtfacht (mal 8)".to_owned(),
+        n => format!("Mal {} ({n} Doppler)", 1u64 << n),
+    }
+}
+
 /// Bezeichnung des Platzes relativ zum Geber, siehe `PlayerStats::by_position`.
 pub fn position_label(index: usize) -> &'static str {
     match index {
@@ -231,6 +242,15 @@ mod tests {
             "3 von 5 (60\u{a0}%)"
         );
         assert_eq!(share(RoleStats::default()), "–");
+    }
+
+    #[test]
+    fn names_the_doubling_levels() {
+        assert_eq!(doubling_label(0), "Ohne Doppler");
+        assert_eq!(doubling_label(1), "Nur verdoppelt (mal 2)");
+        assert_eq!(doubling_label(2), "Vervierfacht (mal 4)");
+        assert_eq!(doubling_label(3), "Verachtfacht (mal 8)");
+        assert_eq!(doubling_label(5), "Mal 32 (5 Doppler)");
     }
 
     #[test]

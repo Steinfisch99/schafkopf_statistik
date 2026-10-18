@@ -56,6 +56,9 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
   nur den **Mitspielern der laufenden Runde** (`default_penalty_recipients`), nicht allen am Tisch. Neumischen = `OffenceKind::Misdeal`, der Geber bleibt (er ist aus den Spielen abgeleitet).
   Tarif: `penalties_enabled`, `offence_penalty`, `misdeal_penalty` (Standard 0). Strafen stecken im Stand nach
   `after_games` (`balance_history`) und in `PlayerStats::balance`. In der CSV als Zeilen in der Ereignis-Datei.
+- **Vergleich** (`views/compare.rs`): `Metric` + `PeerRow` (Zahlen je Spieler, aus `PlayerStats` oder `OverallPlayer`), `Tap`/`TapKv`
+  machen Zeilen in den Spielerkarten antippbar und zeigen die Rangliste. Neue Zahl in der Karte = Metric ergänzen und beide
+  `*_peer`-Funktionen füllen. Doppler-Stufen exakt in `by_doublings` (`PlayerStats`, `TableStats`, `OverallPlayer`).
 - Spieleliste färbt nach `GameKind::is_team_game`/`is_solo` (CSS `kind-team`, `kind-solo`, `kind-ramsch`).
 - Gesamtstatistik führt Spieler über den **Namen** zusammen. Testabende (`Table.debug`) zählen nie mit.
 
@@ -69,7 +72,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 251 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 255 Tests, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
@@ -92,6 +95,7 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 - ZIP-Dateien haben als Zeitstempel 1980 (keine Zeitfunktion in der ZIP-Bibliothek eingeschaltet), harmlos.
 - Die Frage "falsch verlangen aktiviert?" wurde als Option **fürs Zurückverlangen** umgesetzt (Tarif). Der Nutzer hat
   nicht bestätigt, ob er stattdessen das ganze Falsch-verlangen-Feature abschaltbar haben wollte.
+- Neu und nur per Test geprüft, nicht angesehen: Antippen der Zahlen mit Rangliste (`views/compare.rs`, Tipps in `<details>`-Karten).
 - Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
   Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, nach dem Bild des Nutzers vereinfacht, vorher geraten, keine
   Recherche möglich: Netz gesperrt).

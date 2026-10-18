@@ -1,6 +1,7 @@
 mod backup_screen;
 mod balance_chart;
 mod common;
+mod compare;
 mod export_screen;
 mod game_form;
 mod game_list;

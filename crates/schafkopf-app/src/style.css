@@ -246,3 +246,16 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .kind-legend .kind-solo { --kind-color: var(--kind-solo); }
 .kind-legend .kind-ramsch { --kind-color: var(--kind-ramsch); }
 .history li.offence { border-left: 0.3rem solid var(--danger); padding-left: 0.6rem; }
+
+/* Vergleich: Eine antippbare Zahl öffnet darunter die Rangliste aller Spieler. */
+.tap { cursor: pointer; border-radius: 0.4rem; }
+.tap:hover, .tap.on { background: var(--soft); }
+.tap:focus-visible { outline: 2px solid var(--accent); }
+.rank-box { margin: 0.2rem 0 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 0.6rem; background: var(--soft); }
+.rank-title { margin: 0 0 0.3rem; font-weight: 600; }
+.rank-list { list-style: none; margin: 0; padding: 0; }
+.rank-list li { display: flex; gap: 0.6rem; padding: 0.3rem 0.2rem; border-top: 1px solid var(--line); }
+.rank-list li:first-child { border-top: 0; }
+.rank-list .place { min-width: 2rem; font-variant-numeric: tabular-nums; }
+.rank-list .who { flex: 1; }
+.rank-list li.me { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; border-radius: 0.3rem; }

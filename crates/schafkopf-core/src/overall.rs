@@ -49,6 +49,8 @@ pub struct OverallPlayer {
     /// Spiele, bei denen er mitgespielt hat und der Preis mindestens einmal (zweimal) verdoppelt war.
     pub doubled_games: u32,
     pub quadrupled_games: u32,
+    /// In wie vielen seiner Spiele der Preis genau so oft verdoppelt war (0 = gar nicht, 1 = mal 2, 2 = mal 4, ...).
+    pub by_doublings: BTreeMap<u32, u32>,
     /// Vergehen (ohne Neumischen), Neumischen, die Arten und die Strafen, die er gezahlt und bekommen hat.
     pub offences: u32,
     pub misdeals: u32,
@@ -95,6 +97,7 @@ impl OverallPlayer {
             by_kind: BTreeMap::new(),
             doubled_games: 0,
             quadrupled_games: 0,
+            by_doublings: BTreeMap::new(),
             offences: 0,
             misdeals: 0,
             offences_by_kind: BTreeMap::new(),
@@ -159,6 +162,9 @@ impl OverallPlayer {
         self.undercharge_benefit += p.undercharge_benefit;
         for (m, n) in &p.wrong_by_kind {
             *self.wrong_by_kind.entry(*m).or_default() += n;
+        }
+        for (times, n) in &p.by_doublings {
+            *self.by_doublings.entry(*times).or_default() += n;
         }
         self.offences += p.offences;
         self.misdeals += p.misdeals;

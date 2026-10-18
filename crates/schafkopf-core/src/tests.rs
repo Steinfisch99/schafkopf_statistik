@@ -3102,3 +3102,40 @@ fn a_penalty_goes_only_to_the_players_of_the_current_round() {
     .unwrap();
     assert_eq!(t.default_penalty_recipients(4), vec![3, 1, 2]);
 }
+
+#[test]
+fn doublings_are_split_by_level_for_the_evening_and_for_every_player() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_game(GameInput {
+        knockers: vec![2],
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        knockers: vec![2, 0],
+        ..sauspiel(2, 1, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput {
+        knockers: vec![2, 0],
+        kontra_by: Some(0),
+        re: true,
+        ..sauspiel(3, 1, 3)
+    })
+    .unwrap();
+    let s = table_stats(&t);
+    // 0, 1, 2 und 4 Verdopplungen.
+    assert_eq!(
+        s.by_doublings.into_iter().collect::<Vec<_>>(),
+        vec![(0, 1), (1, 1), (2, 1), (4, 1)]
+    );
+    // Ben spielt immer mit, Anna aussetzend nie ... Anna spielt, wenn sie nicht gibt: Geber 0 gibt im ersten Spiel.
+    let ben = &s.players[1];
+    assert_eq!(ben.by_doublings.values().sum::<u32>(), ben.games_played);
+    assert_eq!(ben.by_doublings[&2], 1);
+    let all = overall_stats(&[&t]);
+    let ben = all.players.iter().find(|p| p.name == "Ben").unwrap();
+    assert_eq!(ben.by_doublings[&4], 1);
+    assert_eq!(ben.by_doublings.values().sum::<u32>(), ben.games_played);
+}
