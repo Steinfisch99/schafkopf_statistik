@@ -68,6 +68,8 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - Gesamtstatistik führt Spieler über den **Namen** zusammen. Testabende (`Table.debug`) zählen nie mit.
 - **Stock** (`Table.stock_moves`, `Table::rebuild_stock`): Einlagen ("Keiner spielt", Regelwerk `no_game`) sind eingetragen, Auszahlung/Verdopplung bei Sauspielen werden
   nach jeder Änderung an den Spielen **neu abgeleitet**. Stock-Beträge stecken in Kontostand/Verlauf, nicht in `Game.payouts`. Nur Sauspiel (nicht Hochzeit) berührt ihn.
+- **Einrichtung und Tarif:** `SetupState.synced` + `sync_tariff` halten die Tarifwerte der Einrichtung mit der Bibliothek abgeglichen (sonst bleibt der Stand vom App-Start stehen).
+- **Stock-Statistik:** `StockStats` (Tisch, Gesamt) und `PlayerStock` (je Spieler), Anzeige `StockSection` in `views/stats_screen.rs`.
 - **Geldstand** (`Library::account`, `start_balances`, `Adjustment`): Startwert und Nachträge je Spieler in der Bibliothek, Anzeige oben auf der Einrichtungsseite (`views/account.rs`).
   Zuordnung über den Namen; Umbenennen nimmt nur Startwert/Nachträge mit, nicht alte Abende.
 
@@ -81,7 +83,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 293 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 299 Tests, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,

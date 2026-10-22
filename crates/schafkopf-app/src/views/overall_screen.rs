@@ -13,7 +13,9 @@ use super::meta_sections::{EveningsOverview, OverallPresence, TariffSection};
 use super::stat_widgets::{
     DivergingRow, DoublerSection, ShareBar, StackedBar, ToutSection, WinDonut,
 };
-use super::stats_screen::{amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection};
+use super::stats_screen::{
+    amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection, StockSection,
+};
 use crate::stats_text::{
     doubling_label, kind_rows, max_abs, percent, share, streak, DoublerRow, ToutRow,
 };
@@ -397,6 +399,11 @@ fn OverallNumbers(stats: OverallStats) -> Element {
             penalty_cents: stats.penalty_cents,
             by_kind: stats.offences_by_kind.iter().map(|(k, c)| (*k, *c)).collect::<Vec<_>>(),
             players: ranked.iter().map(|p| (p.name.clone(), p.offences, p.misdeals, p.penalty_paid, p.penalty_received)).collect::<Vec<_>>(),
+        }
+
+        StockSection {
+            stock: stats.stock.clone(),
+            players: ranked.iter().map(|p| (p.name.clone(), p.stock.clone())).collect::<Vec<_>>(),
         }
 
         section {

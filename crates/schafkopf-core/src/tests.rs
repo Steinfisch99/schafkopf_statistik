@@ -3801,3 +3801,54 @@ fn old_libraries_without_account_data_still_load() {
     assert_eq!(loaded.start_balance("Anna"), 0);
     assert_eq!(loaded.default_rule_set().no_game, NoGameRule::Ramsch);
 }
+
+#[test]
+fn stock_stats_show_peak_flow_and_what_each_player_paid_and_got() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap(); // Stock 80
+    t.add_no_game(None).unwrap(); // Stock 160
+                                  // Anna (0) und Cem (2) verlieren ihr Sauspiel: gedoppelt auf 320.
+    t.add_game(GameInput {
+        won: false,
+        ..sauspiel(2, 0, 2)
+    })
+    .unwrap();
+    // Ben (1) und Dora (3) gewinnen: 320 ausgezahlt.
+    t.add_game(sauspiel(3, 1, 3)).unwrap();
+    t.add_no_game(None).unwrap(); // Stock 80, bleibt liegen
+    let s = table_stats(&t).stock;
+    assert_eq!(s.no_game_rounds, 3);
+    assert_eq!(s.peak, 320);
+    assert_eq!((s.deposited, s.doubled, s.paid_out), (240, 160, 320));
+    assert_eq!((s.payouts, s.doublings, s.left), (1, 1, 80));
+    assert_eq!(s.flowed_in(), 400);
+    let players = table_stats(&t).players;
+    let anna = &players[0].stock;
+    assert_eq!((anna.deposited, anna.doubled, anna.received), (60, 80, 0));
+    assert_eq!((anna.doublings, anna.wins, anna.net()), (1, 0, -140));
+    let ben = &players[1].stock;
+    assert_eq!((ben.deposited, ben.received, ben.wins), (60, 160, 1));
+    assert_eq!(ben.net(), 100);
+    // Was Spieler gezahlt und bekommen haben, ergibt zusammen den Stock, der noch liegt.
+    let net: Cents = players.iter().map(|p| p.stock.net()).sum();
+    assert_eq!(net, -s.left);
+}
+
+#[test]
+fn stock_stats_are_empty_without_stock_and_add_up_over_evenings() {
+    let mut a = table();
+    a.add_game(sauspiel(0, 1, 3)).unwrap();
+    assert!(table_stats(&a).stock.is_empty());
+    assert!(table_stats(&a).players[0].stock.is_empty());
+    let mut b = stock_table();
+    b.add_no_game(None).unwrap();
+    let mut c = stock_table();
+    c.add_no_game(None).unwrap();
+    c.add_no_game(None).unwrap();
+    let all = overall_stats(&[&a, &b, &c]);
+    assert_eq!(all.stock.no_game_rounds, 3);
+    assert_eq!(all.stock.deposited, 80 + 160);
+    assert_eq!(all.stock.peak, 160);
+    assert_eq!(all.stock.left, 80 + 160);
+    assert_eq!(all.players[0].stock.deposited, 20 + 40);
+}

@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::model::{Cents, GameKind, PriceMistake, Seat, Suit};
 use crate::scoring::payouts;
 use crate::scoring::price_doublings;
-use crate::table::OffenceKind;
 use crate::table::{Game, Table};
+use crate::table::{OffenceKind, StockMoveKind};
 
 /// Spiele und Siege in einer Rolle, Position oder Kategorie.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +65,86 @@ impl LaufendeStats {
     /// Durchschnittliche Zahl Laufende in den Gegenlauf-Spielen.
     pub fn average_gegenlauf(&self) -> Option<f64> {
         (self.gegenlauf > 0).then(|| f64::from(self.gegenlauf_sum) / f64::from(self.gegenlauf))
+    }
+}
+
+/// Zahlen zum Stock eines Abends (oder mehrerer Abende zusammen), alles in Cent.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StockStats {
+    /// Wie oft keiner spielen wollte (Zusammenwerfen und Stock).
+    pub no_game_rounds: u32,
+    /// Der höchste Stand, den der Stock erreicht hat (bei mehreren Abenden: der höchste aller Abende).
+    pub peak: Cents,
+    /// Was als Einlage hineinkam, und was durch das Doppeln verlorener Sauspiele dazukam.
+    pub deposited: Cents,
+    pub doubled: Cents,
+    /// Was an Gewinner ausgezahlt wurde.
+    pub paid_out: Cents,
+    /// Wie oft ausgezahlt und wie oft gedoppelt wurde.
+    pub payouts: u32,
+    pub doublings: u32,
+    /// Was am Ende noch im Stock lag (bei mehreren Abenden: die Summe der Reste).
+    pub left: Cents,
+}
+
+impl StockStats {
+    /// Alles Geld, das in den Stock floss.
+    pub fn flowed_in(&self) -> Cents {
+        self.deposited + self.doubled
+    }
+
+    /// Wurde der Stock je benutzt?
+    pub fn is_empty(&self) -> bool {
+        self == &StockStats::default()
+    }
+
+    pub(crate) fn add(&mut self, other: &StockStats) {
+        self.no_game_rounds += other.no_game_rounds;
+        self.peak = self.peak.max(other.peak);
+        self.deposited += other.deposited;
+        self.doubled += other.doubled;
+        self.paid_out += other.paid_out;
+        self.payouts += other.payouts;
+        self.doublings += other.doublings;
+        self.left += other.left;
+    }
+}
+
+/// Was ein Spieler im Stock gezahlt und bekommen hat, in Cent (alles positiv).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlayerStock {
+    /// Einlagen, wenn keiner spielte.
+    pub deposited: Cents,
+    /// Was er beim Doppeln eines verlorenen Sauspiels nachlegen musste.
+    pub doubled: Cents,
+    /// Was er aus dem Stock bekommen hat.
+    pub received: Cents,
+    /// Wie oft er den Stock gewonnen und wie oft er ihn gedoppelt hat.
+    pub wins: u32,
+    pub doublings: u32,
+}
+
+impl PlayerStock {
+    /// Alles, was er in den Stock gezahlt hat.
+    pub fn paid(&self) -> Cents {
+        self.deposited + self.doubled
+    }
+
+    /// Unterm Strich aus dem Stock: bekommen minus gezahlt.
+    pub fn net(&self) -> Cents {
+        self.received - self.paid()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self == &PlayerStock::default()
+    }
+
+    pub(crate) fn add(&mut self, other: &PlayerStock) {
+        self.deposited += other.deposited;
+        self.doubled += other.doubled;
+        self.received += other.received;
+        self.wins += other.wins;
+        self.doublings += other.doublings;
     }
 }
 
@@ -133,6 +213,9 @@ pub struct PlayerStats {
     /// Strafen, die er gezahlt und bekommen hat, in Cent (beides positiv).
     pub penalty_paid: Cents,
     pub penalty_received: Cents,
+    /// Was er in den Stock gezahlt und daraus bekommen hat.
+    #[serde(default)]
+    pub stock: PlayerStock,
 }
 
 impl PlayerStats {
@@ -185,6 +268,7 @@ impl PlayerStats {
             offences_by_kind: BTreeMap::new(),
             penalty_paid: 0,
             penalty_received: 0,
+            stock: PlayerStock::default(),
         }
     }
 
@@ -235,6 +319,8 @@ pub struct TableStats {
     pub misdeals: u32,
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_cents: Cents,
+    /// Der Stock: Einlagen, Höchststand, Auszahlungen.
+    pub stock: StockStats,
     pub players: Vec<PlayerStats>,
     /// `partner_matrix[a][b]`: Sauspiele/Hochzeiten, in denen a und b zusammen gespielt haben.
     pub partner_matrix: Vec<Vec<RoleStats>>,
@@ -278,6 +364,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         misdeals: 0,
         offences_by_kind: BTreeMap::new(),
         penalty_cents: 0,
+        stock: StockStats::default(),
         players: Vec::new(),
         partner_matrix: vec![vec![RoleStats::default(); n]; n],
     };
@@ -508,6 +595,40 @@ pub fn table_stats(table: &Table) -> TableStats {
             p.balance += payout;
         }
     }
+    let mut pot: Cents = 0;
+    for m in &table.stock_moves {
+        pot += m.pot_change;
+        stats.stock.peak = stats.stock.peak.max(pot);
+        match m.kind {
+            StockMoveKind::NoGame => {
+                stats.stock.no_game_rounds += 1;
+                stats.stock.deposited += m.pot_change;
+            }
+            StockMoveKind::Payout => {
+                stats.stock.payouts += 1;
+                stats.stock.paid_out -= m.pot_change;
+            }
+            StockMoveKind::Double => {
+                stats.stock.doublings += 1;
+                stats.stock.doubled += m.pot_change;
+            }
+        }
+        for (p, &payout) in players.iter_mut().zip(&m.payouts) {
+            match (m.kind, payout) {
+                (_, 0) => {}
+                (StockMoveKind::NoGame, payout) => p.stock.deposited -= payout,
+                (StockMoveKind::Payout, payout) => {
+                    p.stock.received += payout;
+                    p.stock.wins += 1;
+                }
+                (StockMoveKind::Double, payout) => {
+                    p.stock.doubled -= payout;
+                    p.stock.doublings += 1;
+                }
+            }
+        }
+    }
+    stats.stock.left = pot;
     stats.players = players;
     stats
 }

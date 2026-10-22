@@ -496,6 +496,8 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Beim Stock zahlen alle am Tisch die Einlage, oben steht "Stock: ... liegen in der Mitte", der Kontostand sinkt entsprechend.
 - [ ] Sauspiel gewonnen: Spieler und Mitspieler bekommen je die Hälfte des Stocks, zusätzlich zum normalen Preis. Sauspiel verloren: beide zahlen zusammen noch einmal den Stockbetrag, der Stock verdoppelt sich (Schalter aus: bleibt). Solo, Wenz, Hochzeit, Bettel: Stock bleibt unberührt.
 - [ ] Die Liste "Stock" zeigt alle Bewegungen, eine Einlage lässt sich zurücknehmen. Rückgängig, Bearbeiten oder Löschen eines Spiels rechnet den Stock neu.
+- [ ] In der Statistik (Abend, früherer Abend, Gesamtstatistik) gibt es den Abschnitt "Stock": höchster Stock, Zahl der Runden "Keiner spielt", eingelegt, durch Doppeln dazu, ausgezahlt, was noch liegt, und je Spieler eingezahlt, gewonnen, gedoppelt und unterm Strich.
+- [ ] Tarif ändern (Verwaltung), dann zurück zur ersten Seite: Beim nächsten "Abend starten" gelten die neuen Werte (Einlage, Doppeln) ohne Nachbessern. Hast du den Tarif dort für den Abend angepasst, bleibt deine Anpassung.
 
 ### 32. Geldstand aller Spieler, Startwert und Nachträge
 

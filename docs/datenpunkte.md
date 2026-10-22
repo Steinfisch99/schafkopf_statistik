@@ -460,3 +460,12 @@ deshalb nach der Richtung des Preises:
   Stock) zusammen. Spieler werden über den Namen zugeordnet (Groß-/Kleinschreibung egal). Beim Umbenennen eines Spielers wandern Startwert und Nachträge mit, frühere Abende
   behalten aber den alten Namen und zählen dann nicht mehr für ihn.
 - Zu sehen ist es oben auf der ersten Seite ("Neuer Abend"). Die Daten liegen in `schafkopf-bibliothek.json` und sind in der Sicherung enthalten.
+
+### Statistik zum Stock
+
+- `TableStats.stock` (`StockStats`): Zahl der Runden "Keiner spielt", **höchster Stand**, eingelegt, durch Doppeln dazugekommen, **hineingeflossen** insgesamt, ausgezahlt (mit Zahl), Rest am Ende. In der Gesamtstatistik: Summen, der Höchststand ist der höchste aller Abende.
+- `PlayerStats.stock` / `OverallPlayer.stock` (`PlayerStock`): je Spieler eingelegt, fürs Doppeln gezahlt, aus dem Stock bekommen, wie oft gewonnen und gedoppelt, unterm Strich (bekommen minus gezahlt). Abschnitt "Stock" in allen drei Statistik-Bildschirmen, leer ohne Stock.
+
+### Einrichtung übernimmt geänderte Tarife
+
+- Die Einrichtung ("Neuer Abend") merkt sich, von welchem Bibliothekstarif ihre Felder stammen (`SetupState.synced`). Wird der Tarif in der Verwaltung geändert, übernimmt sie die neuen Werte, solange der Nutzer die Felder nicht für den Abend angepasst hat (`sync_tariff`). Vorher blieben die Werte vom Start der App stehen. Wurde der gewählte Tarif gelöscht oder umbenannt, gilt der Standard.

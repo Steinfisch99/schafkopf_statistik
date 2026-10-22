@@ -1,7 +1,7 @@
 //! Neuer Abend: Spieler, erster Geber, Regelwerk und Tarif festlegen.
 
 use dioxus::prelude::*;
-use schafkopf_core::{GameKind, Library, RuleSet, Table};
+use schafkopf_core::{GameKind, Library, RuleSet, Table, Tariff};
 
 use super::account::AccountSection;
 use super::common::{persist_library, AppVersion, Chip, Notice, TariffFields};
@@ -45,6 +45,9 @@ pub struct SetupState {
     pub rule_set: Signal<String>,
     pub tariff_name: Signal<String>,
     pub tariff: Signal<TariffDraft>,
+    /// Der Tarif aus der Bibliothek, von dem `tariff` zuletzt übernommen wurde. Damit merkt die Einrichtung, wenn
+    /// der Tarif in der Verwaltung geändert wurde, und übernimmt die Änderung (solange nichts angepasst wurde).
+    pub synced: Signal<Option<Tariff>>,
     /// Ein Testabend, der nicht in die Gesamtstatistik eingeht.
     pub debug: Signal<bool>,
 }
@@ -68,7 +71,45 @@ pub fn use_setup_state(library: Signal<Library>, table: Signal<Option<Table>>) -
         rule_set: use_signal(|| rule_set),
         tariff_name: use_signal(|| tariff.name.clone()),
         tariff: use_signal(|| TariffDraft::from_tariff(&tariff.tariff)),
+        synced: use_signal(|| Some(tariff.tariff.clone())),
         debug: use_signal(|| false),
+    }
+}
+
+/// Was die Einrichtung nach einer Änderung der Bibliothek mit der Tarifwahl macht.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TariffSync {
+    /// Der Name des Tarifs, der jetzt gewählt ist (der Standard, wenn der gewählte gelöscht wurde).
+    pub name: String,
+    /// Die neuen Eingabefelder, falls sie ersetzt werden müssen. `None`: so lassen.
+    pub draft: Option<TariffDraft>,
+    /// Der Tarif der Bibliothek, der jetzt als übernommen gilt.
+    pub synced: Tariff,
+}
+
+/// Gleicht die Tarifwahl der Einrichtung mit der Bibliothek ab. Wurde der gewählte Tarif in der Verwaltung
+/// geändert und hat der Nutzer die Felder nicht angepasst, gelten die neuen Werte, sonst blieben die alten
+/// vom Start der App stehen. Angepasste Felder bleiben, wie sie sind. Gibt es den gewählten Tarif nicht mehr,
+/// gilt der Standard.
+pub fn sync_tariff(
+    library: &Library,
+    chosen: &str,
+    synced: Option<&Tariff>,
+    draft: &TariffDraft,
+) -> TariffSync {
+    let (name, current) = match library.tariff(chosen) {
+        Some(named) => (named.name.clone(), named.tariff.clone()),
+        None => {
+            let default = library.default_tariff();
+            (default.name.clone(), default.tariff.clone())
+        }
+    };
+    let untouched = synced.is_none_or(|s| TariffDraft::from_tariff(s) == *draft);
+    let replace = name != chosen || (synced != Some(&current) && untouched);
+    TariffSync {
+        draft: replace.then(|| TariffDraft::from_tariff(&current)),
+        name,
+        synced: current,
     }
 }
 
@@ -217,9 +258,30 @@ pub fn Setup(
         mut rule_set,
         mut tariff_name,
         tariff,
+        synced,
         mut debug,
     } = state;
     let mut tariff_signal = tariff;
+    let mut synced = synced;
+    use_effect(move || {
+        let lib = library.read();
+        let result = sync_tariff(
+            &lib,
+            &tariff_name.peek(),
+            synced.peek().as_ref(),
+            &tariff_signal.peek(),
+        );
+        drop(lib);
+        if let Some(draft) = result.draft {
+            tariff_signal.set(draft);
+        }
+        if result.name != *tariff_name.peek() {
+            tariff_name.set(result.name);
+        }
+        if synced.peek().as_ref() != Some(&result.synced) {
+            synced.set(Some(result.synced));
+        }
+    });
     let running = table.read().is_some();
     let count = names.read().len();
 
@@ -367,6 +429,7 @@ pub fn Setup(
                     let name = e.value();
                     if let Some(named) = library.read().tariff(&name) {
                         tariff_signal.set(TariffDraft::from_tariff(&named.tariff));
+                        synced.set(Some(named.tariff.clone()));
                     }
                     tariff_name.set(name);
                 },
@@ -465,6 +528,63 @@ mod tests {
         assert_eq!(slots[4], slot("Dora", true));
     }
 
+    fn tariff_with_stock(amount: i64) -> Tariff {
+        Tariff {
+            stock_amount: amount,
+            ..Tariff::default()
+        }
+    }
+
+    #[test]
+    fn an_unchanged_setup_picks_up_a_tariff_edited_in_the_library() {
+        let mut lib = library_with(&[]);
+        let name = lib.default_tariff().name.clone();
+        let old = lib.default_tariff().tariff.clone();
+        let draft = TariffDraft::from_tariff(&old);
+        lib.save_tariff(Some(&name), &name, tariff_with_stock(50))
+            .unwrap();
+        let sync = sync_tariff(&lib, &name, Some(&old), &draft);
+        assert_eq!(sync.name, name);
+        assert_eq!(sync.draft.unwrap().to_tariff().unwrap().stock_amount, 50);
+        assert_eq!(sync.synced.stock_amount, 50);
+    }
+
+    #[test]
+    fn a_tariff_adjusted_for_the_evening_is_not_overwritten() {
+        let mut lib = library_with(&[]);
+        let name = lib.default_tariff().name.clone();
+        let old = lib.default_tariff().tariff.clone();
+        let mut draft = TariffDraft::from_tariff(&old);
+        draft.solo = "1,00".into();
+        lib.save_tariff(Some(&name), &name, tariff_with_stock(50))
+            .unwrap();
+        let sync = sync_tariff(&lib, &name, Some(&old), &draft);
+        assert_eq!(sync.draft, None);
+        assert_eq!(sync.synced.stock_amount, 50);
+    }
+
+    #[test]
+    fn nothing_changes_while_the_library_is_the_same() {
+        let lib = library_with(&[]);
+        let t = lib.default_tariff().clone();
+        let draft = TariffDraft::from_tariff(&t.tariff);
+        let sync = sync_tariff(&lib, &t.name, Some(&t.tariff), &draft);
+        assert_eq!((sync.draft, sync.name), (None, t.name));
+    }
+
+    #[test]
+    fn a_deleted_or_renamed_tariff_falls_back_to_the_default() {
+        let mut lib = library_with(&[]);
+        lib.save_tariff(None, "Zweiter", tariff_with_stock(70))
+            .unwrap();
+        lib.save_tariff(Some("Zweiter"), "Dritter", tariff_with_stock(70))
+            .unwrap();
+        let old = tariff_with_stock(70);
+        let draft = TariffDraft::from_tariff(&old);
+        let sync = sync_tariff(&lib, "Zweiter", Some(&old), &draft);
+        assert_eq!(sync.name, lib.default_tariff().name);
+        assert!(sync.draft.is_some());
+    }
     #[test]
     fn without_a_library_every_previous_name_is_typed() {
         let previous = ["A", "B"].map(String::from).to_vec();

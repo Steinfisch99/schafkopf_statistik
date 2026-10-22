@@ -5,8 +5,8 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
-    table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, RoleStats,
-    Suit, Table,
+    table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, PlayerStock,
+    RoleStats, StockStats, Suit, Table,
 };
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
@@ -586,6 +586,10 @@ pub fn StatsScreen(
                 by_kind: stats.offences_by_kind.iter().map(|(k, c)| (*k, *c)).collect::<Vec<_>>(),
                 players: stats.players.iter().map(|p| (p.name.clone(), p.offences, p.misdeals, p.penalty_paid, p.penalty_received)).collect::<Vec<_>>(),
             }
+            StockSection {
+                stock: stats.stock.clone(),
+                players: stats.players.iter().map(|p| (p.name.clone(), p.stock.clone())).collect::<Vec<_>>(),
+            }
 
             if !lauf_rows.is_empty() {
                 section {
@@ -799,6 +803,53 @@ pub(super) fn OffenceSection(
                 }
                 if received > 0 {
                     p { class: "muted small", "{name} bekam {format_euro(received)} an Strafen von anderen." }
+                }
+            }
+        }
+    }
+}
+
+/// Der Stock: höchster Stand, wie viel hineinfloss und ausgezahlt wurde, und was jeder Spieler eingezahlt
+/// und bekommen hat. Zeigt nichts, wenn es keinen Stock gab.
+#[component]
+pub(super) fn StockSection(stock: StockStats, players: Vec<(String, PlayerStock)>) -> Element {
+    if stock.is_empty() {
+        return rsx! {};
+    }
+    let mut rows: Vec<&(String, PlayerStock)> =
+        players.iter().filter(|p| !p.1.is_empty()).collect();
+    rows.sort_by_key(|p| std::cmp::Reverse(p.1.paid()));
+    let scale = rows.first().map_or(0, |p| p.1.paid().max(0) as u32);
+    rsx! {
+        section {
+            h3 { "Stock" }
+            p { class: "hint", "Wenn keiner spielt, legt jeder die Einlage in die Mitte. Wer danach ein Sauspiel gewinnt, bekommt den Stock, wer eines verliert, doppelt ihn." }
+            Kv { label: "Höchster Stock", value: format_euro(stock.peak) }
+            Kv { label: "Keiner spielt", value: format!("{}×", stock.no_game_rounds) }
+            Kv { label: "Eingelegt", value: format_euro(stock.deposited) }
+            if stock.doublings > 0 {
+                Kv { label: "Durch Doppeln dazu", value: format!("{} ({}×)", format_euro(stock.doubled), stock.doublings) }
+            }
+            Kv { label: "Insgesamt hineingeflossen", value: format_euro(stock.flowed_in()) }
+            Kv { label: "Ausgezahlt", value: format!("{} ({}×)", format_euro(stock.paid_out), stock.payouts) }
+            if stock.left > 0 {
+                Kv { label: "Liegt noch im Stock", value: format_euro(stock.left) }
+            }
+            h4 { "Wer hat eingezahlt" }
+            for (name, p) in rows.iter().map(|r| (&r.0, &r.1)) {
+                ShareBar {
+                    key: "{name}",
+                    label: name.clone(),
+                    part: p.paid().max(0) as u32,
+                    total: scale,
+                    value: format_euro(p.paid()),
+                }
+                p { class: "muted small",
+                    "{name}: eingelegt {format_euro(p.deposited)}"
+                    if p.doublings > 0 { ", gedoppelt {p.doublings}× ({format_euro(p.doubled)})" }
+                    if p.wins > 0 { ", Stock gewonnen {p.wins}× ({format_euro(p.received)})" }
+                    ", unterm Strich "
+                    span { class: amount_class(p.net()), "{signed_euro(p.net())}" }
                 }
             }
         }

@@ -36,7 +36,8 @@ pub use scoring::{
     calculated_value, game_value, payouts, price_doublings, reclaimed_value, validate, Tariff,
 };
 pub use stats::{
-    balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
+    balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, PlayerStock, RoleStats,
+    StockStats, TableStats,
 };
 pub use table::{
     EventKind, Game, Offence, OffenceKind, StockMove, StockMoveKind, Table, TableEvent,

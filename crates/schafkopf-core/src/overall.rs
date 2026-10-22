@@ -7,7 +7,7 @@ use crate::clock::minutes_after_noon;
 use crate::meta::{table_meta, UseCount};
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
-use crate::stats::{table_stats, KindStats, PlayerStats, RoleStats};
+use crate::stats::{table_stats, KindStats, PlayerStats, PlayerStock, RoleStats, StockStats};
 use crate::table::{OffenceKind, Table};
 
 /// Ein Spieler über alle gewählten Abende.
@@ -61,6 +61,8 @@ pub struct OverallPlayer {
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_paid: Cents,
     pub penalty_received: Cents,
+    /// Was er in den Stock gezahlt und daraus bekommen hat.
+    pub stock: PlayerStock,
     /// Wann er an den Abenden kam und ging, in Minuten seit 12:00 Uhr mittags (siehe `minutes_after_noon`). Wer
     /// bis zum Ende blieb, geht mit dem Ende des Abends in die Zahlen ein.
     pub arrivals: Vec<i32>,
@@ -117,6 +119,7 @@ impl OverallPlayer {
             offences_by_kind: BTreeMap::new(),
             penalty_paid: 0,
             penalty_received: 0,
+            stock: PlayerStock::default(),
             arrivals: Vec::new(),
             departures: Vec::new(),
             late_arrivals: 0,
@@ -191,6 +194,7 @@ impl OverallPlayer {
         self.misdeals += p.misdeals;
         self.penalty_paid += p.penalty_paid;
         self.penalty_received += p.penalty_received;
+        self.stock.add(&p.stock);
         for (k, n) in &p.offences_by_kind {
             *self.offences_by_kind.entry(*k).or_default() += n;
         }
@@ -246,6 +250,7 @@ pub struct OverallStats {
     pub misdeals: u32,
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_cents: Cents,
+    pub stock: StockStats,
     pub players: Vec<OverallPlayer>,
     /// Spiele je Tarif und je Regelwerk (die meisten zuerst) und wie oft sie von einem Spiel zum nächsten wechselten.
     pub tariffs: Vec<UseCount>,
@@ -301,6 +306,7 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
         out.offences += stats.offences;
         out.misdeals += stats.misdeals;
         out.penalty_cents += stats.penalty_cents;
+        out.stock.add(&stats.stock);
         for (k, n) in &stats.offences_by_kind {
             *out.offences_by_kind.entry(*k).or_default() += n;
         }
