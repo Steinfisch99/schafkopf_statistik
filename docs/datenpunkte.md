@@ -469,3 +469,5 @@ deshalb nach der Richtung des Preises:
 ### Einrichtung übernimmt geänderte Tarife
 
 - Die Einrichtung ("Neuer Abend") merkt sich, von welchem Bibliothekstarif ihre Felder stammen (`SetupState.synced`). Wird der Tarif in der Verwaltung geändert, übernimmt sie die neuen Werte, solange der Nutzer die Felder nicht für den Abend angepasst hat (`sync_tariff`). Vorher blieben die Werte vom Start der App stehen. Wurde der gewählte Tarif gelöscht oder umbenannt, gilt der Standard.
+
+- In der Spielerkarte (Abend und Gesamtstatistik) gibt es den Abschnitt "Stock" mit **Unterm Strich**, **Eingezahlt** und **Bekommen** (Metriken `StockNet`, `StockPaid`, `StockReceived`); ein Tipp zeigt die Rangliste. Nur Spieler, die den Stock genutzt haben, stehen darin.

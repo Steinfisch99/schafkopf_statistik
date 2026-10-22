@@ -42,6 +42,10 @@ pub enum Metric {
     Misdeals,
     PenaltyPaid,
     PenaltyReceived,
+    /// Was er im Stock gezahlt, bekommen und unterm Strich gewonnen oder verloren hat.
+    StockPaid,
+    StockReceived,
+    StockNet,
     WrongDemands,
     /// Spiele, in denen der Preis genau so oft verdoppelt war.
     Doubled(u32),
@@ -82,6 +86,9 @@ impl Metric {
             Metric::Misdeals => "Neu gemischt".into(),
             Metric::PenaltyPaid => "Strafen gezahlt".into(),
             Metric::PenaltyReceived => "Strafen bekommen".into(),
+            Metric::StockPaid => "Stock eingezahlt".into(),
+            Metric::StockReceived => "Stock bekommen".into(),
+            Metric::StockNet => "Stock unterm Strich".into(),
             Metric::WrongDemands => "Preis falsch verlangt".into(),
             Metric::Doubled(n) => format!("Spiele: {}", doubling_label(n)),
             Metric::Evenings => "Abende".into(),
@@ -202,6 +209,11 @@ pub fn evening_peer(p: &PlayerStats) -> PeerRow {
     r.count(Metric::Misdeals, p.misdeals);
     r.money(Metric::PenaltyPaid, p.penalty_paid);
     r.money(Metric::PenaltyReceived, p.penalty_received);
+    if !p.stock.is_empty() {
+        r.money(Metric::StockPaid, p.stock.paid());
+        r.money(Metric::StockReceived, p.stock.received);
+        r.cents(Metric::StockNet, p.stock.net());
+    }
     r.count(Metric::WrongDemands, p.wrong_demands);
     for (&times, &n) in &p.by_doublings {
         r.count(Metric::Doubled(times), n);
@@ -255,6 +267,11 @@ pub fn overall_peer(p: &OverallPlayer) -> PeerRow {
     r.count(Metric::Misdeals, p.misdeals);
     r.money(Metric::PenaltyPaid, p.penalty_paid);
     r.money(Metric::PenaltyReceived, p.penalty_received);
+    if !p.stock.is_empty() {
+        r.money(Metric::StockPaid, p.stock.paid());
+        r.money(Metric::StockReceived, p.stock.received);
+        r.cents(Metric::StockNet, p.stock.net());
+    }
     r.count(Metric::WrongDemands, p.wrong_demands);
     for (&times, &n) in &p.by_doublings {
         r.count(Metric::Doubled(times), n);
@@ -387,6 +404,35 @@ mod tests {
         assert_eq!(played[0].0, 1);
         assert_eq!(played.iter().filter(|r| r.0 == 1).count(), 3);
         assert_eq!(played[3], (4, "Ben".into(), "3".into()));
+    }
+
+    #[test]
+    fn the_stock_net_is_ranked_for_players_who_used_the_stock() {
+        use schafkopf_core::{GameInput, GameKind, NoGameRule, Suit, Table, Tariff};
+        let names = ["Anna", "Ben", "Cem", "Dora"].map(String::from).to_vec();
+        let mut t = Table::new("T", names, 0, Tariff::default()).unwrap();
+        t.no_game_rule = NoGameRule::Stock;
+        t.add_no_game(None).unwrap();
+        let game = GameInput {
+            suit: Some(Suit::Eichel),
+            partner: Some(3),
+            ..GameInput::new(1, GameKind::Sauspiel, 2)
+        };
+        t.add_game(game).unwrap();
+        let stats = schafkopf_core::table_stats(&t);
+        let peers: Vec<PeerRow> = stats.players.iter().map(evening_peer).collect();
+        let net = ranking(&peers, Metric::StockNet);
+        // Cem und Dora gewinnen den Stock (je 40) und haben 20 eingelegt: +20, Anna und Ben -20.
+        assert_eq!(net[0], (1, "Cem".into(), "+0,20\u{a0}€".into()));
+        assert_eq!(net[1].0, 1);
+        assert_eq!(net[3].0, 3);
+        let plain = Table::new("T", vec!["A".into(), "B".into()], 0, Tariff::default()).unwrap();
+        let none = schafkopf_core::table_stats(&plain);
+        assert!(ranking(
+            &none.players.iter().map(evening_peer).collect::<Vec<_>>(),
+            Metric::StockNet
+        )
+        .is_empty());
     }
 
     #[test]

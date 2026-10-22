@@ -166,6 +166,15 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow
                     TapKv { label: "Strafen bekommen", value: format_euro(p.penalty_received), metric: Metric::PenaltyReceived, me: me.clone(), peers: peers.clone(), open: compare }
                 }
             }
+            if !p.stock.is_empty() {
+                h4 { "Stock" }
+                TapKv { label: "Unterm Strich", value: signed_euro(p.stock.net()), metric: Metric::StockNet, me: me.clone(), peers: peers.clone(), open: compare }
+                TapKv { label: "Eingezahlt", value: format_euro(p.stock.paid()), metric: Metric::StockPaid, me: me.clone(), peers: peers.clone(), open: compare }
+                TapKv { label: "Bekommen", value: format!("{} ({}×)", format_euro(p.stock.received), p.stock.wins), metric: Metric::StockReceived, me: me.clone(), peers: peers.clone(), open: compare }
+                if p.stock.doublings > 0 {
+                    Kv { label: "Gedoppelt", value: format!("{}× ({})", p.stock.doublings, format_euro(p.stock.doubled)) }
+                }
+            }
             if p.wrong_demands > 0 {
                 h4 { "Falsch verlangt" }
                 TapKv { label: "Preis falsch verlangt", value: format!("{}×", p.wrong_demands), metric: Metric::WrongDemands, me: me.clone(), peers: peers.clone(), open: compare }
