@@ -190,6 +190,19 @@ pub fn TariffFields(draft: Signal<TariffDraft>) -> Element {
         } else {
             p { class: "hint", "Aus: Vergehen und Neumischen werden trotzdem eingetragen und gezählt, kosten aber nichts." }
         }
+        p { class: "hint", "Stock (wenn im Regelwerk gewählt):" }
+        TextField { label: "Einlage je Spieler, wenn keiner spielt (€)", value: d.stock_amount, mode: "decimal", oninput: move |v| draft.write().stock_amount = v }
+        div { class: "chips",
+            Chip {
+                label: "Verlorenes Sauspiel doppelt den Stock".to_string(),
+                on: d.stock_doubling,
+                onclick: move |_| {
+                    let on = !draft.read().stock_doubling;
+                    draft.write().stock_doubling = on;
+                },
+            }
+        }
+        p { class: "hint", "Wer ein Sauspiel ansagt und gewinnt, bekommt den Stock, geteilt mit dem Mitspieler. Verliert die Spielerpartei, legt sie noch einmal so viel hinein, wie schon im Stock liegt (je zur Hälfte), der Stock verdoppelt sich. Aus: Er bleibt dann, wie er ist. Bei allen anderen Spielen bleibt der Stock unberührt." }
     }
 }
 

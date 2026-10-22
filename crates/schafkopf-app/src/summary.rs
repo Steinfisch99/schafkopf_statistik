@@ -189,6 +189,38 @@ pub fn offence_text(table: &Table, offence: &schafkopf_core::Offence) -> String 
     format!("{time}{who}: {} ({when}{cost})", offence.kind.label())
 }
 
+/// Der Satz zu einer Bewegung am Stock: "21:05 · Keiner spielt: alle legen ein, im Stock 0,80 € (nach Spiel 4)" oder
+/// "Stock ausgezahlt: Ben +0,40 €, Dora +0,40 € (nach Spiel 5)".
+pub fn stock_text(table: &Table, m: &schafkopf_core::StockMove) -> String {
+    let time =
+        m.at.map(|t| {
+            format!(
+                "{} · ",
+                schafkopf_core::format_clock(t, table.utc_offset_min)
+            )
+        })
+        .unwrap_or_default();
+    let when = match m.after_games {
+        0 => "vor dem ersten Spiel".to_owned(),
+        n => format!("nach Spiel {n}"),
+    };
+    let detail = match m.kind {
+        schafkopf_core::StockMoveKind::NoGame if m.pot_change == 0 => "zusammengeworfen".to_owned(),
+        schafkopf_core::StockMoveKind::NoGame => {
+            format!("alle legen ein, im Stock {}", format_euro(m.pot_change))
+        }
+        _ => table
+            .players
+            .iter()
+            .zip(&m.payouts)
+            .filter(|(_, &p)| p != 0)
+            .map(|(name, &p)| format!("{name} {}", signed_euro(p)))
+            .collect::<Vec<_>>()
+            .join(", "),
+    };
+    format!("{time}{}: {detail} ({when})", m.kind.label())
+}
+
 /// "1 Spiel" oder "14 Spiele".
 pub fn games_text(count: usize) -> String {
     if count == 1 {

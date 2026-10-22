@@ -128,6 +128,8 @@ Entscheidungen:
 - [x] Metadaten: Spiele je Tarif und Regelwerk, Wechsel, wer wann kam und ging (Abend und Gesamtstatistik)
 - [x] Abende im Überblick: Spiele pro Abend und Dauer mit Ø, Minimum und Maximum samt Datum
 - [x] Rangliste "Wer doppelt am häufigsten", Tout je Spieler (Abend und Gesamtstatistik), Zahl der Bockrunden
+- [x] Keiner spielt: Regelwerk wählt Ramsch, Zusammenwerfen oder Stock (Einlage im Tarif, Sauspiel gewonnen: Stock geteilt, verloren: gedoppelt)
+- [x] Geldstand aller Spieler über alle Abende auf der ersten Seite, mit Startwert und Nachträgen (Spiele woanders)
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,
       Doppeltippen und Knöpfe setzen zurück oder zeigen die letzten Spiele. Gesten sind getestet und am

@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
 use crate::library::RuleSet;
-use crate::model::{BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, Seat};
+use crate::model::{
+    BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, NoGameRule, Seat,
+};
 use crate::scoring::{calculated_value, game_value, payouts, validate, Tariff};
 
 /// Am Tisch sitzen zwischen 2 und 10 Spieler.
@@ -161,6 +163,45 @@ pub struct Offence {
     pub note: Option<String>,
 }
 
+/// Was beim Stock bewegt wurde.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StockMoveKind {
+    /// Keiner wollte spielen: Bei "Stock" legt jeder den Stockbetrag ein, bei "Zusammenwerfen" bewegt
+    /// sich kein Geld. In beiden Fällen gibt der Nächste.
+    NoGame,
+    /// Eine Spielerpartei hat ein Sauspiel gewonnen und bekommt den Stock.
+    Payout,
+    /// Eine Spielerpartei hat ein Sauspiel verloren und doppelt den Stock.
+    Double,
+}
+
+impl StockMoveKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            StockMoveKind::NoGame => "Keiner spielt",
+            StockMoveKind::Payout => "Stock ausgezahlt",
+            StockMoveKind::Double => "Stock gedoppelt",
+        }
+    }
+}
+
+/// Eine Bewegung am Stock. "Keiner spielt" trägt man von Hand ein, Auszahlung und Verdopplung
+/// ergeben sich aus den Spielen und werden bei jeder Änderung daran neu berechnet.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StockMove {
+    pub kind: StockMoveKind,
+    /// Um wie viel sich der Stock ändert: Einlage und Verdopplung (positiv), Auszahlung (negativ).
+    pub pot_change: Cents,
+    /// Gewinn/Verlust pro Sitzplatz in Cent. Die Summe ist `-pot_change`, der Rest liegt im Stock.
+    pub payouts: Vec<Cents>,
+    /// Zeitpunkt in Unix-Sekunden, falls bekannt.
+    #[serde(default)]
+    pub at: Option<i64>,
+    /// Wie viele Spiele zu dem Zeitpunkt schon gespielt waren (für den Verlauf).
+    #[serde(default)]
+    pub after_games: usize,
+}
+
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Table {
@@ -197,6 +238,9 @@ pub struct Table {
     /// Was beim Ramsch mit einer Bockrunde passiert. Alte Dateien: Der Ramsch zählt als Bockspiel.
     #[serde(default)]
     pub bock_at_ramsch: BockAtRamsch,
+    /// Was passiert, wenn keiner spielen will. Alte Dateien: Ramsch.
+    #[serde(default)]
+    pub no_game_rule: NoGameRule,
     /// Abweichung der Ortszeit von UTC in Minuten, damit Uhrzeiten lesbar sind (Deutschland: 60/120).
     #[serde(default)]
     pub utc_offset_min: i32,
@@ -212,6 +256,9 @@ pub struct Table {
     /// Vergehen und Neumischen mit ihren Strafzahlungen. Alte Dateien: keine.
     #[serde(default)]
     pub offences: Vec<Offence>,
+    /// Bewegungen am Stock (Einlagen, Auszahlungen, Verdopplungen) in der Reihenfolge, in der sie geschahen. Alte Dateien: keine.
+    #[serde(default)]
+    pub stock_moves: Vec<StockMove>,
     #[serde(default)]
     pub created_at: Option<i64>,
     games: Vec<Game>,
@@ -255,11 +302,13 @@ impl Table {
             bock_mode: BockMode::Off,
             bock_stacking: BockStacking::Sequential,
             bock_at_ramsch: BockAtRamsch::Counts,
+            no_game_rule: NoGameRule::Ramsch,
             utc_offset_min: 0,
             ended_at: None,
             debug: false,
             events: Vec::new(),
             offences: Vec::new(),
+            stock_moves: Vec::new(),
             created_at: None,
             games: Vec::new(),
         })
@@ -385,6 +434,9 @@ impl Table {
         for offence in &mut self.offences {
             offence.payouts.push(0);
         }
+        for m in &mut self.stock_moves {
+            m.payouts.push(0);
+        }
         let behind = self.ring_before(seat);
         self.record(at, EventKind::Joined, seat, behind);
         Ok(seat)
@@ -464,6 +516,7 @@ impl Table {
             .filter_map(|g| g.input.played_at)
             .chain(self.events.iter().filter_map(|e| e.at))
             .chain(self.offences.iter().filter_map(|o| o.at))
+            .chain(self.stock_moves.iter().filter_map(|m| m.at))
             .chain(self.created_at)
             .max()
     }
@@ -503,6 +556,7 @@ impl Table {
         self.bock_mode = rules.bock;
         self.bock_stacking = rules.stacking;
         self.bock_at_ramsch = rules.bock_at_ramsch;
+        self.no_game_rule = rules.no_game;
         Ok(())
     }
 
@@ -589,11 +643,136 @@ impl Table {
     }
 
     /// Geber des nächsten Spiels: der Nächste in Spielrichtung, der am Tisch sitzt.
+    /// Jedes "Keiner spielt" seit dem letzten Spiel schiebt den Geber einen Platz weiter.
     pub fn next_dealer(&self) -> Seat {
-        match self.games.last() {
+        let mut dealer = match self.games.last() {
             Some(g) => self.next_present(g.input.dealer, false),
             None => self.next_present(self.first_dealer, true),
+        };
+        let len = self.games.len();
+        let passes = self
+            .stock_moves
+            .iter()
+            .filter(|m| m.kind == StockMoveKind::NoGame && m.after_games.min(len) == len)
+            .count();
+        for _ in 0..passes {
+            dealer = self.next_present(dealer, false);
         }
+        dealer
+    }
+
+    /// Wie viel gerade im Stock liegt, in Cent.
+    pub fn stock(&self) -> Cents {
+        self.stock_moves.iter().map(|m| m.pot_change).sum()
+    }
+
+    /// Keiner will spielen. Je nach Regelwerk wird zusammengeworfen oder in den Stock eingezahlt (jeder, der
+    /// am Tisch sitzt, den Stockbetrag aus dem Tarif). Danach gibt der Nächste.
+    pub fn add_no_game(&mut self, at: Option<i64>) -> Result<&StockMove> {
+        if !self.no_game_rule.has_pass() {
+            return Err(Error::NoPassRule);
+        }
+        let mut payouts = vec![0; self.players.len()];
+        let mut pot_change = 0;
+        if self.no_game_rule == NoGameRule::Stock {
+            for seat in self.present_seats() {
+                payouts[seat] = -self.tariff.stock_amount;
+                pot_change += self.tariff.stock_amount;
+            }
+        }
+        self.stock_moves.push(StockMove {
+            kind: StockMoveKind::NoGame,
+            pot_change,
+            payouts,
+            at,
+            after_games: self.games.len(),
+        });
+        self.rebuild_stock();
+        Ok(self
+            .stock_moves
+            .iter()
+            .rev()
+            .find(|m| m.kind == StockMoveKind::NoGame)
+            .expect("gerade eingefügt"))
+    }
+
+    /// Nimmt ein "Keiner spielt" zurück. Auszahlungen und Verdopplungen lassen sich nicht einzeln
+    /// zurücknehmen, sie folgen den Spielen. `None`, wenn es den Index nicht gibt oder er keine Einlage ist.
+    pub fn remove_stock_move(&mut self, index: usize) -> Option<StockMove> {
+        let is_pass = self
+            .stock_moves
+            .get(index)
+            .is_some_and(|m| m.kind == StockMoveKind::NoGame);
+        let removed = is_pass.then(|| self.stock_moves.remove(index));
+        self.rebuild_stock();
+        removed
+    }
+
+    /// Berechnet Auszahlung und Verdopplung des Stocks für alle Spiele neu und ordnet alle Bewegungen
+    /// in der Reihenfolge, in der sie geschahen. Wer ein Sauspiel ansagt und gewinnt, bekommt den
+    /// Stock zu gleichen Teilen mit seinem Mitspieler. Verliert die Spielerpartei, doppelt sie den
+    /// Stock (wenn der Tarif es vorsieht): Beide zahlen zusammen noch einmal so viel ein, wie
+    /// schon darin liegt. Bei allen anderen Spielen bleibt der Stock unberührt.
+    fn rebuild_stock(&mut self) {
+        let passes: Vec<StockMove> = self
+            .stock_moves
+            .drain(..)
+            .filter(|m| m.kind == StockMoveKind::NoGame)
+            .collect();
+        let games = self.games.len();
+        let mut passes = passes.into_iter().peekable();
+        let mut moves = Vec::new();
+        let mut pot: Cents = 0;
+        for index in 0..=games {
+            while let Some(mut pass) = passes.next_if(|p| p.after_games.min(games) <= index) {
+                pass.after_games = index;
+                pot += pass.pot_change;
+                moves.push(pass);
+            }
+            if index == games {
+                break;
+            }
+            if let Some(m) = self.stock_move_for_game(index, pot) {
+                pot += m.pot_change;
+                moves.push(m);
+            }
+        }
+        self.stock_moves = moves;
+    }
+
+    /// Was der Stock mit dem Spiel `index` macht, wenn gerade `pot` darin liegt.
+    fn stock_move_for_game(&self, index: usize, pot: Cents) -> Option<StockMove> {
+        let game = &self.games[index];
+        let input = &game.input;
+        if input.kind != GameKind::Sauspiel || pot <= 0 {
+            return None;
+        }
+        let team = input.declarer_team();
+        let (kind, pot_change, sign) = if input.won {
+            (StockMoveKind::Payout, -pot, 1)
+        } else if game.tariff.as_ref().unwrap_or(&self.tariff).stock_doubling {
+            (StockMoveKind::Double, pot, -1)
+        } else {
+            return None;
+        };
+        // Der Spieler bekommt (oder zahlt) beim ungeraden Betrag den größeren Anteil.
+        let partner_share = pot / 2;
+        let mut payouts = vec![0; self.players.len()];
+        for &seat in &team {
+            payouts[seat] = sign
+                * if seat == input.declarer {
+                    pot - partner_share
+                } else {
+                    partner_share
+                };
+        }
+        Some(StockMove {
+            kind,
+            pot_change,
+            payouts,
+            at: input.played_at,
+            after_games: index + 1,
+        })
     }
 
     /// Prüft die Eingabe und rechnet sie ab, ohne das Spiel zu speichern.
@@ -692,24 +871,30 @@ impl Table {
     pub fn replace_game(&mut self, index: usize, input: GameInput) -> Result<&Game> {
         let game = self.preview_edit(index, input)?;
         self.games[index] = game;
+        self.rebuild_stock();
         Ok(&self.games[index])
     }
 
     /// Entfernt ein beliebiges Spiel. `None`, wenn es den Index nicht gibt.
     pub fn remove_game(&mut self, index: usize) -> Option<Game> {
-        (index < self.games.len()).then(|| self.games.remove(index))
+        let removed = (index < self.games.len()).then(|| self.games.remove(index));
+        self.rebuild_stock();
+        removed
     }
 
     /// Prüft die Eingabe, rechnet ab und hängt das Spiel an.
     pub fn add_game(&mut self, input: GameInput) -> Result<&Game> {
         let game = self.preview_game(input)?;
         self.games.push(game);
+        self.rebuild_stock();
         Ok(self.games.last().expect("gerade eingefügt"))
     }
 
     /// Nimmt das letzte Spiel zurück, z. B. nach einer Fehleingabe.
     pub fn undo_last(&mut self) -> Option<Game> {
-        self.games.pop()
+        let removed = self.games.pop();
+        self.rebuild_stock();
+        removed
     }
 
     /// Die Strafe, die der Tarif des Abends für diese Art von Vergehen vorsieht, je Mitspieler. 0, wenn
@@ -799,7 +984,8 @@ impl Table {
             .games
             .iter()
             .map(|g| &g.payouts)
-            .chain(self.offences.iter().map(|o| &o.payouts));
+            .chain(self.offences.iter().map(|o| &o.payouts))
+            .chain(self.stock_moves.iter().map(|m| &m.payouts));
         for payouts in payouts {
             for (s, p) in sum.iter_mut().zip(payouts) {
                 *s += p;

@@ -47,6 +47,13 @@ pub struct Tariff {
     /// zahlt. 0: Neumischen kostet nichts.
     #[serde(default)]
     pub misdeal_penalty: Cents,
+    /// Was jeder in den Stock legt, wenn keiner spielt (nur bei der Regel "Stock"), in Cent.
+    #[serde(default = "default_stock_amount")]
+    pub stock_amount: Cents,
+    /// Muss die Spielerpartei den Stock doppeln, wenn sie ein Sauspiel verliert? Aus: Verliert sie,
+    /// bleibt der Stock, wie er ist. Alte Tarife ohne diese Angabe: ja.
+    #[serde(default = "yes")]
+    pub stock_doubling: bool,
 }
 
 impl Default for Tariff {
@@ -68,6 +75,8 @@ impl Default for Tariff {
             penalties_enabled: true,
             offence_penalty: default_offence_penalty(),
             misdeal_penalty: 0,
+            stock_amount: default_stock_amount(),
+            stock_doubling: true,
         }
     }
 }
@@ -294,6 +303,10 @@ pub fn payouts(tariff: &Tariff, input: &GameInput, player_count: usize) -> Vec<C
 
 fn yes() -> bool {
     true
+}
+
+fn default_stock_amount() -> Cents {
+    20
 }
 
 fn default_offence_penalty() -> Cents {

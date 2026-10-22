@@ -635,6 +635,8 @@ pub struct TariffDraft {
     pub penalties_enabled: bool,
     pub offence_penalty: String,
     pub misdeal_penalty: String,
+    pub stock_amount: String,
+    pub stock_doubling: bool,
 }
 
 impl TariffDraft {
@@ -656,6 +658,8 @@ impl TariffDraft {
             penalties_enabled: t.penalties_enabled,
             offence_penalty: format_amount(t.offence_penalty),
             misdeal_penalty: format_amount(t.misdeal_penalty),
+            stock_amount: format_amount(t.stock_amount),
+            stock_doubling: t.stock_doubling,
         }
     }
 
@@ -685,6 +689,8 @@ impl TariffDraft {
             penalties_enabled: self.penalties_enabled,
             offence_penalty: money("Strafe für ein Vergehen", &self.offence_penalty)?,
             misdeal_penalty: money("Strafe fürs Neumischen", &self.misdeal_penalty)?,
+            stock_amount: money("Stock je Spieler", &self.stock_amount)?,
+            stock_doubling: self.stock_doubling,
         })
     }
 }
@@ -1315,6 +1321,21 @@ mod tests {
         let mut bad = draft;
         bad.misdeal_penalty = "viel".into();
         assert!(bad.to_tariff().unwrap_err().contains("Neumischen"));
+    }
+
+    #[test]
+    fn the_stock_options_survive_the_tariff_draft() {
+        let tariff = Tariff {
+            stock_amount: 50,
+            stock_doubling: false,
+            ..Tariff::default()
+        };
+        let draft = TariffDraft::from_tariff(&tariff);
+        assert_eq!(draft.stock_amount, "0,50");
+        assert_eq!(draft.to_tariff().unwrap(), tariff);
+        let mut bad = draft;
+        bad.stock_amount = "viel".into();
+        assert!(bad.to_tariff().unwrap_err().contains("Stock"));
     }
 
     #[test]

@@ -6,6 +6,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("Ein Tisch braucht 2 bis 10 Spieler, nicht {0}")]
     PlayerCount(usize),
+    #[error("Der Betrag darf nicht 0 sein")]
+    ZeroAmount,
+    #[error("In diesem Regelwerk gibt es kein \"Keiner spielt\": Dort wird Ramsch gespielt")]
+    NoPassRule,
     #[error("Spielernamen dürfen nicht leer sein")]
     EmptyName,
     #[error("Spielername kommt doppelt vor: {0}")]

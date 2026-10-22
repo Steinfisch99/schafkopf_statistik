@@ -2,12 +2,13 @@
 
 use dioxus::prelude::*;
 
-use schafkopf_core::{BockMode, Table};
+use schafkopf_charts::format_euro;
+use schafkopf_core::{BockMode, NoGameRule, Table};
 
 use super::balance_chart::BalanceChart;
 use super::common::{AppVersion, ConfirmButton, Notice};
-use super::game_list::{GameList, OffenceList};
-use crate::summary::evening_times;
+use super::game_list::{GameList, OffenceList, StockList};
+use crate::summary::{evening_times, stock_text};
 use crate::{now_secs, storage, Screen};
 
 #[component]
@@ -34,6 +35,20 @@ pub fn TableView(
                 "Speichern fehlgeschlagen: {e}"
             )))),
         }
+    };
+
+    let no_game = move |_| {
+        let mut guard = table.write();
+        let Some(t) = guard.as_mut() else { return };
+        let added = t.add_no_game(Some(now_secs() as i64)).cloned();
+        let result = added.map(|m| stock_text(t, &m));
+        let saved = result.as_ref().ok().map(|_| storage::save(t, None));
+        drop(guard);
+        notice.set(Some(match (result, saved) {
+            (Err(e), _) => Notice::error(e.to_string()),
+            (Ok(_), Some(Err(e))) => Notice::error(format!("Speichern fehlgeschlagen: {e}")),
+            (Ok(text), _) => Notice::ok(text),
+        }));
     };
 
     let finish = move |_| {
@@ -111,6 +126,9 @@ pub fn TableView(
             if let Some(text) = &bock_text {
                 p { class: "bock-note", "{text}" }
             }
+            if t.no_game_rule == NoGameRule::Stock {
+                p { class: "bock-note", "Stock: {format_euro(t.stock())} liegen in der Mitte." }
+            }
         }
         button {
             class: "primary big",
@@ -118,12 +136,20 @@ pub fn TableView(
             onclick: move |_| screen.set(Screen::Game),
             "Spiel eintragen"
         }
+        if t.no_game_rule.has_pass() {
+            ConfirmButton {
+                label: "Keiner spielt",
+                confirm_label: if t.no_game_rule == NoGameRule::Stock { "Ja, alle legen in den Stock".to_string() } else { "Ja, zusammenwerfen".to_string() },
+                onconfirm: no_game,
+            }
+        }
         BalanceChart {
             table,
             on_player: move |seat| screen.set(Screen::Stats { player: Some(seat) }),
         }
         GameList { table, screen, editable: true }
         OffenceList { table, notice, editable: true }
+        StockList { table, notice, editable: true }
         div { class: "actions stack",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Offence), "Vergehen oder Neumischen" }
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Seats), "Am Tisch: Spieler kommen und gehen" }

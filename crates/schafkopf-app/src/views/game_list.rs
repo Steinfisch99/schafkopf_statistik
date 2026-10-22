@@ -1,11 +1,11 @@
 //! Die Liste der Spiele eines Abends, das neueste zuerst.
 
 use dioxus::prelude::*;
-use schafkopf_core::{GameKind, Table};
+use schafkopf_core::{GameKind, StockMoveKind, Table};
 
 use super::common::{ConfirmButton, Notice};
 use super::suit_icon::SuitIcon;
-use crate::summary::{detail, offence_text, signed_euro, title};
+use crate::summary::{detail, offence_text, signed_euro, stock_text, title};
 use crate::{storage, Screen};
 
 /// Die Spiele eines Abends zum Aufklappen. Mit `editable` hat jedes Spiel einen Link zum Bearbeiten,
@@ -112,6 +112,65 @@ pub fn OffenceList(
                     li { key: "{index}", class: "offence",
                         "{line}"
                         if editable {
+                            ConfirmButton {
+                                label: "Zurücknehmen",
+                                confirm_label: "Ja, zurücknehmen",
+                                onconfirm: move |_| remove(index),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Die Bewegungen am Stock: Einlagen ("Keiner spielt"), Auszahlungen und Verdopplungen. Mit `editable`
+/// lässt sich eine Einlage zurücknehmen, die anderen Einträge folgen den Spielen.
+#[component]
+pub fn StockList(
+    table: Signal<Option<Table>>,
+    notice: Signal<Option<Notice>>,
+    editable: bool,
+) -> Element {
+    let mut table = table;
+    let mut notice = notice;
+    let guard = table.read();
+    let Some(t) = guard.as_ref() else {
+        return rsx! {};
+    };
+    if t.stock_moves.is_empty() {
+        return rsx! {};
+    }
+    let lines: Vec<(String, bool)> = t
+        .stock_moves
+        .iter()
+        .map(|m| (stock_text(t, m), m.kind == StockMoveKind::NoGame))
+        .collect();
+    drop(guard);
+
+    let mut remove = move |index: usize| {
+        let mut guard = table.write();
+        let Some(t) = guard.as_mut() else { return };
+        if t.remove_stock_move(index).is_none() {
+            return;
+        }
+        let saved = storage::save(t, None);
+        drop(guard);
+        notice.set(Some(match saved {
+            Ok(_) => Notice::ok("Eintrag zurückgenommen"),
+            Err(e) => Notice::error(format!("Speichern fehlgeschlagen: {e}")),
+        }));
+    };
+
+    rsx! {
+        details { class: "history",
+            summary { "Stock ({lines.len()})" }
+            ol {
+                for (index, (line, removable)) in lines.iter().enumerate() {
+                    li { key: "{index}", class: "offence",
+                        "{line}"
+                        if editable && *removable {
                             ConfirmButton {
                                 label: "Zurücknehmen",
                                 confirm_label: "Ja, zurücknehmen",

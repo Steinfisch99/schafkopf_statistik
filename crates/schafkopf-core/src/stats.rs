@@ -503,6 +503,11 @@ pub fn table_stats(table: &Table) -> TableStats {
             }
         }
     }
+    for m in &table.stock_moves {
+        for (p, &payout) in players.iter_mut().zip(&m.payouts) {
+            p.balance += payout;
+        }
+    }
     stats.players = players;
     stats
 }
@@ -529,6 +534,15 @@ pub fn balance_history(table: &Table) -> Vec<Vec<Cents>> {
             .filter(|o| o.after_games.min(games) == step)
         {
             for (s, p) in sum.iter_mut().zip(&o.payouts) {
+                *s += p;
+            }
+        }
+        for m in table
+            .stock_moves
+            .iter()
+            .filter(|m| m.after_games.min(games) == step)
+        {
+            for (s, p) in sum.iter_mut().zip(&m.payouts) {
                 *s += p;
             }
         }

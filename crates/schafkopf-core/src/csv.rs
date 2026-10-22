@@ -1,6 +1,6 @@
 use crate::model::{Cents, Seat};
 use crate::scoring::price_doublings;
-use crate::table::{Offence, Table, TableEvent};
+use crate::table::{Offence, StockMove, Table, TableEvent};
 
 /// Maskiert ein Feld nach RFC 4180: Felder mit Trennzeichen, Anführungszeichen oder Zeilenumbruch
 /// kommen in Anführungszeichen, enthaltene Anführungszeichen werden verdoppelt.
@@ -214,6 +214,7 @@ impl Table {
             "Hinter",
             "Nach_Spiel_Nr",
             "Strafe_je_Mitspieler_Cent",
+            "Stock_Cent",
         ];
         let mut lines = vec![row(header.map(String::from), separator)];
         let time = |at: Option<i64>| {
@@ -228,7 +229,8 @@ impl Table {
                         who: String,
                         behind: String,
                         games: usize,
-                        penalty: String| {
+                        penalty: String,
+                        stock: String| {
             let (local, unix) = time(at);
             lines.push(row(
                 [
@@ -239,6 +241,7 @@ impl Table {
                     behind,
                     games.to_string(),
                     penalty,
+                    stock,
                 ],
                 separator,
             ));
@@ -250,16 +253,43 @@ impl Table {
             String::new(),
             0,
             String::new(),
+            String::new(),
         );
         // Kommen und Gehen sowie Vergehen in der Reihenfolge der Spiele, bei gleichem Stand wie eingetragen.
-        let mut entries: Vec<(usize, Option<&TableEvent>, Option<&Offence>)> = self
+        type Entry<'a> = (
+            usize,
+            Option<&'a TableEvent>,
+            Option<&'a Offence>,
+            Option<&'a StockMove>,
+        );
+        let mut entries: Vec<Entry> = self
             .events
             .iter()
-            .map(|e| (e.after_games, Some(e), None))
-            .chain(self.offences.iter().map(|o| (o.after_games, None, Some(o))))
+            .map(|e| (e.after_games, Some(e), None, None))
+            .chain(
+                self.offences
+                    .iter()
+                    .map(|o| (o.after_games, None, Some(o), None)),
+            )
+            .chain(
+                self.stock_moves
+                    .iter()
+                    .map(|m| (m.after_games, None, None, Some(m))),
+            )
             .collect();
         entries.sort_by_key(|&(games, ..)| games);
-        for (_, event, offence) in entries {
+        for (_, event, offence, stock) in entries {
+            if let Some(m) = stock {
+                push(
+                    m.at,
+                    m.kind.label(),
+                    String::new(),
+                    String::new(),
+                    m.after_games,
+                    String::new(),
+                    m.pot_change.to_string(),
+                );
+            }
             if let Some(e) = event {
                 let behind = e
                     .behind
@@ -273,6 +303,7 @@ impl Table {
                     behind,
                     e.after_games,
                     String::new(),
+                    String::new(),
                 );
             }
             if let Some(o) = offence {
@@ -285,6 +316,7 @@ impl Table {
                     String::new(),
                     o.after_games,
                     o.amount.to_string(),
+                    String::new(),
                 );
             }
         }
@@ -295,6 +327,7 @@ impl Table {
                 String::new(),
                 String::new(),
                 self.games().len(),
+                String::new(),
                 String::new(),
             );
         }

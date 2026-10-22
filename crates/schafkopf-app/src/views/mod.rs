@@ -1,3 +1,4 @@
+mod account;
 mod backup_screen;
 mod balance_chart;
 mod common;

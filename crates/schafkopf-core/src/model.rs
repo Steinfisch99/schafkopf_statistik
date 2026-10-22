@@ -75,6 +75,36 @@ impl BockAtRamsch {
     }
 }
 
+/// Was passiert, wenn keiner spielen will, ein Regelwerk legt es fest.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NoGameRule {
+    /// Es wird ein Ramsch gespielt (eine Spielart wie die anderen).
+    #[default]
+    Ramsch,
+    /// Die Karten werden zusammengeworfen, der Nächste gibt.
+    Reshuffle,
+    /// Jeder legt den Stockbetrag aus dem Tarif in die Mitte, der Nächste gibt. Wer danach ein
+    /// Sauspiel ansagt und gewinnt, bekommt den Stock.
+    Stock,
+}
+
+impl NoGameRule {
+    pub const ALL: [NoGameRule; 3] = [NoGameRule::Ramsch, NoGameRule::Reshuffle, NoGameRule::Stock];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            NoGameRule::Ramsch => "Ramsch",
+            NoGameRule::Reshuffle => "Zusammenwerfen, der Nächste gibt",
+            NoGameRule::Stock => "Stock",
+        }
+    }
+
+    /// Gibt es den Knopf "Keiner spielt"? Beim Ramsch nicht, dort wird der Ramsch eingetragen.
+    pub fn has_pass(self) -> bool {
+        self != NoGameRule::Ramsch
+    }
+}
+
 /// Was beim Verlangen des Preises vergessen oder falsch gemacht wurde, wenn der Preis korrigiert wird.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum PriceMistake {

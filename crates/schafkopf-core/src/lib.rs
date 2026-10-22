@@ -24,11 +24,11 @@ pub use clock::{
     minutes_after_noon,
 };
 pub use error::{Error, Result};
-pub use library::{Library, MergeReport, NamedTariff, RuleSet};
+pub use library::{AccountRow, Adjustment, Library, MergeReport, NamedTariff, RuleSet};
 pub use meta::{table_meta, Presence, TableMeta, UseCount};
 pub use model::{
-    outcome_from_points, BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind, Outcome,
-    PriceMistake, Seat, Suit, MAX_BOCK,
+    outcome_from_points, BockAtRamsch, BockMode, BockStacking, Cents, GameInput, GameKind,
+    NoGameRule, Outcome, PriceMistake, Seat, Suit, MAX_BOCK,
 };
 pub use money::parse_euro;
 pub use overall::{overall_stats, time_spread, EveningFact, OverallPlayer, OverallStats};
@@ -38,7 +38,9 @@ pub use scoring::{
 pub use stats::{
     balance_history, table_stats, KindStats, LaufendeStats, PlayerStats, RoleStats, TableStats,
 };
-pub use table::{EventKind, Game, Offence, OffenceKind, Table, TableEvent};
+pub use table::{
+    EventKind, Game, Offence, OffenceKind, StockMove, StockMoveKind, Table, TableEvent,
+};
 
 #[cfg(test)]
 mod tests;

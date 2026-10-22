@@ -438,3 +438,25 @@ deshalb nach der Richtung des Preises:
   Datum), **Spiele pro Stunde** (alle Abende mit bekannter Dauer zusammen) und eine Tabelle mit Datum, Spielen und Dauer jedes Abends.
 - Die Dauer geht vom Beginn bis zum Ende, bei einem Abend ohne Ende bis zur letzten Aktivität. Abende ohne Beginn (alte Dateien) zählen bei
   den Spielen mit ("ohne Datum"), aber nicht bei der Dauer. Bei gleichen Werten gilt der erste Abend.
+
+### Keiner spielt: Zusammenwerfen und Stock
+
+- Das **Regelwerk** (`RuleSet.no_game`, `Table.no_game_rule`) wählt, was passiert, wenn keiner spielen will: **Ramsch** (wie bisher, eine Spielart),
+  **Zusammenwerfen** (der Nächste gibt, kein Geld) oder **Stock**. Alte Dateien: Ramsch. Bei den beiden letzten gibt es am Tisch den Knopf "Keiner spielt"
+  (`Table::add_no_game`). Er schiebt den Geber weiter (`next_dealer` zählt die Einträge seit dem letzten Spiel).
+- **Stock:** Jeder, der am Tisch sitzt, legt die **Einlage** aus dem Tarif (`Tariff.stock_amount`, Standard 0,20 €) in die Mitte. Wer ein **Sauspiel** ansagt und
+  **gewinnt**, bekommt den ganzen Stock, je zur Hälfte an sich und den Mitspieler (bei ungeradem Betrag bekommt der Spieler den größeren Anteil), zusätzlich zum
+  normalen Preis. **Verliert** die Spielerpartei, muss sie den Stock **doppeln**: beide zahlen zusammen noch einmal so viel ein, wie darin liegt (je die Hälfte), der Stock
+  verdoppelt sich. Das lässt sich im Tarif abschalten (`stock_doubling`, alte Tarife: an). Alle anderen Spielarten (auch die Hochzeit) lassen den Stock unberührt.
+- Gespeichert wird in `Table.stock_moves` (`StockMove`: Art, Änderung des Stocks, Auszahlung je Sitzplatz, `after_games`). Einlagen sind eingetragen,
+  Auszahlungen und Verdopplungen werden aus den Spielen **abgeleitet** und bei jedem Eintragen, Bearbeiten, Löschen und Rückgängig neu berechnet (`rebuild_stock`).
+  Die Beträge stecken in Kontostand, Verlauf und `PlayerStats.balance`, aber nicht in den Spielen selbst (bestes/schlechtestes Spiel bleiben unberührt).
+  In der Ereignis-CSV stehen sie als Zeilen (Spalte `Stock_Cent` = Änderung des Stocks).
+
+### Geldstand über alle Abende, Startwert, Nachträge
+
+- Die **Bibliothek** merkt sich je Spieler einen **Startwert** (`start_balances`) und beliebige **Nachträge** (`Adjustment`: Spieler, Betrag, Zeitpunkt, Notiz), zum Beispiel
+  für Spiele woanders. `Library::account` rechnet je gespeichertem Spieler Startwert + Nachträge + alle Abende (Archiv und laufender, ohne Testabende, mit Strafen und
+  Stock) zusammen. Spieler werden über den Namen zugeordnet (Groß-/Kleinschreibung egal). Beim Umbenennen eines Spielers wandern Startwert und Nachträge mit, frühere Abende
+  behalten aber den alten Namen und zählen dann nicht mehr für ihn.
+- Zu sehen ist es oben auf der ersten Seite ("Neuer Abend"). Die Daten liegen in `schafkopf-bibliothek.json` und sind in der Sicherung enthalten.

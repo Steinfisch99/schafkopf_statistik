@@ -1,10 +1,13 @@
 //! Die Bibliothek: benannte Regelwerke und Tarife, aus denen man für einen Abend auswählt.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, Result};
-use crate::model::{BockAtRamsch, BockMode, BockStacking, GameKind};
+use crate::model::{BockAtRamsch, BockMode, BockStacking, Cents, GameKind, NoGameRule};
 use crate::scoring::Tariff;
+use crate::table::Table;
 
 /// Welche Spielarten in einer Runde gespielt werden.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +24,9 @@ pub struct RuleSet {
     /// Was beim Ramsch mit einer Bockrunde passiert. Alte Dateien: Der Ramsch zählt als Bockspiel.
     #[serde(default)]
     pub bock_at_ramsch: BockAtRamsch,
+    /// Was passiert, wenn keiner spielen will. Alte Dateien: Ramsch.
+    #[serde(default)]
+    pub no_game: NoGameRule,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +51,41 @@ pub struct Library {
     /// Spieler lesen sich als leere Liste.
     #[serde(default)]
     players: Vec<String>,
+    /// Was ein Spieler schon hatte, bevor die App mitgeschrieben hat (Startwert, in Cent). Gilt für Spieler, die nicht eingetragen sind, als 0.
+    #[serde(default)]
+    start_balances: BTreeMap<String, Cents>,
+    /// Beträge, die von Hand gutgeschrieben oder abgezogen wurden, zum Beispiel Spiele woanders.
+    #[serde(default)]
+    adjustments: Vec<Adjustment>,
+}
+
+/// Ein Betrag, der einem Spieler von Hand gutgeschrieben (positiv) oder abgezogen (negativ) wurde.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Adjustment {
+    pub player: String,
+    pub amount: Cents,
+    /// Zeitpunkt in Unix-Sekunden, falls bekannt.
+    #[serde(default)]
+    pub at: Option<i64>,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// Der Geldstand eines Spielers über alle Abende.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountRow {
+    pub name: String,
+    pub start: Cents,
+    /// Summe der Nachträge.
+    pub adjustments: Cents,
+    /// Summe aller Abende (ohne Testabende), mit Strafen und Stock.
+    pub played: Cents,
+}
+
+impl AccountRow {
+    pub fn total(&self) -> Cents {
+        self.start + self.adjustments + self.played
+    }
 }
 
 /// Spielarten in der üblichen Reihenfolge, ohne Doppelte.
@@ -142,6 +183,7 @@ impl Library {
                     bock: BockMode::Off,
                     stacking: BockStacking::Sequential,
                     bock_at_ramsch: BockAtRamsch::Counts,
+                    no_game: NoGameRule::Ramsch,
                 },
                 RuleSet {
                     name: "Unsere Runde".into(),
@@ -155,6 +197,7 @@ impl Library {
                     bock: BockMode::NextGame,
                     stacking: BockStacking::Sequential,
                     bock_at_ramsch: BockAtRamsch::Counts,
+                    no_game: NoGameRule::Ramsch,
                 },
             ],
             tariffs: vec![NamedTariff {
@@ -164,6 +207,8 @@ impl Library {
             default_rule_set: "Unsere Runde".into(),
             default_tariff: "20/50".into(),
             players: Vec::new(),
+            start_balances: BTreeMap::new(),
+            adjustments: Vec::new(),
         }
     }
 
@@ -280,12 +325,16 @@ impl Library {
             return Err(Error::NoKinds);
         }
         Self::check_name(&self.rule_sets, |r| &r.name, &name, original)?;
+        let no_game = original
+            .and_then(|old| self.rule_set(old))
+            .map_or(NoGameRule::Ramsch, |r| r.no_game);
         let rule_set = RuleSet {
             name: name.clone(),
             kinds,
             bock,
             stacking,
             bock_at_ramsch,
+            no_game,
         };
         match original {
             None => self.rule_sets.push(rule_set),
@@ -318,6 +367,17 @@ impl Library {
         if self.default_rule_set == name {
             self.default_rule_set = self.rule_sets[0].name.clone();
         }
+        Ok(())
+    }
+
+    /// Legt fest, was in diesem Regelwerk passiert, wenn keiner spielt.
+    pub fn set_no_game_rule(&mut self, name: &str, rule: NoGameRule) -> Result<()> {
+        let entry = self
+            .rule_sets
+            .iter_mut()
+            .find(|r| r.name == name)
+            .ok_or_else(|| Error::UnknownEntry(name.to_owned()))?;
+        entry.no_game = rule;
         Ok(())
     }
 
@@ -428,6 +488,12 @@ impl Library {
             .find(|p| p.as_str() == old)
             .ok_or_else(|| Error::UnknownEntry(old.to_owned()))?;
         *entry = new.clone();
+        if let Some(start) = self.start_balances.remove(old) {
+            self.start_balances.insert(new.clone(), start);
+        }
+        for a in self.adjustments.iter_mut().filter(|a| a.player == old) {
+            a.player = new.clone();
+        }
         Ok(new)
     }
 
@@ -460,5 +526,87 @@ impl Library {
             return Err(Error::Json("Die Bibliothek ist unvollständig".into()));
         }
         Ok(library)
+    }
+}
+
+impl Library {
+    /// Der Startwert eines Spielers (0, wenn keiner eingetragen ist).
+    pub fn start_balance(&self, player: &str) -> Cents {
+        self.start_balances.get(player).copied().unwrap_or(0)
+    }
+
+    /// Legt den Startwert eines Spielers fest. Der Spieler muss in der Liste stehen.
+    pub fn set_start_balance(&mut self, player: &str, amount: Cents) -> Result<()> {
+        if !self.players.iter().any(|p| p == player) {
+            return Err(Error::UnknownEntry(player.to_owned()));
+        }
+        if amount == 0 {
+            self.start_balances.remove(player);
+        } else {
+            self.start_balances.insert(player.to_owned(), amount);
+        }
+        Ok(())
+    }
+
+    pub fn adjustments(&self) -> &[Adjustment] {
+        &self.adjustments
+    }
+
+    /// Schreibt einem Spieler einen Betrag gut (positiv) oder zieht ihn ab (negativ).
+    pub fn add_adjustment(
+        &mut self,
+        player: &str,
+        amount: Cents,
+        at: Option<i64>,
+        note: Option<String>,
+    ) -> Result<&Adjustment> {
+        if !self.players.iter().any(|p| p == player) {
+            return Err(Error::UnknownEntry(player.to_owned()));
+        }
+        if amount == 0 {
+            return Err(Error::ZeroAmount);
+        }
+        let note = note.map(|n| n.trim().to_owned()).filter(|n| !n.is_empty());
+        self.adjustments.push(Adjustment {
+            player: player.to_owned(),
+            amount,
+            at,
+            note,
+        });
+        Ok(self.adjustments.last().expect("gerade eingefügt"))
+    }
+
+    /// Nimmt einen Nachtrag zurück. `None`, wenn es ihn nicht gibt.
+    pub fn remove_adjustment(&mut self, index: usize) -> Option<Adjustment> {
+        (index < self.adjustments.len()).then(|| self.adjustments.remove(index))
+    }
+
+    /// Der Geldstand aller eingetragenen Spieler: Startwert, Nachträge und alle Abende in `tables`
+    /// (Testabende zählen nicht). Abende und Spieler werden über den Namen zugeordnet, ohne auf
+    /// Groß- und Kleinschreibung zu achten.
+    pub fn account(&self, tables: &[Table]) -> Vec<AccountRow> {
+        let mut rows: Vec<AccountRow> = self
+            .players_sorted()
+            .into_iter()
+            .map(|name| AccountRow {
+                start: self.start_balance(&name),
+                adjustments: self
+                    .adjustments
+                    .iter()
+                    .filter(|a| a.player == name)
+                    .map(|a| a.amount)
+                    .sum(),
+                played: 0,
+                name,
+            })
+            .collect();
+        for table in tables.iter().filter(|t| !t.debug) {
+            for (name, balance) in table.players.iter().zip(table.balances()) {
+                if let Some(row) = rows.iter_mut().find(|r| same(&r.name, name)) {
+                    row.played += balance;
+                }
+            }
+        }
+        rows
     }
 }

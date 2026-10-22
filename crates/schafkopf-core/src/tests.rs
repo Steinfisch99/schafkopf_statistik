@@ -1845,15 +1845,15 @@ fn the_evening_log_records_who_came_left_and_moved() {
     let lines: Vec<&str> = csv.lines().collect();
     assert_eq!(
         lines[0],
-        "Zeit,Zeit_Unix,Ereignis,Spieler,Hinter,Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent"
+        "Zeit,Zeit_Unix,Ereignis,Spieler,Hinter,Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent,Stock_Cent"
     );
-    assert_eq!(lines[1], "2001-09-09 03:46,1000000000,Abend beginnt,,,0,");
+    assert_eq!(lines[1], "2001-09-09 03:46,1000000000,Abend beginnt,,,0,,");
     assert_eq!(
         lines[2],
-        "2001-09-09 03:56,1000000600,Kommt dazu,Eva,Anna,1,"
+        "2001-09-09 03:56,1000000600,Kommt dazu,Eva,Anna,1,,"
     );
-    assert_eq!(lines[3], "2001-09-09 04:06,1000001200,Geht,Cem,,1,");
-    assert!(lines[4].ends_with("Setzt sich um,Eva,Dora,1,"));
+    assert_eq!(lines[3], "2001-09-09 04:06,1000001200,Geht,Cem,,1,,");
+    assert!(lines[4].ends_with("Setzt sich um,Eva,Dora,1,,"));
     assert!(lines[6].contains("Abend endet"));
     assert_eq!(lines.len(), 7);
 }
@@ -2991,7 +2991,7 @@ fn offences_appear_in_the_protocol_csv_in_the_order_of_the_games() {
         .unwrap();
     let csv = t.events_csv();
     let lines: Vec<&str> = csv.lines().collect();
-    assert!(lines[0].ends_with("Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent"));
+    assert!(lines[0].ends_with("Nach_Spiel_Nr,Strafe_je_Mitspieler_Cent,Stock_Cent"));
     assert!(lines[2].contains("Vergehen: Nicht bedient,Cem,,0,50"));
     assert!(lines[3].contains("Vergehen: Falsch gegeben (neu gemischt),Ben,,1,20"));
 }
@@ -3457,4 +3457,347 @@ fn the_csv_has_the_tariff_values_of_each_game() {
     assert_eq!(value(first, "Tarif_Laufende_Cent"), "10");
     assert_eq!(value(second, "Tarif_Laufende_Cent"), "20");
     assert_eq!(value(second, "Tarif_Zurueckverlangen"), "ja");
+}
+
+fn stock_table() -> Table {
+    let mut t = table();
+    t.no_game_rule = NoGameRule::Stock;
+    t
+}
+
+#[test]
+fn nobody_plays_is_only_possible_if_the_rule_is_not_ramsch() {
+    let mut t = table();
+    assert_eq!(t.add_no_game(None), Err(Error::NoPassRule));
+    assert!(t.stock_moves.is_empty());
+}
+
+#[test]
+fn reshuffling_moves_no_money_but_the_next_dealer_gives() {
+    let mut t = table();
+    t.no_game_rule = NoGameRule::Reshuffle;
+    assert_eq!(t.next_dealer(), 0);
+    let m = t.add_no_game(Some(100)).unwrap();
+    assert_eq!((m.pot_change, m.payouts.clone()), (0, vec![0; 4]));
+    assert_eq!(t.next_dealer(), 1);
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.next_dealer(), 2);
+    assert_eq!(t.stock(), 0);
+    // Nach dem Spiel zählt das Spiel: Der Geber steht darin, danach geht es einen Platz weiter.
+    t.add_game(sauspiel(2, 1, 3)).unwrap();
+    assert_eq!(t.next_dealer(), 3);
+}
+
+#[test]
+fn everyone_pays_into_the_stock_when_nobody_plays() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.stock(), 80);
+    assert_eq!(t.balances(), vec![-20; 4]);
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.stock(), 160);
+    assert_eq!(t.balances(), vec![-40; 4]);
+    assert_eq!(t.next_dealer(), 2);
+}
+
+#[test]
+fn only_those_at_the_table_pay_into_the_stock() {
+    let mut t = stock_table();
+    t.leave(3, None).unwrap();
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.stock(), 60);
+    assert_eq!(t.balances(), vec![-20, -20, -20, 0]);
+}
+
+#[test]
+fn the_winning_sauspiel_team_shares_the_stock_besides_the_normal_payout() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    t.add_no_game(None).unwrap();
+    // Geber ist jetzt Platz 2, Ben (1) ruft mit Dora (3) und gewinnt.
+    t.add_game(sauspiel(2, 1, 3)).unwrap();
+    assert_eq!(t.stock(), 0);
+    let payout = t
+        .stock_moves
+        .iter()
+        .find(|m| m.kind == StockMoveKind::Payout)
+        .unwrap();
+    assert_eq!(payout.payouts, vec![0, 80, 0, 80]);
+    // 2 x 20 pro Kopf eingezahlt, dazu das Spiel: Gewinner +20 und die Hälfte von 160, Verlierer -20.
+    assert_eq!(t.balances(), vec![-60, 60, -60, 60]);
+    assert_eq!(table_stats(&t).players[1].balance, 60);
+}
+
+#[test]
+fn a_lost_sauspiel_doubles_the_stock_for_the_players_team() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    let lost = GameInput {
+        won: false,
+        ..sauspiel(1, 2, 0)
+    };
+    t.add_game(lost).unwrap();
+    assert_eq!(t.stock(), 160);
+    let double = t.stock_moves.last().unwrap();
+    assert_eq!(double.kind, StockMoveKind::Double);
+    assert_eq!(double.payouts, vec![-40, 0, -40, 0]);
+    // Einlage -20 für alle, Spiel verloren (Ben und Dora gewinnen 20), Stock gedoppelt (Anna und Cem zahlen 40).
+    assert_eq!(
+        t.balances(),
+        vec![-20 - 20 - 40, -20 + 20, -20 - 20 - 40, -20 + 20]
+    );
+    assert_eq!(t.balances().iter().sum::<Cents>(), -t.stock());
+}
+
+#[test]
+fn doubling_the_stock_can_be_switched_off() {
+    let mut t = stock_table();
+    t.set_tariff(Tariff {
+        stock_doubling: false,
+        ..Tariff::default()
+    });
+    t.add_no_game(None).unwrap();
+    let lost = GameInput {
+        won: false,
+        ..sauspiel(1, 2, 0)
+    };
+    t.add_game(lost).unwrap();
+    assert_eq!(t.stock(), 80);
+    assert_eq!(t.stock_moves.len(), 1);
+    // Gewinnt die Spielerpartei, wird trotzdem ausgezahlt.
+    t.add_game(sauspiel(2, 1, 3)).unwrap();
+    assert_eq!(t.stock(), 0);
+}
+
+#[test]
+fn only_a_sauspiel_touches_the_stock() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    for kind in [GameKind::Wenz, GameKind::Farbsolo] {
+        let solo = GameInput {
+            suit: kind.needs_trump_suit().then_some(Suit::Gras),
+            ..GameInput::new(1, kind, 1)
+        };
+        t.add_game(solo).unwrap();
+        let lost = GameInput {
+            won: false,
+            suit: kind.needs_trump_suit().then_some(Suit::Gras),
+            ..GameInput::new(2, kind, 2)
+        };
+        t.add_game(lost).unwrap();
+    }
+    assert_eq!(t.stock(), 80);
+    assert_eq!(t.stock_moves.len(), 1);
+}
+
+#[test]
+fn an_empty_stock_pays_and_doubles_nothing() {
+    let mut t = stock_table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_game(GameInput {
+        won: false,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    assert!(t.stock_moves.is_empty());
+}
+
+#[test]
+fn an_odd_stock_goes_with_the_extra_cent_to_the_player() {
+    let mut t = Table::new(
+        "Fünf",
+        ["Anna", "Ben", "Cem", "Dora", "Emil"]
+            .map(String::from)
+            .to_vec(),
+        0,
+        Tariff {
+            stock_amount: 5,
+            ..Tariff::default()
+        },
+    )
+    .unwrap();
+    t.no_game_rule = NoGameRule::Stock;
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.stock(), 25);
+    let g = GameInput {
+        participants: vec![1, 2, 3, 4],
+        ..sauspiel(0, 2, 4)
+    };
+    t.add_game(g).unwrap();
+    let payout = t.stock_moves.last().unwrap();
+    assert_eq!(payout.payouts, vec![0, 0, 13, 0, 12]);
+    assert_eq!(t.stock(), 0);
+}
+
+#[test]
+fn the_stock_follows_edits_undo_and_removed_games() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    assert_eq!(t.stock(), 0);
+    // Das Spiel stattdessen verloren: Der Stock wird gedoppelt.
+    t.replace_game(
+        0,
+        GameInput {
+            won: false,
+            ..sauspiel(1, 1, 3)
+        },
+    )
+    .unwrap();
+    assert_eq!(t.stock(), 160);
+    t.undo_last().unwrap();
+    assert_eq!(t.stock(), 80);
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    t.remove_game(0).unwrap();
+    assert_eq!(t.stock(), 80);
+    assert_eq!(t.balances(), vec![-20; 4]);
+}
+
+#[test]
+fn only_nobody_plays_entries_can_be_taken_back() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    t.add_game(sauspiel(1, 1, 3)).unwrap();
+    assert_eq!(t.stock_moves.len(), 2);
+    assert!(t.remove_stock_move(1).is_none());
+    assert_eq!(t.stock_moves.len(), 2);
+    assert!(t.remove_stock_move(0).is_some());
+    // Ohne Einlage gibt es nichts auszuzahlen.
+    assert!(t.stock_moves.is_empty());
+    assert_eq!(t.balances(), vec![-20, 20, -20, 20]);
+}
+
+#[test]
+fn entries_between_games_keep_their_place_and_show_in_the_history() {
+    let mut t = stock_table();
+    t.add_game(sauspiel(0, 1, 3)).unwrap();
+    t.add_no_game(None).unwrap();
+    t.add_game(sauspiel(2, 1, 3)).unwrap();
+    assert_eq!(t.stock_moves.len(), 2);
+    assert_eq!(t.stock_moves[0].after_games, 1);
+    assert_eq!(t.stock_moves[1].after_games, 2);
+    let history = balance_history(&t);
+    assert_eq!(history[0], vec![0; 4]);
+    assert_eq!(history[1], vec![-40, 0, -40, 0]);
+    assert_eq!(history[2], vec![-60, 60, -60, 60]);
+}
+
+#[test]
+fn old_files_without_stock_fields_still_load() {
+    let t = stock_table();
+    let mut json: serde_json::Value = serde_json::from_str(&t.to_json().unwrap()).unwrap();
+    let obj = json.as_object_mut().unwrap();
+    obj.remove("no_game_rule");
+    obj.remove("stock_moves");
+    let tariff = obj.get_mut("tariff").unwrap().as_object_mut().unwrap();
+    tariff.remove("stock_amount");
+    tariff.remove("stock_doubling");
+    let loaded = Table::from_json(&json.to_string()).unwrap();
+    assert_eq!(loaded.no_game_rule, NoGameRule::Ramsch);
+    assert!(loaded.stock_moves.is_empty());
+    assert_eq!(loaded.tariff.stock_amount, 20);
+    assert!(loaded.tariff.stock_doubling);
+}
+
+#[test]
+fn the_rule_set_decides_what_happens_when_nobody_plays() {
+    let mut lib = Library::with_defaults();
+    let name = lib.default_rule_set().name.clone();
+    assert_eq!(lib.default_rule_set().no_game, NoGameRule::Ramsch);
+    lib.set_no_game_rule(&name, NoGameRule::Stock).unwrap();
+    // Umbenennen und Ändern behalten die Wahl.
+    let kinds = lib.default_rule_set().kinds.clone();
+    lib.save_rule_set(Some(&name), "Kneipe", &kinds).unwrap();
+    assert_eq!(lib.rule_set("Kneipe").unwrap().no_game, NoGameRule::Stock);
+    assert!(lib
+        .set_no_game_rule("gibt es nicht", NoGameRule::Stock)
+        .is_err());
+    let mut t = table();
+    t.use_rule_set(lib.rule_set("Kneipe").unwrap()).unwrap();
+    assert_eq!(t.no_game_rule, NoGameRule::Stock);
+    let json = lib.to_json().unwrap();
+    assert_eq!(Library::from_json(&json).unwrap(), lib);
+}
+
+fn lib_with(names: &[&str]) -> Library {
+    let mut lib = Library::with_defaults();
+    for n in names {
+        lib.add_player(n).unwrap();
+    }
+    lib
+}
+
+#[test]
+fn the_account_adds_start_value_adjustments_and_all_evenings() {
+    let mut lib = lib_with(&["Anna", "Ben", "Zoe"]);
+    lib.set_start_balance("Anna", 1000).unwrap();
+    lib.add_adjustment("Anna", -250, Some(5), Some("  Kneipe  ".into()))
+        .unwrap();
+    lib.add_adjustment("Ben", 400, None, None).unwrap();
+    assert_eq!(lib.adjustments()[0].note.as_deref(), Some("Kneipe"));
+    let mut a = table();
+    a.add_game(sauspiel(0, 1, 3)).unwrap();
+    let mut b = table();
+    b.add_game(sauspiel(0, 0, 1)).unwrap();
+    let mut test = table();
+    test.debug = true;
+    test.add_game(sauspiel(0, 0, 1)).unwrap();
+    let rows = lib.account(&[a, b, test]);
+    let anna = rows.iter().find(|r| r.name == "Anna").unwrap();
+    // -20 im ersten Abend, +20 im zweiten, der Testabend zählt nicht.
+    assert_eq!((anna.start, anna.adjustments, anna.played), (1000, -250, 0));
+    assert_eq!(anna.total(), 750);
+    let ben = rows.iter().find(|r| r.name == "Ben").unwrap();
+    assert_eq!(ben.total(), 400 + 20 + 20);
+    let zoe = rows.iter().find(|r| r.name == "Zoe").unwrap();
+    assert_eq!(zoe.total(), 0);
+    assert_eq!(
+        rows.iter().map(|r| r.name.as_str()).collect::<Vec<_>>(),
+        ["Anna", "Ben", "Zoe"]
+    );
+}
+
+#[test]
+fn adjustments_need_a_known_player_and_a_non_zero_amount() {
+    let mut lib = lib_with(&["Anna"]);
+    assert_eq!(
+        lib.add_adjustment("Anna", 0, None, None),
+        Err(Error::ZeroAmount)
+    );
+    assert!(lib.add_adjustment("Niemand", 10, None, None).is_err());
+    assert!(lib.set_start_balance("Niemand", 10).is_err());
+    lib.add_adjustment("Anna", 10, None, None).unwrap();
+    assert!(lib.remove_adjustment(1).is_none());
+    assert_eq!(lib.remove_adjustment(0).unwrap().amount, 10);
+    lib.set_start_balance("Anna", 500).unwrap();
+    lib.set_start_balance("Anna", 0).unwrap();
+    assert_eq!(lib.start_balance("Anna"), 0);
+}
+
+#[test]
+fn renaming_a_player_takes_start_value_and_adjustments_along() {
+    let mut lib = lib_with(&["Anna"]);
+    lib.set_start_balance("Anna", 700).unwrap();
+    lib.add_adjustment("Anna", 50, None, None).unwrap();
+    lib.rename_player("Anna", "Annika").unwrap();
+    assert_eq!(lib.start_balance("Annika"), 700);
+    assert_eq!(lib.adjustments()[0].player, "Annika");
+    let json = lib.to_json().unwrap();
+    assert_eq!(Library::from_json(&json).unwrap(), lib);
+}
+
+#[test]
+fn old_libraries_without_account_data_still_load() {
+    let lib = lib_with(&["Anna"]);
+    let mut json: serde_json::Value = serde_json::from_str(&lib.to_json().unwrap()).unwrap();
+    let obj = json.as_object_mut().unwrap();
+    obj.remove("start_balances");
+    obj.remove("adjustments");
+    for r in obj.get_mut("rule_sets").unwrap().as_array_mut().unwrap() {
+        r.as_object_mut().unwrap().remove("no_game");
+    }
+    let loaded = Library::from_json(&json.to_string()).unwrap();
+    assert!(loaded.adjustments().is_empty());
+    assert_eq!(loaded.start_balance("Anna"), 0);
+    assert_eq!(loaded.default_rule_set().no_game, NoGameRule::Ramsch);
 }

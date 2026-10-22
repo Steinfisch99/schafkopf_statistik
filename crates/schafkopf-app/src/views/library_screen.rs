@@ -1,7 +1,7 @@
 //! Verwaltung der gespeicherten Regelwerke (welche Spielarten) und Tarife (was es kostet).
 
 use dioxus::prelude::*;
-use schafkopf_core::{BockAtRamsch, BockMode, BockStacking, GameKind, Library, Tariff};
+use schafkopf_core::{BockAtRamsch, BockMode, BockStacking, GameKind, Library, NoGameRule, Tariff};
 
 use super::common::{persist_library, Chip, ConfirmButton, Notice, TariffFields, TextField};
 use crate::draft::TariffDraft;
@@ -53,7 +53,7 @@ fn RuleSetEditor(
     notice: Signal<Option<Notice>>,
     original: Option<String>,
 ) -> Element {
-    let (name0, kinds0, bock0, stacking0, ramsch0, is_default, can_delete) = {
+    let (name0, kinds0, bock0, stacking0, ramsch0, no_game0, is_default, can_delete) = {
         let lib = library.read();
         match original.as_deref().and_then(|n| lib.rule_set(n)) {
             Some(r) => (
@@ -62,6 +62,7 @@ fn RuleSetEditor(
                 r.bock,
                 r.stacking,
                 r.bock_at_ramsch,
+                r.no_game,
                 lib.is_default_rule_set(&r.name),
                 lib.rule_sets().len() > 1,
             ),
@@ -71,6 +72,7 @@ fn RuleSetEditor(
                 BockMode::Off,
                 BockStacking::Sequential,
                 BockAtRamsch::Counts,
+                NoGameRule::Ramsch,
                 false,
                 false,
             ),
@@ -81,6 +83,7 @@ fn RuleSetEditor(
     let mut bock = use_signal(|| bock0);
     let mut stacking = use_signal(|| stacking0);
     let mut at_ramsch = use_signal(|| ramsch0);
+    let mut no_game = use_signal(|| no_game0);
     let is_new = original.is_none();
 
     let save = {
@@ -95,6 +98,10 @@ fn RuleSetEditor(
                     stacking(),
                     at_ramsch(),
                 )
+                .and_then(|saved| {
+                    lib.set_no_game_rule(&saved, no_game())?;
+                    Ok(saved)
+                })
                 .map(|saved| format!("Regelwerk \"{saved}\" gespeichert"))
                 .map_err(|e| e.to_string())
             });
@@ -159,6 +166,29 @@ fn RuleSetEditor(
                     }
                 }
             }
+            p { class: "hint", "Wenn keiner spielen will:" }
+            div { class: "chips",
+                for rule in NoGameRule::ALL {
+                    Chip {
+                        key: "{rule.label()}",
+                        label: rule.label().to_string(),
+                        on: no_game() == rule,
+                        onclick: move |_| {
+                            no_game.set(rule);
+                            // Ramsch gehört zur Wahl "Ramsch" und sonst nicht in die Spielarten.
+                            let mut list = kinds.write();
+                            if rule == NoGameRule::Ramsch {
+                                if !list.contains(&GameKind::Ramsch) {
+                                    list.push(GameKind::Ramsch);
+                                }
+                            } else {
+                                list.retain(|&k| k != GameKind::Ramsch);
+                            }
+                        },
+                    }
+                }
+            }
+            p { class: "hint", "Ramsch: Es wird ein Ramsch eingetragen. Zusammenwerfen: Der Nächste gibt, es wird kein Geld bewegt. Stock: Jeder legt den Betrag aus dem Tarif in die Mitte, der Nächste gibt, und wer danach ein Sauspiel gewinnt, bekommt den Stock." }
             p { class: "hint", "Bock: Was folgt, wenn ein Spiel eine Bockrunde auslöst (zum Beispiel durch Schwarz)?" }
             div { class: "chips",
                 for mode in BockMode::ALL {

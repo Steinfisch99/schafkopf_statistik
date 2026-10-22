@@ -488,7 +488,22 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Spielerkarte sind "Selbst gedoppelt" und "Tout gespielt" antippbar und zeigen die Rangliste.
 - [ ] Unter "Dieser Abend" steht "Bockrunden entstanden" (nur wenn es Bock gab), in der Gesamtstatistik mit der Zahl der Abende.
 
-### 31. Darstellung
+### 31. Keiner spielt: Zusammenwerfen und Stock
+
+- [ ] Unter "Regeln und Tarif" bzw. in der Verwaltung hat ein Regelwerk die Wahl "Wenn keiner spielen will": Ramsch, Zusammenwerfen, Stock. Bei Zusammenwerfen oder Stock fehlt Ramsch in den Spielarten.
+- [ ] Im Tarif gibt es die Einlage je Spieler und den Schalter "Verlorenes Sauspiel doppelt den Stock".
+- [ ] Am Tisch erscheint bei Zusammenwerfen oder Stock der Knopf "Keiner spielt" (mit Rückfrage). Der nächste Geber rückt weiter.
+- [ ] Beim Stock zahlen alle am Tisch die Einlage, oben steht "Stock: ... liegen in der Mitte", der Kontostand sinkt entsprechend.
+- [ ] Sauspiel gewonnen: Spieler und Mitspieler bekommen je die Hälfte des Stocks, zusätzlich zum normalen Preis. Sauspiel verloren: beide zahlen zusammen noch einmal den Stockbetrag, der Stock verdoppelt sich (Schalter aus: bleibt). Solo, Wenz, Hochzeit, Bettel: Stock bleibt unberührt.
+- [ ] Die Liste "Stock" zeigt alle Bewegungen, eine Einlage lässt sich zurücknehmen. Rückgängig, Bearbeiten oder Löschen eines Spiels rechnet den Stock neu.
+
+### 32. Geldstand aller Spieler, Startwert und Nachträge
+
+- [ ] Auf der ersten Seite ("Neuer Abend") steht oben "Geldstand" mit jedem gespeicherten Spieler und seinem Stand über alle Abende (Testabende zählen nicht).
+- [ ] "Startwert und Nachträge": Startwert setzen (auch negativ), Betrag gutschreiben oder abziehen mit Notiz, die Liste der Nachträge zeigt sie und lässt sie zurücknehmen. Der Stand ändert sich sofort.
+- [ ] Nach einem Neustart der App sind Startwert und Nachträge noch da.
+
+### 33. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.
