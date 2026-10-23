@@ -14,7 +14,7 @@ use super::stat_widgets::{
     DivergingRow, DoublerSection, ShareBar, StackedBar, ToutSection, WinDonut,
 };
 use super::stats_screen::{
-    amount_class, count_share, lost, DemandNumbers, Kv, OffenceSection, StockSection,
+    amount_class, count_share, lost, DemandNumbers, DoublingTable, Kv, OffenceSection, StockSection,
 };
 use crate::stats_text::{
     doubling_label, kind_rows, max_abs, percent, share, streak, DoublerRow, ToutRow,
@@ -89,7 +89,10 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow
             TapKv { label: "Schlechtestes Spiel", value: signed_euro(p.worst_game), metric: Metric::WorstGame, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Gespielt", value: p.games_played.to_string(), metric: Metric::Played, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Ausgesetzt", value: p.games_sat_out.to_string(), metric: Metric::SatOut, me: me.clone(), peers: peers.clone(), open: compare }
-            TapKv { label: "Gegeben", value: p.games_dealt.to_string(), metric: Metric::Dealt, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Gegeben", value: (p.games_dealt + p.deals_without_game).to_string(), metric: Metric::Dealt, me: me.clone(), peers: peers.clone(), open: compare }
+            if p.deals_without_game > 0 {
+                p { class: "muted small", "Davon {p.deals_without_game}× gegeben, ohne dass gespielt wurde (zusammengeworfen oder Stock)." }
+            }
             TapKv { label: "Längste Siegesserie", value: streak(p.longest_win_streak as i32), metric: Metric::LongestWinStreak, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Längste Verlustserie", value: streak(-(p.longest_loss_streak as i32)), metric: Metric::LongestLossStreak, me: me.clone(), peers: peers.clone(), open: compare }
 
@@ -302,6 +305,9 @@ fn OverallNumbers(stats: OverallStats) -> Element {
             h3 { "Alle Abende zusammen" }
             Kv { label: "Abende", value: stats.evenings.to_string() }
             Kv { label: "Spiele", value: games.to_string() }
+            if stats.stock.no_game_rounds > 0 {
+                Kv { label: "Gegeben (mit Zusammenwerfen und Stock)", value: (games + stats.stock.no_game_rounds).to_string() }
+            }
             Kv { label: "Bewegtes Geld", value: format_euro(stats.turnover) }
             if stats.bock_games > 0 || stats.bock_started > 0 {
                 Kv { label: "Bockrunden entstanden", value: format!("{} an {} Abenden", stats.bock_started, stats.evenings) }
@@ -317,6 +323,7 @@ fn OverallNumbers(stats: OverallStats) -> Element {
 
             h4 { "Wie oft wurde gedoppelt?" }
             p { class: "legend-note", "Anteil der Spiele nach der Zahl der Verdopplungen im Preis (Klopfen, Kontra, Re, Tout, Bock)." }
+            DoublingTable { rows: stats.by_doublings.iter().map(|(t, c)| (*t, *c)).collect::<Vec<_>>(), games }
             for times in 0..=top_doublings {
                 ShareBar {
                     key: "{times}",

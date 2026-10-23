@@ -506,7 +506,16 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] "Startwert und Nachträge": Startwert setzen (auch negativ), Betrag gutschreiben oder abziehen mit Notiz, die Liste der Nachträge zeigt sie und lässt sie zurücknehmen. Der Stand ändert sich sofort.
 - [ ] Nach einem Neustart der App sind Startwert und Nachträge noch da.
 
-### 33. Darstellung
+### 33. Stock aufteilen, Gegeben, Doppler-Tabelle, CSV
+
+- [ ] Beim Stock mit etwas darin gibt es am Tisch "Stock fair an alle aufteilen" (mit Rückfrage): Jeder am Tisch bekommt den gleichen Anteil, der Stock ist leer, die Liste "Stock" zeigt die Zeile und lässt sie zurücknehmen.
+- [ ] Statistik, Abschnitt "Stock": "Keiner spielt" ist aufgeteilt in "nur zusammengeworfen" und "in den Stock eingezahlt", dazu "An alle aufgeteilt".
+- [ ] "Bewegtes Geld" enthält die Stock-Auszahlungen.
+- [ ] "Gegeben" in der Spielerkarte zählt auch die Runden ohne Spiel mit (Hinweis darunter), im Abschnitt "Dieser Abend" steht "Gegeben (mit Zusammenwerfen und Stock)".
+- [ ] Unter "Wie oft wurde gedoppelt?" gibt es einen Kuchen und eine Tabelle (Spiele und Anteil je Stufe), beim Abend und in der Gesamtstatistik.
+- [ ] CSV der Spiele: Spalten "Stock_Bewegung", "Stock_Cent" und "<Name> Stock_Cent"; der Tarifname stimmt mit der Statistik überein.
+
+### 34. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

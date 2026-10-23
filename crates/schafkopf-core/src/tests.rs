@@ -509,15 +509,15 @@ fn csv_has_header_and_one_row_per_game() {
     let lines: Vec<&str> = csv.lines().collect();
     assert_eq!(lines.len(), 3);
     assert!(lines[0].starts_with("Nr,Zeit,Geber,Spielart,"));
-    assert!(lines[0].ends_with("\"Ben, der Alte Gewinn_Cent\",\"Ben, der Alte Stand_Cent\",Cem Gewinn_Cent,Cem Stand_Cent,Dora Gewinn_Cent,Dora Stand_Cent"));
+    assert!(lines[0].ends_with("\"Ben, der Alte Gewinn_Cent\",\"Ben, der Alte Stand_Cent\",\"Ben, der Alte Stock_Cent\",Cem Gewinn_Cent,Cem Stand_Cent,Cem Stock_Cent,Dora Gewinn_Cent,Dora Stand_Cent,Dora Stock_Cent"));
     assert_eq!(t.csv_row(0).unwrap(), lines[1]);
     assert!(t.csv_row(2).is_none());
     // Spiel 1: Klopfen verdoppelt 20 auf 40; Ben und Dora gewinnen.
     assert!(lines[1].starts_with("1,,Anna,Sauspiel,Eichel,\"Ben, der Alte\",Dora,"));
     assert!(lines[1].contains("\"sagt \"\"Wenz\"\"\""));
-    assert!(lines[1].ends_with("-40,-40,40,40,-40,-40,40,40"));
+    assert!(lines[1].ends_with(",0,-40,-40,0,40,40,0,-40,-40,0,40,40,0"));
     // Spiel 2 verloren: Ben und Dora zahlen je 20, Stand danach -20, +20, -20, +20.
-    assert!(lines[2].ends_with("20,-20,-20,20,20,-20,-20,20"));
+    assert!(lines[2].ends_with("20,-20,0,-20,20,0,20,-20,0,-20,20,0"));
 }
 
 #[test]
@@ -556,7 +556,7 @@ fn csv_with_semicolon_for_german_excel() {
     assert!(lines[0].starts_with("Nr;Zeit;Geber;Spielart;"));
     // Semikolon im Namen und die Mitspielenden-Liste werden maskiert, das Komma im Namen nicht.
     assert!(
-        lines[0].contains("\"Ben; Jr Gewinn_Cent\";\"Ben; Jr Stand_Cent\";Cem, Sr Gewinn_Cent;")
+        lines[0].contains("\"Ben; Jr Gewinn_Cent\";\"Ben; Jr Stand_Cent\";\"Ben; Jr Stock_Cent\";Cem, Sr Gewinn_Cent;")
     );
     assert!(lines[1].starts_with("1;;Anna;Sauspiel;Eichel;\"Ben; Jr\";Dora;\""));
     // Mit Komma als Trennzeichen bleibt alles wie bisher.
@@ -3851,4 +3851,113 @@ fn stock_stats_are_empty_without_stock_and_add_up_over_evenings() {
     assert_eq!(all.stock.peak, 160);
     assert_eq!(all.stock.left, 80 + 160);
     assert_eq!(all.players[0].stock.deposited, 20 + 40);
+}
+
+#[test]
+fn splitting_the_stock_gives_everybody_the_same_share() {
+    let mut t = stock_table();
+    assert_eq!(t.split_stock(None).err(), Some(Error::EmptyStock));
+    t.add_no_game(None).unwrap();
+    t.add_no_game(None).unwrap(); // 160 im Stock
+    let m = t.split_stock(Some(5)).unwrap().clone();
+    assert_eq!(m.kind, StockMoveKind::Split);
+    assert_eq!(m.pot_change, -160);
+    assert_eq!(m.payouts, vec![40; 4]);
+    assert_eq!(t.stock(), 0);
+    // Wer eingezahlt hat, steht danach bei plus minus null.
+    let players = table_stats(&t).players;
+    assert!(players.iter().all(|p| p.balance == -40 * 2 + 40 + 40));
+    assert_eq!(table_stats(&t).stock.splits, 1);
+    assert_eq!(table_stats(&t).stock.split_out, 160);
+    assert_eq!(players[0].stock.net(), 0);
+    // Zurücknehmen bringt den Stock zurück, und der Geber ändert sich nicht durch das Aufteilen.
+    assert!(t.remove_stock_move(2).is_some());
+    assert_eq!(t.stock(), 160);
+}
+
+#[test]
+fn an_odd_stock_is_split_to_the_cent_and_follows_later_changes() {
+    let mut t = table();
+    t.tariff.stock_amount = 5;
+    t.no_game_rule = NoGameRule::Stock;
+    t.add_no_game(None).unwrap(); // 20 im Stock
+    t.tariff.stock_amount = 3;
+    t.add_no_game(None).unwrap(); // 32
+    t.remove_stock_move(0);
+    assert_eq!(t.stock(), 12);
+    let m = t.split_stock(None).unwrap().clone();
+    assert_eq!(m.payouts.iter().sum::<Cents>(), 12);
+    let mut t2 = table();
+    t2.tariff.stock_amount = 1;
+    t2.no_game_rule = NoGameRule::Stock;
+    t2.add_no_game(None).unwrap(); // 4 Cent
+    t2.add_player("Eva", None, None).unwrap();
+    t2.add_no_game(None).unwrap(); // 5 weitere
+    let m = t2.split_stock(None).unwrap().clone();
+    assert_eq!(m.pot_change, -9);
+    assert_eq!(m.payouts.iter().sum::<Cents>(), 9);
+    assert!(m.payouts.iter().all(|&p| p == 1 || p == 2));
+    // Nimmt man die erste Einlage zurück, wird der Anteil neu berechnet.
+    t2.remove_stock_move(0);
+    assert_eq!(
+        t2.stock_moves.last().unwrap().payouts.iter().sum::<Cents>(),
+        5
+    );
+    assert_eq!(t2.stock(), 0);
+}
+
+#[test]
+fn stock_counts_as_moved_money() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    t.add_game(sauspiel(0, 1, 3)).unwrap(); // Gewinner holen 80 aus dem Stock
+    let s = table_stats(&t);
+    let game_wins: Cents = t.games()[0].payouts.iter().filter(|&&p| p > 0).sum();
+    assert_eq!(s.turnover, game_wins + 80);
+}
+
+#[test]
+fn reshuffles_and_deposits_are_counted_apart() {
+    let mut t = stock_table();
+    t.add_no_game(None).unwrap();
+    t.add_no_game(None).unwrap();
+    t.no_game_rule = NoGameRule::Reshuffle;
+    t.add_no_game(None).unwrap();
+    let s = table_stats(&t).stock;
+    assert_eq!(
+        (s.no_game_rounds, s.reshuffles, s.deposit_rounds),
+        (3, 1, 2)
+    );
+    // Wer die Karten ohne Spiel gegeben hat: Anna, Ben, Cem.
+    assert_eq!(t.pass_dealers(), vec![0, 1, 2]);
+    let players = table_stats(&t).players;
+    assert_eq!(
+        players
+            .iter()
+            .map(|p| p.deals_without_game)
+            .collect::<Vec<_>>(),
+        vec![1, 1, 1, 0]
+    );
+    t.add_game(sauspiel(3, 1, 0)).unwrap();
+    t.add_no_game(None).unwrap();
+    assert_eq!(t.pass_dealers(), vec![0, 1, 2, 0]);
+}
+
+#[test]
+fn the_game_csv_has_the_stock_and_the_tariff_name() {
+    let mut t = stock_table();
+    t.use_tariff(Some("Kneipe".into()), Tariff::default());
+    t.add_no_game(None).unwrap();
+    t.add_game(sauspiel(1, 0, 2)).unwrap();
+    let csv = t.to_csv();
+    let header: Vec<&str> = csv.lines().next().unwrap().split(',').collect();
+    let row: Vec<&str> = csv.lines().nth(1).unwrap().split(',').collect();
+    let at = |name: &str| header.iter().position(|h| *h == name).unwrap();
+    assert_eq!(row[at("Tarif")], "Kneipe");
+    assert_eq!(row[at("Stock_Bewegung")], "Stock ausgezahlt");
+    assert_eq!(row[at("Stock_Cent")], "0");
+    let anna = at("Anna Stock_Cent");
+    // Anna hat 20 eingelegt und mit Cem 40 aus dem Stock gewonnen: plus 20.
+    assert_eq!(row[anna], "20");
+    assert_eq!(row[at("Ben Stock_Cent")], "-20");
 }

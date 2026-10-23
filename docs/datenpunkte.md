@@ -461,6 +461,15 @@ deshalb nach der Richtung des Preises:
   behalten aber den alten Namen und zählen dann nicht mehr für ihn.
 - Zu sehen ist es oben auf der ersten Seite ("Neuer Abend"). Die Daten liegen in `schafkopf-bibliothek.json` und sind in der Sicherung enthalten.
 
+### Stock aufteilen, Zusammenwerfen getrennt zählen, CSV
+
+- **Stock aufteilen** (`Table::split_stock`, `StockMoveKind::Split`): Der ganze Stock geht zu gleichen Teilen an alle, die am Tisch sitzen (`StockMove.seats`); ein Rest in Cent geht der Reihe nach an die ersten Sitzplätze. Wie die Einlagen von Hand eingetragen und zurücknehmbar (`StockMoveKind::is_manual`), der Betrag wird in `rebuild_stock` neu berechnet. Der Geber ändert sich nicht.
+- **Zusammenwerfen vs. Einzahlen:** Ein "Keiner spielt" ohne Einlage (`StockMove::is_reshuffle`) zählt in `StockStats.reshuffles`, eines mit Einlage in `deposit_rounds`; `no_game_rounds` bleibt die Summe.
+- **Gegeben:** Wer bei "Keiner spielt" gegeben hat, steht in `Table::pass_dealers` (Anwesenheit aus dem folgenden Spiel); `PlayerStats.deals_without_game`. Die Zahl "Gegeben" in der Spielerkarte ist Spiele plus diese; am Tisch gilt Spiele + `no_game_rounds`.
+- **Bewegtes Geld** (`TableStats.turnover`) enthält jetzt auch die Gewinne aus dem Stock (Auszahlung, Aufteilen).
+- **CSV der Spiele:** Neue Spalten `Stock_Bewegung` (Auszahlung/Verdopplung durch dieses Spiel), `Stock_Cent` (Stock nach dem Spiel) und je Spieler `<Name> Stock_Cent` (sein Stock-Ergebnis bis dahin, inkl. Einlagen). `Tarif` und `Regelwerk` kommen aus `meta::tariff_labels` und `rule_set_labels`, also wie in der Statistik ("Eigener Tarif" statt leer).
+- **Doppler-Tabelle:** `DoublingTable` (Tabelle plus Kuchen) beim Abend und in der Gesamtstatistik.
+
 ### Statistik zum Stock
 
 - `TableStats.stock` (`StockStats`): Zahl der Runden "Keiner spielt", **höchster Stand**, eingelegt, durch Doppeln dazugekommen, **hineingeflossen** insgesamt, ausgezahlt (mit Zahl), Rest am Ende. In der Gesamtstatistik: Summen, der Höchststand ist der höchste aller Abende.

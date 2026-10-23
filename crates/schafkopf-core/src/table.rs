@@ -173,6 +173,8 @@ pub enum StockMoveKind {
     Payout,
     /// Eine Spielerpartei hat ein Sauspiel verloren und doppelt den Stock.
     Double,
+    /// Der Stock wurde zu gleichen Teilen an alle am Tisch aufgeteilt (Schluss mit dem Stock).
+    Split,
 }
 
 impl StockMoveKind {
@@ -181,7 +183,13 @@ impl StockMoveKind {
             StockMoveKind::NoGame => "Keiner spielt",
             StockMoveKind::Payout => "Stock ausgezahlt",
             StockMoveKind::Double => "Stock gedoppelt",
+            StockMoveKind::Split => "Stock aufgeteilt",
         }
+    }
+
+    /// Von Hand eingetragen (und damit zurücknehmbar), im Gegensatz zu Auszahlung und Verdopplung.
+    pub fn is_manual(self) -> bool {
+        matches!(self, StockMoveKind::NoGame | StockMoveKind::Split)
     }
 }
 
@@ -200,6 +208,32 @@ pub struct StockMove {
     /// Wie viele Spiele zu dem Zeitpunkt schon gespielt waren (für den Verlauf).
     #[serde(default)]
     pub after_games: usize,
+    /// Nur beim Aufteilen: Die Sitzplätze, die ihren Anteil bekommen (die damals am Tisch saßen).
+    #[serde(default)]
+    pub seats: Vec<Seat>,
+}
+
+impl StockMove {
+    /// "Keiner spielt" ohne Einlage: Die Karten wurden nur zusammengeworfen.
+    pub fn is_reshuffle(&self) -> bool {
+        self.kind == StockMoveKind::NoGame && self.pot_change == 0
+    }
+
+    /// Verteilt `pot` zu gleichen Teilen auf `seats`; Reste in Cent gehen der Reihe nach an die ersten.
+    fn shares(&self, pot: Cents, players: usize) -> Vec<Cents> {
+        let mut payouts = vec![0; players];
+        let n = self.seats.len() as Cents;
+        if n == 0 {
+            return payouts;
+        }
+        let rest = pot % n;
+        for (i, &seat) in self.seats.iter().enumerate() {
+            if let Some(p) = payouts.get_mut(seat) {
+                *p = pot / n + Cents::from((i as Cents) < rest);
+            }
+        }
+        payouts
+    }
 }
 
 /// Ein Tisch mit 2 bis 10 Spielern: Spieler in Sitzreihenfolge (Spielrichtung, im Uhrzeigersinn), Tarif und alle Spiele.
@@ -348,16 +382,52 @@ impl Table {
     /// Der nächste Sitzplatz nach `seat` in Spielrichtung, an dem jemand sitzt. Mit `inclusive`
     /// zählt `seat` selbst, falls dort jemand sitzt.
     fn next_present(&self, seat: Seat, inclusive: bool) -> Seat {
+        self.next_where(seat, inclusive, |s| self.is_present(s))
+    }
+
+    /// Wie [`Table::next_present`], aber für eine beliebige Auswahl von Sitzplätzen.
+    fn next_where(&self, seat: Seat, inclusive: bool, present: impl Fn(Seat) -> bool) -> Seat {
         let ring = self.ring();
         let start = ring.iter().position(|&s| s == seat).unwrap_or(0);
         let len = ring.len();
         for step in usize::from(!inclusive)..=len {
             let s = ring[(start + step) % len];
-            if self.is_present(s) {
+            if present(s) {
                 return s;
             }
         }
         seat
+    }
+
+    /// Wer bei jedem "Keiner spielt" gegeben hat, in der Reihenfolge von [`Table::stock_moves`].
+    /// Wer damals am Tisch saß, kennt man vom folgenden Spiel (sonst gilt, wer jetzt sitzt).
+    pub fn pass_dealers(&self) -> Vec<Seat> {
+        let mut out = Vec::new();
+        let mut dealer: Option<Seat> = None;
+        let mut group = 0;
+        let mut seen = 0;
+        for m in &self.stock_moves {
+            if m.kind != StockMoveKind::NoGame {
+                continue;
+            }
+            let k = m.after_games.min(self.games.len());
+            if k != group || seen == 0 {
+                group = k;
+                dealer = None;
+            }
+            seen += 1;
+            let game = self.games.get(k);
+            let present =
+                |s: Seat| game.map_or_else(|| self.is_present(s), |g| self.was_at_table(g, s));
+            let after = dealer.or_else(|| k.checked_sub(1).map(|i| self.games[i].input.dealer));
+            let next = match after {
+                Some(d) => self.next_where(d, false, present),
+                None => self.next_where(self.first_dealer, true, present),
+            };
+            dealer = Some(next);
+            out.push(next);
+        }
+        out
     }
 
     /// Voreinstellung, wer bei diesem Geber mitspielt: der Geber, der Spieler vor ihm (er hebt ab)
@@ -686,6 +756,7 @@ impl Table {
             payouts,
             at,
             after_games: self.games.len(),
+            seats: Vec::new(),
         });
         self.rebuild_stock();
         Ok(self
@@ -696,13 +767,36 @@ impl Table {
             .expect("gerade eingefügt"))
     }
 
-    /// Nimmt ein "Keiner spielt" zurück. Auszahlungen und Verdopplungen lassen sich nicht einzeln
+    /// Teilt den Stock zu gleichen Teilen an alle auf, die gerade am Tisch sitzen (zum Beispiel, wenn
+    /// man mit dem Stock aufhören will). Ein Rest in Cent geht der Reihe nach an die ersten Sitzplätze.
+    pub fn split_stock(&mut self, at: Option<i64>) -> Result<&StockMove> {
+        if self.stock() <= 0 {
+            return Err(Error::EmptyStock);
+        }
+        self.stock_moves.push(StockMove {
+            kind: StockMoveKind::Split,
+            pot_change: 0,
+            payouts: vec![0; self.players.len()],
+            at,
+            after_games: self.games.len(),
+            seats: self.present_seats(),
+        });
+        self.rebuild_stock();
+        Ok(self
+            .stock_moves
+            .iter()
+            .rev()
+            .find(|m| m.kind == StockMoveKind::Split)
+            .expect("gerade eingefügt"))
+    }
+
+    /// Nimmt ein "Keiner spielt" oder Aufteilen zurück. Auszahlungen und Verdopplungen lassen sich nicht einzeln
     /// zurücknehmen, sie folgen den Spielen. `None`, wenn es den Index nicht gibt oder er keine Einlage ist.
     pub fn remove_stock_move(&mut self, index: usize) -> Option<StockMove> {
         let is_pass = self
             .stock_moves
             .get(index)
-            .is_some_and(|m| m.kind == StockMoveKind::NoGame);
+            .is_some_and(|m| m.kind.is_manual());
         let removed = is_pass.then(|| self.stock_moves.remove(index));
         self.rebuild_stock();
         removed
@@ -717,7 +811,7 @@ impl Table {
         let passes: Vec<StockMove> = self
             .stock_moves
             .drain(..)
-            .filter(|m| m.kind == StockMoveKind::NoGame)
+            .filter(|m| m.kind.is_manual())
             .collect();
         let games = self.games.len();
         let mut passes = passes.into_iter().peekable();
@@ -726,6 +820,10 @@ impl Table {
         for index in 0..=games {
             while let Some(mut pass) = passes.next_if(|p| p.after_games.min(games) <= index) {
                 pass.after_games = index;
+                if pass.kind == StockMoveKind::Split {
+                    pass.pot_change = -pot.max(0);
+                    pass.payouts = pass.shares(pot.max(0), self.players.len());
+                }
                 pot += pass.pot_change;
                 moves.push(pass);
             }
@@ -772,6 +870,7 @@ impl Table {
             payouts,
             at: input.played_at,
             after_games: index + 1,
+            seats: Vec::new(),
         })
     }
 

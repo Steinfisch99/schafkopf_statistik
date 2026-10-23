@@ -10,6 +10,8 @@ pub enum Error {
     ZeroAmount,
     #[error("In diesem Regelwerk gibt es kein \"Keiner spielt\": Dort wird Ramsch gespielt")]
     NoPassRule,
+    #[error("Im Stock liegt nichts zum Aufteilen")]
+    EmptyStock,
     #[error("Spielernamen dürfen nicht leer sein")]
     EmptyName,
     #[error("Spielername kommt doppelt vor: {0}")]

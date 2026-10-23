@@ -82,11 +82,16 @@ impl Table {
             "Tarif_Vergehen_Cent",
             "Tarif_Neumischen_Cent",
             "Notiz",
+            "Stock_Bewegung",
+            "Stock_Cent",
         ];
-        let players = self
-            .players
-            .iter()
-            .flat_map(|p| [format!("{p} Gewinn_Cent"), format!("{p} Stand_Cent")]);
+        let players = self.players.iter().flat_map(|p| {
+            [
+                format!("{p} Gewinn_Cent"),
+                format!("{p} Stand_Cent"),
+                format!("{p} Stock_Cent"),
+            ]
+        });
         row(
             fixed.into_iter().map(String::from).chain(players),
             separator,
@@ -102,12 +107,34 @@ impl Table {
         let g = &game.input;
         let tariff = game.tariff.as_ref().unwrap_or(&self.tariff);
         let opt = |v: Option<String>| v.unwrap_or_default();
+        let tariff_names = crate::meta::tariff_labels(self);
+        let rule_set_names = crate::meta::rule_set_labels(self);
         let mut standing: Vec<Cents> = vec![0; self.players.len()];
         for earlier in &self.games()[..=index] {
             for (s, p) in standing.iter_mut().zip(&earlier.payouts) {
                 *s += p;
             }
         }
+        // Der Stock: alles bis einschließlich der Bewegung, die dieses Spiel auslöst (Auszahlung oder Verdopplung).
+        let in_game = |m: &&crate::table::StockMove| {
+            m.after_games <= index || (m.after_games == index + 1 && !m.kind.is_manual())
+        };
+        let pot: Cents = self
+            .stock_moves
+            .iter()
+            .filter(in_game)
+            .map(|m| m.pot_change)
+            .sum();
+        let mut stock_standing: Vec<Cents> = vec![0; self.players.len()];
+        for m in self.stock_moves.iter().filter(in_game) {
+            for (s, p) in stock_standing.iter_mut().zip(&m.payouts) {
+                *s += p;
+            }
+        }
+        let stock_move = self
+            .stock_moves
+            .iter()
+            .find(|m| m.after_games == index + 1 && !m.kind.is_manual());
         let fixed = [
             (index + 1).to_string(),
             opt(g.played_at.map(|t| t.to_string())),
@@ -145,8 +172,8 @@ impl Table {
                 .join("; "),
             yes_no(g.reclaimed),
             self.names_of(&g.reclaimed_by),
-            opt(game.tariff_name.clone()),
-            opt(game.rule_set_name.clone()),
+            tariff_names[index].clone(),
+            rule_set_names[index].clone(),
             tariff.sauspiel.to_string(),
             tariff.solo.to_string(),
             tariff.bettel.to_string(),
@@ -164,12 +191,15 @@ impl Table {
             tariff.offence_penalty.to_string(),
             tariff.misdeal_penalty.to_string(),
             opt(g.note.clone()),
+            stock_move.map_or_else(String::new, |m| m.kind.label().to_owned()),
+            pot.to_string(),
         ];
         let per_player = game
             .payouts
             .iter()
             .zip(&standing)
-            .flat_map(|(p, s)| [p.to_string(), s.to_string()]);
+            .zip(&stock_standing)
+            .flat_map(|((p, s), k)| [p.to_string(), s.to_string(), k.to_string()]);
         Some(row(fixed.into_iter().chain(per_player), separator))
     }
 

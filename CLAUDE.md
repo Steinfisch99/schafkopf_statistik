@@ -70,6 +70,7 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
   nach jeder Änderung an den Spielen **neu abgeleitet**. Stock-Beträge stecken in Kontostand/Verlauf, nicht in `Game.payouts`. Nur Sauspiel (nicht Hochzeit) berührt ihn.
 - **Einrichtung und Tarif:** `SetupState.synced` + `sync_tariff` halten die Tarifwerte der Einrichtung mit der Bibliothek abgeglichen (sonst bleibt der Stand vom App-Start stehen).
 - **Stock-Statistik:** `StockStats` (Tisch, Gesamt) und `PlayerStock` (je Spieler), Anzeige `StockSection` in `views/stats_screen.rs`.
+- **Stock aufteilen/Zusammenwerfen/Gegeben** (0.4.4): `StockMoveKind::Split`, `StockMove::is_reshuffle`, `Table::pass_dealers`; Details in `docs/datenpunkte.md`. Nur per Test geprüft, nicht angesehen: Knopf "Stock fair an alle aufteilen" und `DoublingTable`.
 - **Geldstand** (`Library::account`, `start_balances`, `Adjustment`): Startwert und Nachträge je Spieler in der Bibliothek, Anzeige oben auf der Einrichtungsseite (`views/account.rs`).
   Zuordnung über den Namen; Umbenennen nimmt nur Startwert/Nachträge mit, nicht alte Abende.
 
@@ -83,7 +84,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 300 Tests, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 307 Tests im Kern und der App, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
@@ -110,5 +111,5 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 - Neu und nur am Desktop per Test geprüft, nicht angesehen: Bildschirm "Vergehen oder Neumischen" (`views/offence_screen.rs`),
   Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, nach dem Bild des Nutzers vereinfacht, vorher geraten, keine
   Recherche möglich: Netz gesperrt).
-- Neu (0.4.1) und nur per Test sowie Kompilieren geprüft, nicht angesehen: Stock/"Keiner spielt" (`views/table_view.rs`, `StockList`, Regelwerk-Wahl in `library_screen.rs`, Tarif-Felder) und der Geldstand oben auf der Einrichtungsseite (`views/account.rs`). Die CSV der Spiele hat keine Stock-Spalten (nur die Ereignis-CSV).
+- Neu (0.4.1) und nur per Test sowie Kompilieren geprüft, nicht angesehen: Stock/"Keiner spielt" (`views/table_view.rs`, `StockList`, Regelwerk-Wahl in `library_screen.rs`, Tarif-Felder) und der Geldstand oben auf der Einrichtungsseite (`views/account.rs`). Die CSV der Spiele hat seit 0.4.4 Stock-Spalten.
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

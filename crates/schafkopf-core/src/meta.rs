@@ -67,7 +67,7 @@ fn tally(labels: &[String]) -> (Vec<UseCount>, u32) {
 
 /// Der Name des Tarifs je Spiel. Spiele ohne Namen (eigener Tarif, ältere Dateien) heißen "Eigener Tarif",
 /// bei mehreren verschiedenen "Eigener Tarif 1", "Eigener Tarif 2", ... nach ihrem ersten Auftreten.
-fn tariff_labels(table: &Table) -> Vec<String> {
+pub(crate) fn tariff_labels(table: &Table) -> Vec<String> {
     let mut custom: Vec<&Tariff> = Vec::new();
     let mut raw: Vec<Result<String, &Tariff>> = Vec::new();
     for game in table.games() {
@@ -100,7 +100,7 @@ fn tariff_labels(table: &Table) -> Vec<String> {
         .collect()
 }
 
-fn rule_set_labels(table: &Table) -> Vec<String> {
+pub(crate) fn rule_set_labels(table: &Table) -> Vec<String> {
     table
         .games()
         .iter()

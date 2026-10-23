@@ -22,6 +22,7 @@ pub struct OverallPlayer {
     pub games_played: u32,
     pub games_sat_out: u32,
     pub games_dealt: u32,
+    pub deals_without_game: u32,
     pub as_declarer: RoleStats,
     pub as_partner: RoleStats,
     pub as_defender: RoleStats,
@@ -83,6 +84,7 @@ impl OverallPlayer {
             games_played: 0,
             games_sat_out: 0,
             games_dealt: 0,
+            deals_without_game: 0,
             as_declarer: RoleStats::default(),
             as_partner: RoleStats::default(),
             as_defender: RoleStats::default(),
@@ -160,6 +162,7 @@ impl OverallPlayer {
         self.games_played += p.games_played;
         self.games_sat_out += p.games_sat_out;
         self.games_dealt += p.games_dealt;
+        self.deals_without_game += p.deals_without_game;
         role(&mut self.as_declarer, &p.as_declarer);
         role(&mut self.as_partner, &p.as_partner);
         role(&mut self.as_defender, &p.as_defender);

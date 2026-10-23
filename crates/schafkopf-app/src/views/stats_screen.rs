@@ -113,7 +113,10 @@ fn PlayerDetail(
             TapKv { label: "Schlechtestes Spiel", value: signed_euro(p.worst_game), metric: Metric::WorstGame, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Gespielt", value: p.games_played.to_string(), metric: Metric::Played, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Ausgesetzt", value: p.games_sat_out.to_string(), metric: Metric::SatOut, me: me.clone(), peers: peers.clone(), open: compare }
-            TapKv { label: "Gegeben", value: p.games_dealt.to_string(), metric: Metric::Dealt, me: me.clone(), peers: peers.clone(), open: compare }
+            TapKv { label: "Gegeben", value: (p.games_dealt + p.deals_without_game).to_string(), metric: Metric::Dealt, me: me.clone(), peers: peers.clone(), open: compare }
+            if p.deals_without_game > 0 {
+                p { class: "muted small", "Davon {p.deals_without_game}× gegeben, ohne dass gespielt wurde (zusammengeworfen oder Stock)." }
+            }
 
             h4 { "Siege nach Rolle" }
             p { class: "legend-note", "Grün gewonnen, orange verloren. Die Länge zeigt die Zahl der Spiele." }
@@ -463,6 +466,9 @@ pub fn StatsScreen(
             section {
                 h3 { "Dieser Abend" }
                 Kv { label: "Spiele", value: games.to_string() }
+                if stats.stock.no_game_rounds > 0 {
+                    Kv { label: "Gegeben (mit Zusammenwerfen und Stock)", value: (games + stats.stock.no_game_rounds).to_string() }
+                }
                 if stats.bock_games > 0 || stats.bock_started > 0 {
                     Kv { label: "Bockrunden entstanden", value: stats.bock_started.to_string() }
                 }
@@ -481,6 +487,7 @@ pub fn StatsScreen(
                 }
                 h4 { "Wie oft wurde gedoppelt?" }
                 p { class: "legend-note", "Die Spiele des Abends genau nach der Zahl der Doppler im Preis (Klopfen, Kontra, Re, Tout, Bock)." }
+                DoublingTable { rows: stats.by_doublings.iter().map(|(t, c)| (*t, *c)).collect::<Vec<_>>(), games }
                 for (times, count) in stats.by_doublings.iter().map(|(t, c)| (*t, *c)) {
                     ShareBar {
                         key: "{times}",
@@ -835,12 +842,17 @@ pub(super) fn StockSection(stock: StockStats, players: Vec<(String, PlayerStock)
             p { class: "hint", "Wenn keiner spielt, legt jeder die Einlage in die Mitte. Wer danach ein Sauspiel gewinnt, bekommt den Stock, wer eines verliert, doppelt ihn." }
             Kv { label: "Höchster Stock", value: format_euro(stock.peak) }
             Kv { label: "Keiner spielt", value: format!("{}×", stock.no_game_rounds) }
+            Kv { label: "Davon nur zusammengeworfen", value: format!("{}×", stock.reshuffles) }
+            Kv { label: "Davon in den Stock eingezahlt", value: format!("{}×", stock.deposit_rounds) }
             Kv { label: "Eingelegt", value: format_euro(stock.deposited) }
             if stock.doublings > 0 {
                 Kv { label: "Durch Doppeln dazu", value: format!("{} ({}×)", format_euro(stock.doubled), stock.doublings) }
             }
             Kv { label: "Insgesamt hineingeflossen", value: format_euro(stock.flowed_in()) }
             Kv { label: "Ausgezahlt", value: format!("{} ({}×)", format_euro(stock.paid_out), stock.payouts) }
+            if stock.splits > 0 {
+                Kv { label: "An alle aufgeteilt", value: format!("{} ({}×)", format_euro(stock.split_out), stock.splits) }
+            }
             if stock.left > 0 {
                 Kv { label: "Liegt noch im Stock", value: format_euro(stock.left) }
             }
@@ -857,8 +869,60 @@ pub(super) fn StockSection(stock: StockStats, players: Vec<(String, PlayerStock)
                     "{name}: eingelegt {format_euro(p.deposited)}"
                     if p.doublings > 0 { ", gedoppelt {p.doublings}× ({format_euro(p.doubled)})" }
                     if p.wins > 0 { ", Stock gewonnen {p.wins}× ({format_euro(p.received)})" }
+                    if p.split > 0 { ", beim Aufteilen bekommen {format_euro(p.split)}" }
                     ", unterm Strich "
                     span { class: amount_class(p.net()), "{signed_euro(p.net())}" }
+                }
+            }
+        }
+    }
+}
+
+/// Farben für die Doppler-Stufen (Okabe/Ito), von "ohne Doppler" bis "mehrfach".
+const DOUBLING_COLORS: [&str; 7] = [
+    "#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#999999",
+];
+
+/// Wie viele Spiele einfach, verdoppelt, vervierfacht usw. waren: Tabelle mit Kuchendiagramm.
+/// `rows` sind `(Zahl der Doppler, Zahl der Spiele)`, Stufen ohne Spiele dürfen fehlen.
+#[component]
+pub(super) fn DoublingTable(rows: Vec<(u32, u32)>, games: u32) -> Element {
+    if games == 0 {
+        return rsx! {};
+    }
+    let rows: Vec<(u32, u32)> = rows.into_iter().filter(|r| r.1 > 0).collect();
+    let parts: Vec<(String, u32, String)> = rows
+        .iter()
+        .map(|&(times, count)| {
+            (
+                doubling_label(times),
+                count,
+                DOUBLING_COLORS[(times as usize).min(DOUBLING_COLORS.len() - 1)].to_string(),
+            )
+        })
+        .collect();
+    rsx! {
+        DonutWithLegend {
+            parts,
+            center: games.to_string(),
+            sub: if games == 1 { "Spiel".to_string() } else { "Spiele".to_string() },
+            label: "Anteil der Spiele nach Zahl der Doppler".to_string(),
+        }
+        table { class: "stat-table",
+            thead {
+                tr {
+                    th { "Preis" }
+                    th { "Spiele" }
+                    th { "Anteil" }
+                }
+            }
+            tbody {
+                for (times, count) in rows {
+                    tr { key: "{times}",
+                        td { "{doubling_label(times)}" }
+                        td { "{count}" }
+                        td { "{percent(count, games)}" }
+                    }
                 }
             }
         }

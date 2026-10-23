@@ -1,7 +1,7 @@
 //! Die Liste der Spiele eines Abends, das neueste zuerst.
 
 use dioxus::prelude::*;
-use schafkopf_core::{GameKind, StockMoveKind, Table};
+use schafkopf_core::{GameKind, Table};
 
 use super::common::{ConfirmButton, Notice};
 use super::suit_icon::SuitIcon;
@@ -145,7 +145,7 @@ pub fn StockList(
     let lines: Vec<(String, bool)> = t
         .stock_moves
         .iter()
-        .map(|m| (stock_text(t, m), m.kind == StockMoveKind::NoGame))
+        .map(|m| (stock_text(t, m), m.kind.is_manual()))
         .collect();
     drop(guard);
 

@@ -51,6 +51,20 @@ pub fn TableView(
         }));
     };
 
+    let split_stock = move |_| {
+        let mut guard = table.write();
+        let Some(t) = guard.as_mut() else { return };
+        let added = t.split_stock(Some(now_secs() as i64)).cloned();
+        let result = added.map(|m| stock_text(t, &m));
+        let saved = result.as_ref().ok().map(|_| storage::save(t, None));
+        drop(guard);
+        notice.set(Some(match (result, saved) {
+            (Err(e), _) => Notice::error(e.to_string()),
+            (Ok(_), Some(Err(e))) => Notice::error(format!("Speichern fehlgeschlagen: {e}")),
+            (Ok(text), _) => Notice::ok(text),
+        }));
+    };
+
     let finish = move |_| {
         let now = now_secs();
         let mut guard = table.write();
@@ -141,6 +155,13 @@ pub fn TableView(
                 label: "Keiner spielt",
                 confirm_label: if t.no_game_rule == NoGameRule::Stock { "Ja, alle legen in den Stock".to_string() } else { "Ja, zusammenwerfen".to_string() },
                 onconfirm: no_game,
+            }
+        }
+        if t.no_game_rule == NoGameRule::Stock && t.stock() > 0 {
+            ConfirmButton {
+                label: "Stock fair an alle aufteilen",
+                confirm_label: "Ja, Stock gleichmäßig aufteilen",
+                onconfirm: split_stock,
             }
         }
         BalanceChart {

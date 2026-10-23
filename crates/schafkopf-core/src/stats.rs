@@ -71,8 +71,18 @@ impl LaufendeStats {
 /// Zahlen zum Stock eines Abends (oder mehrerer Abende zusammen), alles in Cent.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StockStats {
-    /// Wie oft keiner spielen wollte (Zusammenwerfen und Stock).
+    /// Wie oft keiner spielen wollte (Zusammenwerfen und Stock einzahlen zusammen).
     pub no_game_rounds: u32,
+    /// Davon: nur zusammengeworfen (kein Geld bewegt) und mit Einlage in den Stock.
+    #[serde(default)]
+    pub reshuffles: u32,
+    #[serde(default)]
+    pub deposit_rounds: u32,
+    /// Wie oft der Stock an alle aufgeteilt wurde und wie viel dabei verteilt wurde.
+    #[serde(default)]
+    pub splits: u32,
+    #[serde(default)]
+    pub split_out: Cents,
     /// Der höchste Stand, den der Stock erreicht hat (bei mehreren Abenden: der höchste aller Abende).
     pub peak: Cents,
     /// Was als Einlage hineinkam, und was durch das Doppeln verlorener Sauspiele dazukam.
@@ -100,6 +110,10 @@ impl StockStats {
 
     pub(crate) fn add(&mut self, other: &StockStats) {
         self.no_game_rounds += other.no_game_rounds;
+        self.reshuffles += other.reshuffles;
+        self.deposit_rounds += other.deposit_rounds;
+        self.splits += other.splits;
+        self.split_out += other.split_out;
         self.peak = self.peak.max(other.peak);
         self.deposited += other.deposited;
         self.doubled += other.doubled;
@@ -119,6 +133,9 @@ pub struct PlayerStock {
     pub doubled: Cents,
     /// Was er aus dem Stock bekommen hat.
     pub received: Cents,
+    /// Was er beim Aufteilen des Stocks bekommen hat.
+    #[serde(default)]
+    pub split: Cents,
     /// Wie oft er den Stock gewonnen und wie oft er ihn gedoppelt hat.
     pub wins: u32,
     pub doublings: u32,
@@ -132,7 +149,7 @@ impl PlayerStock {
 
     /// Unterm Strich aus dem Stock: bekommen minus gezahlt.
     pub fn net(&self) -> Cents {
-        self.received - self.paid()
+        self.received + self.split - self.paid()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -143,6 +160,7 @@ impl PlayerStock {
         self.deposited += other.deposited;
         self.doubled += other.doubled;
         self.received += other.received;
+        self.split += other.split;
         self.wins += other.wins;
         self.doublings += other.doublings;
     }
@@ -156,6 +174,9 @@ pub struct PlayerStats {
     pub games_played: u32,
     pub games_sat_out: u32,
     pub games_dealt: u32,
+    /// Wie oft er gegeben hat, ohne dass gespielt wurde (Zusammenwerfen oder Stock einzahlen).
+    #[serde(default)]
+    pub deals_without_game: u32,
     pub as_declarer: RoleStats,
     pub as_partner: RoleStats,
     /// Gegenspieler (beim Ramsch alle, die nicht verloren haben).
@@ -232,6 +253,7 @@ impl PlayerStats {
             games_played: 0,
             games_sat_out: 0,
             games_dealt: 0,
+            deals_without_game: 0,
             as_declarer: RoleStats::default(),
             as_partner: RoleStats::default(),
             as_defender: RoleStats::default(),
@@ -281,7 +303,7 @@ impl PlayerStats {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TableStats {
     pub games: u32,
-    /// Summe aller Gewinne, also das insgesamt bewegte Geld.
+    /// Summe aller Gewinne (auch aus dem Stock), also das insgesamt bewegte Geld.
     pub turnover: Cents,
     /// Teuerstes Spiel als (Index in `Table::games`, Einzelwert).
     pub most_expensive: Option<(usize, Cents)>,
@@ -599,10 +621,16 @@ pub fn table_stats(table: &Table) -> TableStats {
     for m in &table.stock_moves {
         pot += m.pot_change;
         stats.stock.peak = stats.stock.peak.max(pot);
+        stats.turnover += m.payouts.iter().filter(|&&p| p > 0).sum::<Cents>();
         match m.kind {
             StockMoveKind::NoGame => {
                 stats.stock.no_game_rounds += 1;
                 stats.stock.deposited += m.pot_change;
+                if m.is_reshuffle() {
+                    stats.stock.reshuffles += 1;
+                } else {
+                    stats.stock.deposit_rounds += 1;
+                }
             }
             StockMoveKind::Payout => {
                 stats.stock.payouts += 1;
@@ -611,6 +639,10 @@ pub fn table_stats(table: &Table) -> TableStats {
             StockMoveKind::Double => {
                 stats.stock.doublings += 1;
                 stats.stock.doubled += m.pot_change;
+            }
+            StockMoveKind::Split => {
+                stats.stock.splits += 1;
+                stats.stock.split_out -= m.pot_change;
             }
         }
         for (p, &payout) in players.iter_mut().zip(&m.payouts) {
@@ -625,7 +657,13 @@ pub fn table_stats(table: &Table) -> TableStats {
                     p.stock.doubled -= payout;
                     p.stock.doublings += 1;
                 }
+                (StockMoveKind::Split, payout) => p.stock.split += payout,
             }
+        }
+    }
+    for dealer in table.pass_dealers() {
+        if let Some(p) = players.get_mut(dealer) {
+            p.deals_without_game += 1;
         }
     }
     stats.stock.left = pot;

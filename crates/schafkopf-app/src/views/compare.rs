@@ -189,7 +189,7 @@ pub fn evening_peer(p: &PlayerStats) -> PeerRow {
     r.cents(Metric::WorstGame, p.worst_game);
     r.count(Metric::Played, p.games_played);
     r.count(Metric::SatOut, p.games_sat_out);
-    r.count(Metric::Dealt, p.games_dealt);
+    r.count(Metric::Dealt, p.games_dealt + p.deals_without_game);
     r.rate(Metric::AsDeclarer, p.as_declarer);
     r.rate(Metric::AsPartner, p.as_partner);
     r.rate(Metric::AsDefender, p.as_defender);
@@ -247,7 +247,7 @@ pub fn overall_peer(p: &OverallPlayer) -> PeerRow {
     r.cents(Metric::WorstGame, p.worst_game);
     r.count(Metric::Played, p.games_played);
     r.count(Metric::SatOut, p.games_sat_out);
-    r.count(Metric::Dealt, p.games_dealt);
+    r.count(Metric::Dealt, p.games_dealt + p.deals_without_game);
     r.rate(Metric::AsDeclarer, p.as_declarer);
     r.rate(Metric::AsPartner, p.as_partner);
     r.rate(Metric::AsDefender, p.as_defender);
