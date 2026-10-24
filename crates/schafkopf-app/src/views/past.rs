@@ -2,6 +2,8 @@
 
 use dioxus::prelude::*;
 
+use schafkopf_core::Table;
+
 use super::balance_chart::BalanceChart;
 use super::common::{ConfirmButton, Notice};
 use super::export_screen::ExportScreen;
@@ -80,12 +82,34 @@ pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
 pub fn PastEveningView(
     stamp: u64,
     section: PastSection,
+    table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
 ) -> Element {
+    let mut table = table;
     let mut screen = screen;
     let mut notice = notice;
     let mut viewed = use_signal(|| storage::load_past(stamp));
+
+    // Der Abend wird wieder zum laufenden: Spiele lassen sich bearbeiten, danach beendet man ihn neu.
+    let reopen = move |_| {
+        if table.read().as_ref().is_some_and(|t| !t.games().is_empty()) {
+            return notice.set(Some(Notice::error(
+                "Es läuft noch ein Abend mit Spielen. Beende ihn zuerst, dann lässt sich dieser öffnen.",
+            )));
+        }
+        match storage::reopen_past(stamp) {
+            Ok(Some(reopened)) => {
+                table.set(Some(reopened));
+                screen.set(Screen::Table);
+                notice.set(Some(Notice::ok(
+                    "Abend wieder geöffnet. Nach dem Bearbeiten unten wieder beenden.",
+                )));
+            }
+            Ok(None) => notice.set(Some(Notice::error("Diesen Abend gibt es nicht mehr."))),
+            Err(e) => notice.set(Some(Notice::error(format!("Öffnen fehlgeschlagen: {e}")))),
+        }
+    };
 
     let delete = move |_| {
         match storage::delete_past(stamp) {
@@ -156,7 +180,7 @@ pub fn PastEveningView(
             }
             p { class: "muted", "{players}" }
             p { class: "muted small", "{games_text(game_count)} · {rules}" }
-            p { class: "hint", "Dieser Abend ist abgeschlossen. Du kannst ihn ansehen, exportieren oder löschen." }
+            p { class: "hint", "Dieser Abend ist abgeschlossen. Du kannst ihn ansehen, exportieren, löschen oder zum Bearbeiten wieder öffnen." }
             BalanceChart {
                 table: viewed,
                 on_player: move |seat| screen.set(Screen::PastStats { stamp, player: Some(seat) }),
@@ -183,6 +207,11 @@ pub fn PastEveningView(
                     r#type: "button",
                     onclick: toggle_debug,
                     if is_debug { "Testabend-Markierung entfernen" } else { "Als Testabend markieren" }
+                }
+                ConfirmButton {
+                    label: "Abend wieder öffnen (Spiele bearbeiten)",
+                    confirm_label: "Ja, wieder öffnen",
+                    onconfirm: reopen,
                 }
                 ConfirmButton { label: "Abend löschen", confirm_label: "Ja, endgültig löschen", onconfirm: delete }
                 button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "Zurück" }

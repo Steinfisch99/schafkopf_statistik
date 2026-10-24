@@ -3,10 +3,10 @@
 use dioxus::prelude::*;
 
 use schafkopf_charts::format_euro;
-use schafkopf_core::{BockMode, NoGameRule, Table};
+use schafkopf_core::{format_clock, latest_clock_before, BockMode, NoGameRule, Table};
 
 use super::balance_chart::BalanceChart;
-use super::common::{AppVersion, ConfirmButton, Notice};
+use super::common::{AppVersion, ConfirmButton, Notice, TextField};
 use super::game_list::{GameList, OffenceList, StockList};
 use crate::summary::{evening_times, stock_text};
 use crate::{now_secs, storage, Screen};
@@ -65,11 +65,43 @@ pub fn TableView(
         }));
     };
 
+    // Leer: Der Abend endet jetzt. Sonst die Uhrzeit, zu der er endete. Ein wieder geöffneter Abend
+    // zeigt seine alte Endzeit vor.
+    let mut end_time = use_signal(|| {
+        table
+            .peek()
+            .as_ref()
+            .and_then(|t| t.ended_at.map(|e| format_clock(e, t.utc_offset_min)))
+            .unwrap_or_default()
+    });
+
     let finish = move |_| {
         let now = now_secs();
         let mut guard = table.write();
         let Some(t) = guard.as_mut() else { return };
-        t.finish(now as i64);
+        let typed = end_time.read().trim().to_string();
+        let end = if typed.is_empty() {
+            now as i64
+        } else if let Some(old) = t
+            .ended_at
+            .filter(|&e| format_clock(e, t.utc_offset_min) == typed)
+        {
+            old
+        } else if let Some(at) = latest_clock_before(&typed, now as i64, crate::utc_offset_min()) {
+            at
+        } else {
+            drop(guard);
+            return notice.set(Some(Notice::error(
+                "Die Uhrzeit des Endes bitte so eingeben: 23:15",
+            )));
+        };
+        if t.last_activity().is_some_and(|last| end < last) {
+            drop(guard);
+            return notice.set(Some(Notice::error(
+                "Das Ende liegt vor dem letzten Eintrag des Abends. Nimm eine spätere Uhrzeit.",
+            )));
+        }
+        t.finish(end);
         let empty = t.games().is_empty();
         let saved = storage::save(t, None);
         drop(guard);
@@ -184,6 +216,12 @@ pub fn TableView(
                     confirm_label: "Ja, rückgängig",
                     onconfirm: undo,
                 }
+            }
+            TextField {
+                label: "Ende des Abends (Uhrzeit, leer = jetzt)",
+                value: end_time(),
+                hint: "zum Beispiel 23:15",
+                oninput: move |v| end_time.set(v),
             }
             ConfirmButton {
                 label: "Abend beenden",

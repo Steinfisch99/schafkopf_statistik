@@ -157,7 +157,7 @@ fn App() -> Element {
             h1 { "Schafkopf" }
             NoticeBar { notice }
             if let Some((stamp, section)) = past {
-                PastEveningView { key: "{stamp}", stamp, section, screen, notice }
+                PastEveningView { key: "{stamp}", stamp, section, table, screen, notice }
             } else {
                 match current {
                     Screen::Setup => rsx! { Setup { table, screen, notice, library, state: setup } },

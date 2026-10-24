@@ -21,7 +21,7 @@ pub use backup::{
 };
 pub use clock::{
     civil, format_clock, format_duration, format_local, format_minutes_after_noon,
-    minutes_after_noon,
+    latest_clock_before, minutes_after_noon,
 };
 pub use error::{Error, Result};
 pub use library::{AccountRow, Adjustment, Library, MergeReport, NamedTariff, RuleSet};

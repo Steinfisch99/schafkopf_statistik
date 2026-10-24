@@ -3961,3 +3961,18 @@ fn the_game_csv_has_the_stock_and_the_tariff_name() {
     assert_eq!(row[anna], "20");
     assert_eq!(row[at("Ben Stock_Cent")], "-20");
 }
+
+#[test]
+fn latest_clock_before_picks_the_most_recent_matching_time() {
+    // 2001-09-09 03:46 in Ortszeit +02:00 ist 01:46:40 UTC.
+    let now = 1_000_000_000;
+    let at = |input| latest_clock_before(input, now, 120).map(|t| format_local(t, 120));
+    assert_eq!(at("02:30").as_deref(), Some("2001-09-09 02:30"));
+    assert_eq!(at("23:15").as_deref(), Some("2001-09-08 23:15"));
+    assert_eq!(at(" 3:46 ").as_deref(), Some("2001-09-09 03:46"));
+    assert_eq!(at("03:47").as_deref(), Some("2001-09-08 03:47"));
+    assert_eq!(at("24:00"), None);
+    assert_eq!(at("12:60"), None);
+    assert_eq!(at("abends"), None);
+    assert_eq!(at(""), None);
+}

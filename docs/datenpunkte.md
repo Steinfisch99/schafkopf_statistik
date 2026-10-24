@@ -480,3 +480,8 @@ deshalb nach der Richtung des Preises:
 - Die Einrichtung ("Neuer Abend") merkt sich, von welchem Bibliothekstarif ihre Felder stammen (`SetupState.synced`). Wird der Tarif in der Verwaltung geändert, übernimmt sie die neuen Werte, solange der Nutzer die Felder nicht für den Abend angepasst hat (`sync_tariff`). Vorher blieben die Werte vom Start der App stehen. Wurde der gewählte Tarif gelöscht oder umbenannt, gilt der Standard.
 
 - In der Spielerkarte (Abend und Gesamtstatistik) gibt es den Abschnitt "Stock" mit **Unterm Strich**, **Eingezahlt** und **Bekommen** (Metriken `StockNet`, `StockPaid`, `StockReceived`); ein Tipp zeigt die Rangliste. Nur Spieler, die den Stock genutzt haben, stehen darin.
+
+### Abend mit Uhrzeit beenden, beendeten Abend wieder öffnen
+
+- "Abend beenden" nimmt eine Uhrzeit (`hh:mm`, Ortszeit) statt "jetzt": `latest_clock_before` nimmt die jüngste solche Zeit, die nicht in der Zukunft liegt (nach Mitternacht also der Vortag). Leer heißt jetzt. Das Ende darf nicht vor `Table::last_activity` liegen. Gespeichert wird es wie bisher in `Table.ended_at`.
+- Ein archivierter Abend lässt sich mit `storage::reopen_past` wieder zum laufenden machen (erst als laufender gespeichert, dann aus dem Archiv gelöscht). `ended_at` bleibt stehen und füllt das Feld für das Ende vor; wer dieselbe Uhrzeit lässt, behält den alten Zeitpunkt (auch Tage später). Nur möglich, wenn nicht gerade ein Abend mit Spielen läuft. Danach geht alles wie am laufenden Abend, auch Spiele bearbeiten.

@@ -515,7 +515,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Unter "Wie oft wurde gedoppelt?" gibt es einen Kuchen und eine Tabelle (Spiele und Anteil je Stufe), beim Abend und in der Gesamtstatistik.
 - [ ] CSV der Spiele: Spalten "Stock_Bewegung", "Stock_Cent" und "<Name> Stock_Cent"; der Tarifname stimmt mit der Statistik überein.
 
-### 34. Darstellung
+### 34. Beenden mit Uhrzeit, beendete Abende wieder öffnen
+
+- [ ] Am Tisch steht über "Abend beenden" das Feld "Ende des Abends (Uhrzeit, leer = jetzt)". Mit "23:15" beendet, zeigt der frühere Abend "bis 23:15 Uhr" und die passende Dauer. Ist es nach Mitternacht, ist der Vortag gemeint.
+- [ ] Eine ungültige Eingabe ("abends", "25:00") und ein Ende vor dem letzten Spiel geben eine rote Meldung, der Abend bleibt offen.
+- [ ] Unter "Frühere Abende" gibt es beim Abend "Abend wieder öffnen (Spiele bearbeiten)" (mit Rückfrage). Er ist danach der laufende Abend, Spiele lassen sich bearbeiten, löschen und eintragen, das Feld für das Ende zeigt die alte Uhrzeit.
+- [ ] Läuft schon ein Abend mit Spielen, kommt statt dem Öffnen eine Meldung, dass man ihn zuerst beenden muss.
+- [ ] Nach dem Bearbeiten "Abend beenden" legt den Abend wieder bei den früheren ab, mit den geänderten Beträgen.
+
+### 35. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

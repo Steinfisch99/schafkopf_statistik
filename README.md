@@ -103,6 +103,7 @@ Entscheidungen:
 - [x] Spielerliste: Namen einmal eingeben und danach auswählen, neue Namen werden gemerkt, Verwaltung in der App
 - [x] Lauf und Gegenlauf eintragen, Statistik dazu (je Spielart und je Spieler)
 - [x] Frühere Abende ansehen (Diagramm, Statistik, Spiele), exportieren und löschen; Namen unter dem Diagramm
+- [x] Abend mit Uhrzeit in der Vergangenheit beenden; beendeten Abend zum Bearbeiten wieder öffnen
 - [x] Bock (kein Bock, nächstes Spiel, nächste Runde je Regelwerk; Bockspiel und Bockrunde-Knopf, Schwarz löst aus)
 - [x] Ramsch: Klopfen wirkt wahlweise nicht auf den Preis, wird aber erfasst
 - [x] Icons für Eichel, Gras, Herz und Schellen bei Sau und Farbsolos

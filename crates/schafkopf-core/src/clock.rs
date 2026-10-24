@@ -58,3 +58,22 @@ pub fn format_minutes_after_noon(minutes: i32) -> String {
     let m = (minutes + 720).rem_euclid(1_440);
     format!("{:02}:{:02}", m / 60, m % 60)
 }
+
+/// Die jüngste Ortszeit-Uhrzeit im Format `h:mm` oder `hh:mm` (zum Beispiel "23:15"), die
+/// nicht nach `now` liegt, als Unix-Sekunden. So lässt sich ein Abend, der vor einer Weile endete,
+/// mit der Uhrzeit beenden: Ist es 01:08 und die Eingabe 23:15, ist gestern gemeint.
+pub fn latest_clock_before(input: &str, now: i64, offset_min: i32) -> Option<i64> {
+    let (h, m) = input.trim().split_once(':')?;
+    let (h, m): (i64, i64) = (h.trim().parse().ok()?, m.trim().parse().ok()?);
+    if !(0..24).contains(&h) || !(0..60).contains(&m) {
+        return None;
+    }
+    let offset = i64::from(offset_min) * 60;
+    let day_start = (now + offset).div_euclid(86_400) * 86_400 - offset;
+    let candidate = day_start + h * 3_600 + m * 60;
+    Some(if candidate > now {
+        candidate - 86_400
+    } else {
+        candidate
+    })
+}

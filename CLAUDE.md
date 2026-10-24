@@ -112,4 +112,5 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
   Farben der Spieleliste, neue Schellen-Zeichnung (`schafkopf-charts/src/suits.rs`, nach dem Bild des Nutzers vereinfacht, vorher geraten, keine
   Recherche möglich: Netz gesperrt).
 - Neu (0.4.1) und nur per Test sowie Kompilieren geprüft, nicht angesehen: Stock/"Keiner spielt" (`views/table_view.rs`, `StockList`, Regelwerk-Wahl in `library_screen.rs`, Tarif-Felder) und der Geldstand oben auf der Einrichtungsseite (`views/account.rs`). Die CSV der Spiele hat seit 0.4.4 Stock-Spalten.
+- Neu (0.4.5), nur per Test und Kompilieren geprüft, nicht angesehen: Ende-Uhrzeit-Feld am Tisch (`views/table_view.rs`) und "Abend wieder öffnen" (`views/past.rs`, `storage::reopen_past`).
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.

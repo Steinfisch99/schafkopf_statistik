@@ -110,6 +110,13 @@ pub fn delete_past(stamp: u64) -> io::Result<()> {
     delete_past_in(&data_dir(), stamp)
 }
 
+/// Macht einen früheren Abend wieder zum laufenden, damit er sich bearbeiten lässt. Der Abend wird
+/// erst als laufender gespeichert und dann aus dem Archiv entfernt, damit nichts verloren geht.
+/// Ein vorhandener laufender Abend wird überschrieben, das prüft der Aufrufer.
+pub fn reopen_past(stamp: u64) -> io::Result<Option<Table>> {
+    reopen_past_in(&data_dir(), stamp)
+}
+
 /// Verwirft den laufenden Abend, ohne ihn zu archivieren. Das ist für Abende ohne ein einziges
 /// Spiel gedacht, damit das Archiv nicht mit leeren Abenden zuwächst.
 pub fn discard_current() -> io::Result<()> {
@@ -285,6 +292,15 @@ fn delete_past_in(dir: &Path, stamp: u64) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+fn reopen_past_in(dir: &Path, stamp: u64) -> io::Result<Option<Table>> {
+    let Some(table) = load_past_in(dir, stamp) else {
+        return Ok(None);
+    };
+    save_in(dir, &table, None)?;
+    delete_past_in(dir, stamp)?;
+    Ok(Some(table))
 }
 
 fn discard_in(dir: &Path) -> io::Result<()> {
@@ -509,6 +525,25 @@ mod tests {
         save_in(&dir, &table, None).unwrap();
         assert!(archive_in(&dir, 200).unwrap());
         assert_eq!(fs::read_dir(dir.join(ARCHIVE_DIR)).unwrap().count(), 6);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn reopening_a_past_evening_makes_it_current_again() {
+        let dir = temp_dir("reopen");
+        assert!(reopen_past_in(&dir, 9).unwrap().is_none());
+
+        let mut table = table();
+        table.finish(1234);
+        save_in(&dir, &table, None).unwrap();
+        archive_in(&dir, 9).unwrap();
+
+        let reopened = reopen_past_in(&dir, 9).unwrap().unwrap();
+        assert_eq!(reopened.ended_at, Some(1234));
+        assert_eq!(load_from(&dir).unwrap().ended_at, Some(1234));
+        assert!(dir.join(CSV_FILE).exists());
+        assert!(list_past_in(&dir).is_empty());
+        assert!(!dir.join("archiv/schafkopf-spiele-9.csv").exists());
         fs::remove_dir_all(&dir).unwrap();
     }
 }
