@@ -6,8 +6,9 @@ use schafkopf_charts::format_euro;
 use schafkopf_core::{BockStacking, GameKind, PriceMistake, Suit, Table, MAX_BOCK};
 
 use super::common::{Chip, ConfirmButton, Notice};
+use super::suit_icon::SuitIcon;
 use crate::draft::GameDraft;
-use crate::summary::{check_lines, signed_euro};
+use crate::summary::{check_lines, price_line, signed_euro};
 use crate::{now_secs, storage, Screen};
 
 const CALLABLE_SUITS: [Suit; 3] = [Suit::Eichel, Suit::Gras, Suit::Schellen];
@@ -523,12 +524,20 @@ pub fn GameForm(
                                 for it in line {
                                     div { key: "{it.label}",
                                         dt { "{it.label}" }
-                                        dd { class: "{it.tone}", "{it.value}" }
+                                        dd { class: "{it.tone}",
+                                            if let Some(suit) = it.suit {
+                                                SuitIcon { suit }
+                                            }
+                                            "{it.value}"
+                                        }
                                     }
                                 }
                             }
                         }
                     }
+                }
+                if let Some(t) = table.read().as_ref() {
+                    p { class: "price-line", "{price_line(t, game)}" }
                 }
                 ul { class: "payouts",
                     for seat in d.participants.clone() {

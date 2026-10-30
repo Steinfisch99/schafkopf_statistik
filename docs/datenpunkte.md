@@ -254,7 +254,7 @@ Spiele Bockspiele mit doppeltem Preis.
 
 ## Prüfblock im Formular
 
-Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `summary::check_lines` in Zeilen: Spiel und Ausgang (grün/rot); Spieler (bei Ramsch Verlierer) und Mitspieler; Schneider/Schwarz und Lauf (nur bei Spielen mit Extras); Doppler und Kontra/Re; Bockrunde, ausgelöste Bockrunden und falsch verlangt. In der Tabelle sind Spieler und Mitspieler markiert. Reine Anzeige, keine neuen Daten.
+Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `summary::check_lines` in Zeilen: Spiel und Ausgang (grün/rot); Spieler (bei Ramsch Verlierer) und Mitspieler; Schneider/Schwarz und Lauf (nur bei Spielen mit Extras); Doppler mit Namen und Kontra/Re; Bockspiel und ausgelöste Bockrunden; falsch verlangt mit Grund und Zurückverlangt. Das Farbsymbol steht vor der Spielart. Darunter `summary::price_line`: Preis vor dem Verdoppeln (`base_value` im Kern) × Faktor (2 hoch `price_doublings`) = Einzelwert. In der Tabelle sind Spieler und Mitspieler markiert. Reine Anzeige, keine neuen Daten.
 
 ## Version
 

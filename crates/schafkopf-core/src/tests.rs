@@ -3976,3 +3976,19 @@ fn latest_clock_before_picks_the_most_recent_matching_time() {
     assert_eq!(at("abends"), None);
     assert_eq!(at(""), None);
 }
+
+#[test]
+fn base_value_times_doubling_factor_is_the_calculated_value() {
+    let tariff = Tariff::default();
+    let input = GameInput {
+        schneider: true,
+        laufende: 3,
+        knockers: vec![2],
+        kontra_by: Some(0),
+        ..sauspiel(0, 1, 3)
+    };
+    let base = base_value(&tariff, &input);
+    let factor = 1 << price_doublings(&tariff, &input);
+    assert_eq!(factor, 4);
+    assert_eq!(base * factor, calculated_value(&tariff, &input));
+}

@@ -522,7 +522,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Unter "Frühere Abende" gibt es beim Abend "Abend wieder öffnen (Spiele bearbeiten)" (mit Rückfrage). Er ist danach der laufende Abend, Spiele lassen sich bearbeiten, löschen und eintragen, das Feld für das Ende zeigt die alte Uhrzeit.
 - [ ] Läuft schon ein Abend mit Spielen, kommt statt dem Öffnen eine Meldung, dass man ihn zuerst beenden muss.
 - [ ] Nach dem Bearbeiten "Abend beenden" legt den Abend wieder bei den früheren ab, mit den geänderten Beträgen.
-- [ ] Beim Eintragen eines Spiels steht ganz unten über der Auszahlungstabelle ein kompakter Prüfblock in Zeilen: Spiel und Ausgang (grün gewonnen, rot verloren); Spieler und Mitspieler; Schneider/Schwarz und Lauf; Doppler und Kontra/Re; Bockrunde, ausgelöste Bockrunden und falsch verlangt. In der Tabelle sind Spieler und Mitspieler markiert. Block und Tabelle sind ohne Scrollen zusammen zu sehen.
+- [ ] Beim Eintragen eines Spiels steht ganz unten über der Auszahlungstabelle ein kompakter Prüfblock in Zeilen: Spiel (mit Farbsymbol vor dem Namen) und Ausgang (grün gewonnen, rot verloren); Spieler und Mitspieler; Schneider/Schwarz und Lauf; Doppler mit Namen und Kontra/Re; Bockspiel und ausgelöste Bockrunden; falsch verlangt mit Grund und ggf. zurückverlangt. Unter dem Block steht die Preiszeile "Preis (Grundtarif + Schneider + Laufende) × Faktor = Einzelwert". In der Tabelle sind Spieler und Mitspieler markiert. Block und Tabelle sind ohne Scrollen zusammen zu sehen.
 
 
 ### 35. Darstellung

@@ -1,7 +1,9 @@
 //! Kurze Texte für die Spieleliste.
 
 use schafkopf_charts::format_euro;
-use schafkopf_core::{Cents, Game, GameKind, Seat, Table};
+use schafkopf_core::{
+    base_value, price_doublings, Cents, Game, GameKind, Seat, Suit, Table, Tariff,
+};
 
 /// Spielart, bei Sau und Farbspielen mit Farbe: "Sauspiel Eichel".
 pub fn title(game: &Game) -> String {
@@ -93,11 +95,13 @@ pub fn detail(table: &Table, game: &Game) -> String {
     parts.join(" · ")
 }
 
-/// Ein Eintrag im Prüfblock: Bezeichnung, Wert und Farbe (`"good"`, `"bad"` oder leer).
+/// Ein Eintrag im Prüfblock: Bezeichnung, Wert, Farbe (`"good"`, `"bad"` oder leer) und
+/// optional eine Spielfarbe, die als Symbol vor dem Wert steht.
 pub struct CheckItem {
     pub label: &'static str,
     pub value: String,
     pub tone: &'static str,
+    pub suit: Option<Suit>,
 }
 
 fn item(label: &'static str, value: impl Into<String>) -> CheckItem {
@@ -105,6 +109,7 @@ fn item(label: &'static str, value: impl Into<String>) -> CheckItem {
         label,
         value: value.into(),
         tone: "",
+        suit: None,
     }
 }
 
@@ -116,8 +121,79 @@ fn yes_no(on: bool) -> &'static str {
     }
 }
 
+fn names(table: &Table, seats: &[Seat]) -> String {
+    let list: Vec<&str> = seats.iter().map(|&s| table.players[s].as_str()).collect();
+    list.join(" und ")
+}
+
+fn game_tariff(table: &Table, game: &Game) -> Tariff {
+    game.tariff.clone().unwrap_or_else(|| table.tariff.clone())
+}
+
+/// Die Verdopplungen, die in den Preis eingehen, mit Namen: "Cem klopft", "Anna Kontra" ...
+fn doubler_parts(table: &Table, game: &Game) -> Vec<String> {
+    let input = &game.input;
+    let tariff = game_tariff(table, game);
+    let ramsch = input.kind == GameKind::Ramsch;
+    let name = |seat: Seat| table.players[seat].as_str();
+    let mut parts = Vec::new();
+    if !(ramsch && !tariff.ramsch_knock_doubles) {
+        for &k in &input.knockers {
+            parts.push(format!("{} klopft", name(k)));
+        }
+    }
+    if let Some(k) = input.kontra_by {
+        parts.push(format!("{} Kontra", name(k)));
+    }
+    if input.re {
+        match input.re_giver() {
+            Some(r) => parts.push(format!("{} Re", name(r))),
+            None => parts.push("Re".into()),
+        }
+    }
+    if input.tout {
+        parts.push(format!("{} Tout", name(input.declarer)));
+    }
+    if !(ramsch && !tariff.ramsch_bock_doubles) {
+        match input.bock_doublings() {
+            0 => {}
+            1 => parts.push("Bock".into()),
+            n => parts.push(format!("Bock ×{n}")),
+        }
+    }
+    parts
+}
+
+/// Die Preiszeile unter dem Prüfblock: "Preis 0,30 € (Grundtarif + Schneider) × Faktor 4 = 1,20 €".
+pub fn price_line(table: &Table, game: &Game) -> String {
+    let input = &game.input;
+    let tariff = game_tariff(table, game);
+    let base = base_value(&tariff, input);
+    let mut what = vec!["Grundtarif".to_owned()];
+    if input.kind.has_extras() {
+        if !input.tout {
+            if input.schwarz {
+                what.push("Schneider + Schwarz".into());
+            } else if input.schneider {
+                what.push("Schneider".into());
+            }
+        }
+        if input.laufende >= tariff.laufende_min(input.kind) && input.laufende > 0 {
+            what.push(format!("{} Laufende", input.laufende));
+        }
+    }
+    let factor = 1u32 << price_doublings(&tariff, input);
+    format!(
+        "Preis {} ({}) × Faktor {} = {}",
+        format_euro(base),
+        what.join(" + "),
+        factor,
+        format_euro(game.calculated_value)
+    )
+}
+
 /// Zeilen des Prüfblocks vor dem Speichern: Spiel und Ausgang; Spieler und Mitspieler;
-/// Schneider/Schwarz und Lauf; Doppler, Kontra/Re; Bock und falsch verlangt.
+/// Schneider/Schwarz und Lauf; Doppler, Kontra/Re; Bock; falsch verlangt und zurückverlangt.
 pub fn check_lines(table: &Table, game: &Game) -> Vec<Vec<CheckItem>> {
     let input = &game.input;
     let name = |seat: Seat| table.players[seat].clone();
@@ -128,15 +204,17 @@ pub fn check_lines(table: &Table, game: &Game) -> Vec<Vec<CheckItem>> {
         (false, true) => ("gewonnen", true),
         (false, false) => ("verloren", false),
     };
-    let mut result = CheckItem {
+    let result = CheckItem {
         label: "Ausgang",
         value: outcome.into(),
         tone: if good { "good" } else { "bad" },
+        suit: None,
     };
-    if ramsch && !input.won {
-        result.tone = "bad";
-    }
-    let mut lines = vec![vec![item("Spiel", title(game)), result]];
+    let kind = CheckItem {
+        suit: input.suit,
+        ..item("Spiel", input.kind.label())
+    };
+    let mut lines = vec![vec![kind, result]];
 
     let mut who = vec![item(
         if ramsch { "Verlierer" } else { "Spieler" },
@@ -163,18 +241,24 @@ pub fn check_lines(table: &Table, game: &Game) -> Vec<Vec<CheckItem>> {
         lines.push(vec![item("Schneider/Schwarz", sn), item("Lauf", lauf)]);
     }
 
-    let kontra = match (input.kontra_by.is_some(), input.re) {
-        (false, _) => "nein",
-        (true, false) => "Kontra",
-        (true, true) => "Kontra, Re",
+    let tariff = game_tariff(table, game);
+    let count = price_doublings(&tariff, input);
+    let doubler = if count == 0 {
+        "0".to_owned()
+    } else {
+        format!("{count} ({})", doubler_parts(table, game).join(", "))
     };
-    lines.push(vec![
-        item("Doppler", input.doublings().to_string()),
-        item("Kontra/Re", kontra),
-    ]);
+    lines.push(vec![item("Doppler", doubler)]);
 
-    let mut bock = vec![
-        item("Bockrunde", yes_no(input.bock)),
+    let kontra = match (input.kontra_by, input.re) {
+        (None, _) => "nein".to_owned(),
+        (Some(k), false) => format!("Kontra von {}", name(k)),
+        (Some(k), true) => format!("Kontra von {}, Re", name(k)),
+    };
+    lines.push(vec![item("Kontra/Re", kontra)]);
+
+    lines.push(vec![
+        item("Bockspiel", yes_no(input.bock)),
         item(
             "Löst Bockrunde aus",
             match input.bock_triggers() {
@@ -182,23 +266,42 @@ pub fn check_lines(table: &Table, game: &Game) -> Vec<Vec<CheckItem>> {
                 n => n.to_string(),
             },
         ),
-    ];
-    let wrong = if !game.demanded_wrong() {
-        item("Falsch verlangt", "nein")
-    } else {
-        let text = if game.overcharged() {
-            "ja, zu viel"
+    ]);
+
+    if game.demanded_wrong() {
+        let direction = if game.overcharged() {
+            "zu viel"
         } else {
-            "ja, zu wenig"
+            "zu wenig"
         };
-        CheckItem {
-            label: "Falsch verlangt",
-            value: text.into(),
-            tone: "bad",
+        let mut text = format!(
+            "ja, {direction} (verlangt {}, berechnet {})",
+            format_euro(input.price_override.unwrap_or(0)),
+            format_euro(game.calculated_value)
+        );
+        if !input.price_error_by.is_empty() {
+            text.push_str(&format!(", von {}", names(table, &input.price_error_by)));
         }
-    };
-    bock.push(wrong);
-    lines.push(bock);
+        let mut line = vec![CheckItem {
+            tone: "bad",
+            ..item("Falsch verlangt", text)
+        }];
+        if !input.mistakes.is_empty() {
+            let kinds: Vec<&str> = input.mistakes.iter().map(|m| m.label()).collect();
+            line.push(item("Grund", kinds.join(", ")));
+        }
+        if game.overcharged() {
+            let back = if input.reclaimed {
+                format!("ja, von {}", names(table, &input.reclaimed_by))
+            } else {
+                "nein, nicht aufgefallen".to_owned()
+            };
+            line.push(item("Zurückverlangt", back));
+        }
+        lines.push(line);
+    } else {
+        lines.push(vec![item("Falsch verlangt", "nein")]);
+    }
     lines
 }
 
@@ -405,14 +508,18 @@ mod tests {
         let game = t.add_game(input).unwrap().clone();
         let rows: Vec<CheckItem> = check_lines(&t, &game).into_iter().flatten().collect();
         let get = |k: &str| rows.iter().find(|r| r.label == k).map(|r| r.value.as_str());
-        assert_eq!(get("Spiel"), Some("Sauspiel Eichel"));
         assert_eq!(get("Spieler"), Some("Ben"));
         assert_eq!(get("Mitspieler"), Some("Dora"));
         assert_eq!(get("Schneider/Schwarz"), Some("Schneider"));
         assert_eq!(get("Lauf"), Some("3"));
-        assert_eq!(get("Doppler"), Some("3"));
-        assert_eq!(get("Kontra/Re"), Some("Kontra, Re"));
-        assert_eq!(get("Bockrunde"), Some("nein"));
+        assert_eq!(get("Doppler"), Some("3 (Cem klopft, Anna Kontra, Ben Re)"));
+        assert_eq!(get("Kontra/Re"), Some("Kontra von Anna, Re"));
+        assert_eq!(get("Spiel"), Some("Sauspiel"));
+        assert_eq!(
+            price_line(&t, &game),
+            "Preis 0,60\u{a0}€ (Grundtarif + Schneider + 3 Laufende) × Faktor 8 = 4,80\u{a0}€"
+        );
+        assert_eq!(get("Bockspiel"), Some("nein"));
         assert_eq!(get("Falsch verlangt"), Some("nein"));
     }
 

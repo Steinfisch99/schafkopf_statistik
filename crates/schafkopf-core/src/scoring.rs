@@ -243,6 +243,12 @@ pub fn reclaimed_value(calculated: Cents, demanded: Cents) -> Cents {
 /// Klopfen, Kontra, Re und Tout. Beim Tout zählen Schneider und Schwarz nicht zum Grundpreis.
 /// Setzt eine gültige Eingabe voraus, siehe [`validate`].
 pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
+    base_value(tariff, input) << price_doublings(tariff, input)
+}
+
+/// Der Preis nach Tarif vor dem Verdoppeln: Grundtarif plus Schneider, Schwarz und Laufende.
+/// Die Verdopplungen kommen als Faktor `1 << price_doublings` dazu.
+pub fn base_value(tariff: &Tariff, input: &GameInput) -> Cents {
     let kind = input.kind;
     let mut value = tariff.base(kind);
     if kind.has_extras() {
@@ -260,7 +266,7 @@ pub fn calculated_value(tariff: &Tariff, input: &GameInput) -> Cents {
             value += Cents::from(input.laufende) * tariff.laufende;
         }
     }
-    value << price_doublings(tariff, input)
+    value
 }
 
 /// Wie oft der Preis des Spiels nach dem Tarif verdoppelt wird: Klopfen, Kontra, Re, Tout und Bock.
