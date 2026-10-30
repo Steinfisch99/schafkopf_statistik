@@ -93,28 +93,60 @@ pub fn detail(table: &Table, game: &Game) -> String {
     parts.join(" · ")
 }
 
-/// Kompakte Prüfzeilen (Bezeichnung, Wert) für die Vorschau vor dem Speichern:
-/// Spiel, Spieler, Mitspieler, Ausgang, Schneider/Schwarz, Lauf.
-pub fn check_rows(table: &Table, game: &Game) -> Vec<(&'static str, String)> {
+/// Ein Eintrag im Prüfblock: Bezeichnung, Wert und Farbe (`"good"`, `"bad"` oder leer).
+pub struct CheckItem {
+    pub label: &'static str,
+    pub value: String,
+    pub tone: &'static str,
+}
+
+fn item(label: &'static str, value: impl Into<String>) -> CheckItem {
+    CheckItem {
+        label,
+        value: value.into(),
+        tone: "",
+    }
+}
+
+fn yes_no(on: bool) -> &'static str {
+    if on {
+        "ja"
+    } else {
+        "nein"
+    }
+}
+
+/// Zeilen des Prüfblocks vor dem Speichern: Spiel und Ausgang; Spieler und Mitspieler;
+/// Schneider/Schwarz und Lauf; Doppler, Kontra/Re; Bock und falsch verlangt.
+pub fn check_lines(table: &Table, game: &Game) -> Vec<Vec<CheckItem>> {
     let input = &game.input;
     let name = |seat: Seat| table.players[seat].clone();
-    let mut rows = vec![("Spiel", title(game))];
-    let declarer_label = if input.kind == GameKind::Ramsch {
-        "Verlierer"
-    } else {
-        "Spieler"
+    let ramsch = input.kind == GameKind::Ramsch;
+    let (outcome, good) = match (ramsch, input.won) {
+        (true, false) => ("verliert", false),
+        (true, true) => ("Durchmarsch", true),
+        (false, true) => ("gewonnen", true),
+        (false, false) => ("verloren", false),
     };
-    rows.push((declarer_label, name(input.declarer)));
-    if let Some(partner) = input.partner {
-        rows.push(("Mitspieler", name(partner)));
+    let mut result = CheckItem {
+        label: "Ausgang",
+        value: outcome.into(),
+        tone: if good { "good" } else { "bad" },
+    };
+    if ramsch && !input.won {
+        result.tone = "bad";
     }
-    let outcome = match (input.kind, input.won) {
-        (GameKind::Ramsch, false) => "verliert",
-        (GameKind::Ramsch, true) => "Durchmarsch",
-        (_, true) => "gewonnen",
-        (_, false) => "verloren",
-    };
-    rows.push(("Ausgang", outcome.to_owned()));
+    let mut lines = vec![vec![item("Spiel", title(game)), result]];
+
+    let mut who = vec![item(
+        if ramsch { "Verlierer" } else { "Spieler" },
+        name(input.declarer),
+    )];
+    if let Some(partner) = input.partner {
+        who.push(item("Mitspieler", name(partner)));
+    }
+    lines.push(who);
+
     if input.kind.has_extras() {
         let sn = if input.schwarz {
             "Schwarz"
@@ -123,15 +155,51 @@ pub fn check_rows(table: &Table, game: &Game) -> Vec<(&'static str, String)> {
         } else {
             "nein"
         };
-        rows.push(("Schneider/Schwarz", sn.to_owned()));
         let lauf = match (input.laufende, input.gegenlauf) {
             (0, _) => "nein".to_owned(),
             (n, true) => format!("{n} (Gegenlauf)"),
-            (n, false) => format!("{n}"),
+            (n, false) => n.to_string(),
         };
-        rows.push(("Lauf", lauf));
+        lines.push(vec![item("Schneider/Schwarz", sn), item("Lauf", lauf)]);
     }
-    rows
+
+    let kontra = match (input.kontra_by.is_some(), input.re) {
+        (false, _) => "nein",
+        (true, false) => "Kontra",
+        (true, true) => "Kontra, Re",
+    };
+    lines.push(vec![
+        item("Doppler", input.doublings().to_string()),
+        item("Kontra/Re", kontra),
+    ]);
+
+    let mut bock = vec![
+        item("Bockrunde", yes_no(input.bock)),
+        item(
+            "Löst Bockrunde aus",
+            match input.bock_triggers() {
+                0 => "nein".to_owned(),
+                n => n.to_string(),
+            },
+        ),
+    ];
+    let wrong = if !game.demanded_wrong() {
+        item("Falsch verlangt", "nein")
+    } else {
+        let text = if game.overcharged() {
+            "ja, zu viel"
+        } else {
+            "ja, zu wenig"
+        };
+        CheckItem {
+            label: "Falsch verlangt",
+            value: text.into(),
+            tone: "bad",
+        }
+    };
+    bock.push(wrong);
+    lines.push(bock);
+    lines
 }
 
 /// Betrag mit Vorzeichen, damit Gewinn und Verlust auf einen Blick zu unterscheiden sind.
@@ -322,24 +390,32 @@ mod tests {
     }
 
     #[test]
-    fn check_rows_list_player_partner_and_extras() {
+    fn check_lines_cover_player_extras_and_doublers() {
         let mut t = table();
         let input = GameInput {
             suit: Some(Suit::Eichel),
             partner: Some(3),
+            knockers: vec![2],
+            kontra_by: Some(0),
+            re: true,
             schneider: true,
             laufende: 3,
             ..GameInput::new(0, GameKind::Sauspiel, 1)
         };
         let game = t.add_game(input).unwrap().clone();
-        let rows = check_rows(&t, &game);
-        let get = |k: &str| rows.iter().find(|r| r.0 == k).map(|r| r.1.as_str());
+        let rows: Vec<CheckItem> = check_lines(&t, &game).into_iter().flatten().collect();
+        let get = |k: &str| rows.iter().find(|r| r.label == k).map(|r| r.value.as_str());
         assert_eq!(get("Spiel"), Some("Sauspiel Eichel"));
         assert_eq!(get("Spieler"), Some("Ben"));
         assert_eq!(get("Mitspieler"), Some("Dora"));
         assert_eq!(get("Schneider/Schwarz"), Some("Schneider"));
         assert_eq!(get("Lauf"), Some("3"));
+        assert_eq!(get("Doppler"), Some("3"));
+        assert_eq!(get("Kontra/Re"), Some("Kontra, Re"));
+        assert_eq!(get("Bockrunde"), Some("nein"));
+        assert_eq!(get("Falsch verlangt"), Some("nein"));
     }
+
     #[test]
     fn marks_a_gegenlauf() {
         let mut t = table();

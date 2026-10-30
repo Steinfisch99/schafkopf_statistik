@@ -7,7 +7,7 @@ use schafkopf_core::{BockStacking, GameKind, PriceMistake, Suit, Table, MAX_BOCK
 
 use super::common::{Chip, ConfirmButton, Notice};
 use crate::draft::GameDraft;
-use crate::summary::{check_rows, signed_euro};
+use crate::summary::{check_lines, signed_euro};
 use crate::{now_secs, storage, Screen};
 
 const CALLABLE_SUITS: [Suit; 3] = [Suit::Eichel, Suit::Gras, Suit::Schellen];
@@ -517,11 +517,15 @@ pub fn GameForm(
             }
             if let Some(Ok(game)) = &preview {
                 if let Some(t) = table.read().as_ref() {
-                    dl { class: "check",
-                        for (label, value) in check_rows(t, game) {
-                            div { key: "{label}",
-                                dt { "{label}" }
-                                dd { "{value}" }
+                    div { class: "check",
+                        for (i, line) in check_lines(t, game).into_iter().enumerate() {
+                            dl { key: "{i}",
+                                for it in line {
+                                    div { key: "{it.label}",
+                                        dt { "{it.label}" }
+                                        dd { class: "{it.tone}", "{it.value}" }
+                                    }
+                                }
                             }
                         }
                     }
