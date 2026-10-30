@@ -114,3 +114,12 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 - Neu (0.4.1) und nur per Test sowie Kompilieren geprüft, nicht angesehen: Stock/"Keiner spielt" (`views/table_view.rs`, `StockList`, Regelwerk-Wahl in `library_screen.rs`, Tarif-Felder) und der Geldstand oben auf der Einrichtungsseite (`views/account.rs`). Die CSV der Spiele hat seit 0.4.4 Stock-Spalten.
 - Neu (0.4.5), nur per Test und Kompilieren geprüft, nicht angesehen: Ende-Uhrzeit-Feld am Tisch (`views/table_view.rs`) und "Abend wieder öffnen" (`views/past.rs`, `storage::reopen_past`).
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.
+
+## Release-Build
+
+`./scripts/build-apk.sh --release` baut die optimierte APK (`dx build --release`, Profil `[profile.release]` in `Cargo.toml`:
+`lto`, `codegen-units = 1`, `strip`), richtet sie mit zipalign aus und signiert sie mit `~/.android/debug.keystore` (derselbe
+Schlüssel wie beim Debug-Build, die APK lässt sich also über eine Debug-Version installieren, Daten bleiben). Ohne `--release`
+bleibt es beim schnellen Debug-Build. **Der Release-Zweig ist ungeprüft:** Der Android-Build läuft nur auf dem Host; ob Gradle die
+APK unter `outputs/apk/release/app-release*.apk` ablegt und `apksigner` sie annimmt, ist nicht bestätigt. Am Desktop:
+`cargo run --release -p <app> --features desktop`.
