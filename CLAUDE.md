@@ -117,9 +117,8 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
 
 ## Release-Build
 
-`./scripts/build-apk.sh --release` baut die optimierte APK (`dx build --release`, Profil `[profile.release]` in `Cargo.toml`:
-`lto`, `codegen-units = 1`, `strip`), richtet sie mit zipalign aus und signiert sie mit `~/.android/debug.keystore` (derselbe
-Schlüssel wie beim Debug-Build, die APK lässt sich also über eine Debug-Version installieren, Daten bleiben). Ohne `--release`
-bleibt es beim schnellen Debug-Build. **Der Release-Zweig ist ungeprüft:** Der Android-Build läuft nur auf dem Host; ob Gradle die
-APK unter `outputs/apk/release/app-release*.apk` ablegt und `apksigner` sie annimmt, ist nicht bestätigt. Am Desktop:
-`cargo run --release -p <app> --features desktop`.
+`./scripts/build-apk.sh --release` baut die optimierte APK (`dx build --release`; Profil `[profile.release]` in `Cargo.toml`:
+`lto`, `codegen-units = 1`, `strip`). Ohne `--release` bleibt es beim schnellen Debug-Build. Beim RSS-Reader: 10 MB statt 90 MB.
+Bestätigt (Host, rssreader): dx legt auch die Release-APK als `app-debug.apk` ab, unter `target/dx/<app>/release/android/…/outputs/apk/debug/`
+(Gradle baut die Debug-Variante um die optimierte Rust-Bibliothek). Sie ist mit dem Debug-Schlüssel signiert, lässt sich also über eine
+Debug-Version installieren (Daten bleiben). Es gibt keinen Signierschritt. Am Desktop: `cargo run --release -p <app> --features desktop`.
