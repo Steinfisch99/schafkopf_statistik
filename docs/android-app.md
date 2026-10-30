@@ -522,6 +522,8 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Unter "Frühere Abende" gibt es beim Abend "Abend wieder öffnen (Spiele bearbeiten)" (mit Rückfrage). Er ist danach der laufende Abend, Spiele lassen sich bearbeiten, löschen und eintragen, das Feld für das Ende zeigt die alte Uhrzeit.
 - [ ] Läuft schon ein Abend mit Spielen, kommt statt dem Öffnen eine Meldung, dass man ihn zuerst beenden muss.
 - [ ] Nach dem Bearbeiten "Abend beenden" legt den Abend wieder bei den früheren ab, mit den geänderten Beträgen.
+- [ ] Beim Eintragen eines Spiels steht ganz unten über der Auszahlungstabelle ein kompakter Prüfblock (Spiel, Spieler, Mitspieler, Ausgang, Schneider/Schwarz, Lauf). In der Tabelle sind Spieler und Mitspieler markiert. Block und Tabelle sind ohne Scrollen zusammen zu sehen.
+
 
 ### 35. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.

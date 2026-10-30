@@ -93,6 +93,47 @@ pub fn detail(table: &Table, game: &Game) -> String {
     parts.join(" · ")
 }
 
+/// Kompakte Prüfzeilen (Bezeichnung, Wert) für die Vorschau vor dem Speichern:
+/// Spiel, Spieler, Mitspieler, Ausgang, Schneider/Schwarz, Lauf.
+pub fn check_rows(table: &Table, game: &Game) -> Vec<(&'static str, String)> {
+    let input = &game.input;
+    let name = |seat: Seat| table.players[seat].clone();
+    let mut rows = vec![("Spiel", title(game))];
+    let declarer_label = if input.kind == GameKind::Ramsch {
+        "Verlierer"
+    } else {
+        "Spieler"
+    };
+    rows.push((declarer_label, name(input.declarer)));
+    if let Some(partner) = input.partner {
+        rows.push(("Mitspieler", name(partner)));
+    }
+    let outcome = match (input.kind, input.won) {
+        (GameKind::Ramsch, false) => "verliert",
+        (GameKind::Ramsch, true) => "Durchmarsch",
+        (_, true) => "gewonnen",
+        (_, false) => "verloren",
+    };
+    rows.push(("Ausgang", outcome.to_owned()));
+    if input.kind.has_extras() {
+        let sn = if input.schwarz {
+            "Schwarz"
+        } else if input.schneider {
+            "Schneider"
+        } else {
+            "nein"
+        };
+        rows.push(("Schneider/Schwarz", sn.to_owned()));
+        let lauf = match (input.laufende, input.gegenlauf) {
+            (0, _) => "nein".to_owned(),
+            (n, true) => format!("{n} (Gegenlauf)"),
+            (n, false) => format!("{n}"),
+        };
+        rows.push(("Lauf", lauf));
+    }
+    rows
+}
+
 /// Betrag mit Vorzeichen, damit Gewinn und Verlust auf einen Blick zu unterscheiden sind.
 pub fn signed_euro(cents: Cents) -> String {
     if cents > 0 {
@@ -280,6 +321,25 @@ mod tests {
         );
     }
 
+    #[test]
+    fn check_rows_list_player_partner_and_extras() {
+        let mut t = table();
+        let input = GameInput {
+            suit: Some(Suit::Eichel),
+            partner: Some(3),
+            schneider: true,
+            laufende: 3,
+            ..GameInput::new(0, GameKind::Sauspiel, 1)
+        };
+        let game = t.add_game(input).unwrap().clone();
+        let rows = check_rows(&t, &game);
+        let get = |k: &str| rows.iter().find(|r| r.0 == k).map(|r| r.1.as_str());
+        assert_eq!(get("Spiel"), Some("Sauspiel Eichel"));
+        assert_eq!(get("Spieler"), Some("Ben"));
+        assert_eq!(get("Mitspieler"), Some("Dora"));
+        assert_eq!(get("Schneider/Schwarz"), Some("Schneider"));
+        assert_eq!(get("Lauf"), Some("3"));
+    }
     #[test]
     fn marks_a_gegenlauf() {
         let mut t = table();

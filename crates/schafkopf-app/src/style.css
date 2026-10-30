@@ -90,6 +90,13 @@ button.link { background: none; color: inherit; text-decoration: underline; min-
 .game-line { display: flex; gap: 0.6rem; justify-content: space-between; }
 .payouts { list-style: none; padding: 0; margin: 0.5rem 0; }
 .payouts li { display: flex; justify-content: space-between; padding: 0.35rem 0; border-top: 1px solid var(--line); }
+.check { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0.25rem 0.6rem; margin: 0.5rem 0; padding: 0.4rem 0.6rem; background: var(--soft); border: 1px solid var(--line); border-radius: 0.5rem; font-size: 0.9rem; }
+.check dt { font-size: 0.75rem; opacity: 0.7; }
+.check dd { margin: 0; font-weight: 600; }
+.payouts li.role-declarer, .payouts li.role-partner { padding-inline: 0.4rem; font-weight: 600; }
+.payouts li.role-declarer { background: var(--soft); border-left: 3px solid var(--accent); }
+.payouts li.role-partner { background: var(--soft); border-left: 3px dashed var(--accent); }
+.payouts .role { margin-left: 0.5rem; font-size: 0.7rem; font-weight: 600; color: var(--accent); text-transform: uppercase; }
 .price { margin: 0.3rem 0; font-size: 1.05rem; }
 
 .notice {

@@ -7,7 +7,7 @@ use schafkopf_core::{BockStacking, GameKind, PriceMistake, Suit, Table, MAX_BOCK
 
 use super::common::{Chip, ConfirmButton, Notice};
 use crate::draft::GameDraft;
-use crate::summary::signed_euro;
+use crate::summary::{check_rows, signed_euro};
 use crate::{now_secs, storage, Screen};
 
 const CALLABLE_SUITS: [Suit; 3] = [Suit::Eichel, Suit::Gras, Suit::Schellen];
@@ -516,10 +516,29 @@ pub fn GameForm(
                 }
             }
             if let Some(Ok(game)) = &preview {
+                if let Some(t) = table.read().as_ref() {
+                    dl { class: "check",
+                        for (label, value) in check_rows(t, game) {
+                            div { key: "{label}",
+                                dt { "{label}" }
+                                dd { "{value}" }
+                            }
+                        }
+                    }
+                }
                 ul { class: "payouts",
                     for seat in d.participants.clone() {
-                        li { key: "{seat}",
-                            span { "{players[seat]}" }
+                        li {
+                            key: "{seat}",
+                            class: if seat == game.input.declarer { "role-declarer" } else if game.input.partner == Some(seat) { "role-partner" } else { "" },
+                            span {
+                                "{players[seat]}"
+                                if seat == game.input.declarer {
+                                    b { class: "role", if kind == GameKind::Ramsch { "Verlierer" } else { "Spieler" } }
+                                } else if game.input.partner == Some(seat) {
+                                    b { class: "role", "Mitspieler" }
+                                }
+                            }
                             span { class: if game.payouts[seat] < 0 { "amount neg" } else { "amount" }, "{signed_euro(game.payouts[seat])}" }
                         }
                     }

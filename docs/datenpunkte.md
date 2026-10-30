@@ -252,6 +252,10 @@ Spiele Bockspiele mit doppeltem Preis.
 - Ältere Spiele mit Tout und Schneider oder Schwarz, die schon gespeichert sind, behalten ihren
   festgeschriebenen Preis. Beim Bearbeiten wird nach der neuen Regel gerechnet.
 
+## Prüfblock im Formular
+
+Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `summary::check_rows`: Spiel, Spieler (bei Ramsch Verlierer), Mitspieler, Ausgang, Schneider/Schwarz und Lauf (nur bei Spielen mit Extras). In der Tabelle sind Spieler und Mitspieler markiert. Reine Anzeige, keine neuen Daten.
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.
