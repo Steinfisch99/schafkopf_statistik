@@ -10,6 +10,7 @@ use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, T
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
 use super::meta_sections::{EveningsOverview, OverallPresence, TariffSection};
+use super::records::{lauf_groups, overall_records, RecordsSection};
 use super::stat_widgets::{
     DivergingRow, DoublerSection, ShareBar, StackedBar, ToutSection, WinDonut,
 };
@@ -536,6 +537,7 @@ pub fn OverallScreen(
             if chosen.is_empty() {
                 p { class: "hint empty", "Kein Abend gewählt." }
             } else {
+                RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
                 OverallNumbers { stats }
             }
         }

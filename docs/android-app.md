@@ -525,7 +525,12 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Beim Eintragen eines Spiels steht ganz unten über der Auszahlungstabelle ein kompakter Prüfblock in Zeilen: Spiel (mit Farbsymbol vor dem Namen) und Ausgang (grün gewonnen, rot verloren); Spieler und Mitspieler; Schneider/Schwarz und Lauf; Doppler mit Namen und Kontra/Re; Bockspiel und ausgelöste Bockrunden; falsch verlangt mit Grund und ggf. zurückverlangt. Unter dem Block steht die Preiszeile "Preis (Grundtarif + Schneider + Laufende) × Faktor = Einzelwert". In der Tabelle sind Spieler und Mitspieler markiert. Block und Tabelle sind ohne Scrollen zusammen zu sehen.
 
 
-### 35. Darstellung
+### 35. Rekorde und Laufende
+- [ ] In der Statistik eines Abends steht nach "Dieser Abend" der Abschnitt "Rekorde": Teuerstes Spiel, teuerstes Sauspiel, Wenz usw. (nur Arten, die gespielt wurden) und Meiste Laufende, jeweils mit Beschreibung des Spiels darunter.
+- [ ] Darunter "Wie viele Laufende?" für Sauspiele und Solos: je Zahl der Laufenden ein Balken (grün gewonnen, orange verloren), Gegenläufe getrennt, "ohne Lauf" eingeschlossen.
+- [ ] Dasselbe in der Gesamtstatistik, über die gewählten Abende; die Beschreibung der Rekorde nennt das Datum des Abends.
+
+### 36. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

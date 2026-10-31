@@ -11,6 +11,7 @@ use schafkopf_core::{
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
 use super::meta_sections::{EveningPresence, TariffSection};
+use super::records::{evening_records, lauf_groups, RecordsSection};
 use super::stat_widgets::{
     DivergingRow, DonutWithLegend, DoublerSection, ResultStrip, SegmentBar, ShareBar, StackedBar,
     ToutSection, WinDonut, GEGENLAUF_COLOR, LAUF_COLOR, NO_LAUF_COLOR,
@@ -508,6 +509,8 @@ pub fn StatsScreen(
                     }
                 }
             }
+
+            RecordsSection { rows: evening_records(t, &stats), groups: lauf_groups(&stats.laufende_counts) }
 
             section {
                 h3 { "Spielarten" }

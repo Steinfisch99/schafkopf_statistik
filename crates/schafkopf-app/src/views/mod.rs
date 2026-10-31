@@ -11,6 +11,7 @@ mod meta_sections;
 mod offence_screen;
 mod overall_screen;
 mod past;
+mod records;
 mod seats_screen;
 mod settings_screen;
 mod setup;

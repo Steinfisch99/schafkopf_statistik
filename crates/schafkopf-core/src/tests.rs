@@ -3992,3 +3992,63 @@ fn base_value_times_doubling_factor_is_the_calculated_value() {
     assert_eq!(factor, 4);
     assert_eq!(base * factor, calculated_value(&tariff, &input));
 }
+
+#[test]
+fn records_and_lauf_counts_per_kind_for_one_evening_and_overall() {
+    let mut a = table();
+    // Sauspiel 0: 4 Lauf, gewonnen. Sauspiel 1: 3 Gegenlauf, verloren. Sauspiel 2: ohne. Wenz 3: 2 Lauf.
+    a.add_game(GameInput {
+        laufende: 4,
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    a.add_game(GameInput {
+        laufende: 3,
+        gegenlauf: true,
+        won: false,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    a.add_game(sauspiel(2, 1, 3)).unwrap();
+    a.add_game(GameInput {
+        laufende: 2,
+        won: true,
+        ..GameInput::new(3, GameKind::Wenz, 1)
+    })
+    .unwrap();
+    let s = table_stats(&a);
+    let sau = &s.laufende_counts[&GameKind::Sauspiel];
+    assert_eq!((sau[&4].lauf.games, sau[&4].lauf.wins), (1, 1));
+    assert_eq!((sau[&3].gegenlauf.games, sau[&3].gegenlauf.wins), (1, 0));
+    assert_eq!(sau[&0].lauf.games, 1);
+    assert_eq!(s.laufende_counts[&GameKind::Wenz][&2].lauf.games, 1);
+    assert_eq!(s.most_laufende, Some((0, 4)));
+    let (wenz_index, wenz_value) = s.most_expensive_by_kind[&GameKind::Wenz];
+    assert_eq!(wenz_index, 3);
+    assert_eq!(wenz_value, a.games()[3].value);
+    assert!(s.most_expensive_by_kind.contains_key(&GameKind::Sauspiel));
+
+    let mut b = table();
+    b.add_game(GameInput {
+        laufende: 5,
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let o = overall_stats(&[&a, &b]);
+    let top = o.most_laufende.unwrap();
+    assert_eq!((top.evening, top.game, top.laufende), (1, 0, 5));
+    assert_eq!(o.laufende_counts[&GameKind::Sauspiel][&4].lauf.games, 1);
+    assert_eq!(o.laufende_counts[&GameKind::Sauspiel][&5].lauf.games, 1);
+    let sau_best = o.most_expensive_by_kind[&GameKind::Sauspiel];
+    let max = a
+        .games()
+        .iter()
+        .chain(b.games())
+        .filter(|g| g.input.kind == GameKind::Sauspiel)
+        .map(|g| g.value)
+        .max()
+        .unwrap();
+    assert_eq!(sau_best.value, max);
+}

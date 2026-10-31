@@ -273,3 +273,4 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .rank-list li.me { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 700; border-radius: 0.3rem; }
 .app-version { text-align: center; margin: 1.5rem 0 0.5rem; }
 .price-line { margin: 0.4rem 0 0; font-size: 0.9rem; font-weight: 600; }
+h5 { margin: 0.8rem 0 0.2rem; font-size: 0.85rem; opacity: 0.8; }

@@ -7,7 +7,9 @@ use crate::clock::minutes_after_noon;
 use crate::meta::{table_meta, UseCount};
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
-use crate::stats::{table_stats, KindStats, PlayerStats, PlayerStock, RoleStats, StockStats};
+use crate::stats::{
+    table_stats, KindStats, LaufCount, PlayerStats, PlayerStock, RoleStats, StockStats,
+};
 use crate::table::{OffenceKind, Table};
 
 /// Ein Spieler über alle gewählten Abende.
@@ -220,6 +222,16 @@ impl OverallPlayer {
     }
 }
 
+/// Ein Spiel in der Gesamtstatistik: Abend (Index in der Liste der Abende), Spiel (Index im Abend) und Zahlen.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GameRef {
+    pub evening: usize,
+    pub game: usize,
+    /// Einzelwert in Cent.
+    pub value: Cents,
+    pub laufende: u8,
+}
+
 /// Die Zahlen für alle gewählten Abende zusammen.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct OverallStats {
@@ -254,6 +266,13 @@ pub struct OverallStats {
     pub offences_by_kind: BTreeMap<OffenceKind, u32>,
     pub penalty_cents: Cents,
     pub stock: StockStats,
+    /// Teuerstes Spiel insgesamt und je Spielart.
+    pub most_expensive: Option<GameRef>,
+    pub most_expensive_by_kind: BTreeMap<GameKind, GameRef>,
+    /// Das Spiel mit den meisten Laufenden.
+    pub most_laufende: Option<GameRef>,
+    /// Je Spielart: wie oft es wie viele Laufende gab (Schlüssel = Anzahl, 0 = kein Lauf).
+    pub laufende_counts: BTreeMap<GameKind, BTreeMap<u8, LaufCount>>,
     pub players: Vec<OverallPlayer>,
     /// Spiele je Tarif und je Regelwerk (die meisten zuerst) und wie oft sie von einem Spiel zum nächsten wechselten.
     pub tariffs: Vec<UseCount>,
@@ -283,7 +302,7 @@ impl OverallStats {
 pub fn overall_stats(tables: &[&Table]) -> OverallStats {
     let mut out = OverallStats::default();
     let mut index: BTreeMap<String, usize> = BTreeMap::new();
-    for table in tables {
+    for (evening, table) in tables.iter().enumerate() {
         let stats = table_stats(table);
         out.evenings += 1;
         out.games += stats.games;
@@ -293,6 +312,37 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
             e.games += k.games;
             e.wins += k.wins;
             e.balance += k.balance;
+        }
+        let game_ref = |game: usize, value: Cents, laufende: u8| GameRef {
+            evening,
+            game,
+            value,
+            laufende,
+        };
+        let laufende_of = |game: usize| table.games().get(game).map_or(0, |g| g.input.laufende);
+        if let Some((game, value)) = stats.most_expensive {
+            if out.most_expensive.is_none_or(|r| value > r.value) {
+                out.most_expensive = Some(game_ref(game, value, laufende_of(game)));
+            }
+        }
+        for (kind, &(game, value)) in &stats.most_expensive_by_kind {
+            let best = out.most_expensive_by_kind.get(kind);
+            if best.is_none_or(|r| value > r.value) {
+                out.most_expensive_by_kind
+                    .insert(*kind, game_ref(game, value, laufende_of(game)));
+            }
+        }
+        if let Some((game, count)) = stats.most_laufende {
+            if out.most_laufende.is_none_or(|r| count > r.laufende) {
+                let value = table.games().get(game).map_or(0, |g| g.value);
+                out.most_laufende = Some(game_ref(game, value, count));
+            }
+        }
+        for (kind, counts) in &stats.laufende_counts {
+            let into = out.laufende_counts.entry(*kind).or_default();
+            for (n, c) in counts {
+                into.entry(*n).or_default().add(c);
+            }
         }
         out.knocked_games += stats.knocked_games;
         out.kontra_games += stats.kontra_games;

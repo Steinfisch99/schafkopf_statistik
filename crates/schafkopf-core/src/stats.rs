@@ -68,6 +68,23 @@ impl LaufendeStats {
     }
 }
 
+/// Spiele mit genau so vielen Laufenden: die der Spielerpartei (Lauf) und die der Gegenpartei (Gegenlauf),
+/// jeweils mit den Siegen der Spielerpartei. Gezählt wird nur ab der Mindestzahl des Tarifs.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LaufCount {
+    pub lauf: RoleStats,
+    pub gegenlauf: RoleStats,
+}
+
+impl LaufCount {
+    pub fn add(&mut self, other: &LaufCount) {
+        self.lauf.games += other.lauf.games;
+        self.lauf.wins += other.lauf.wins;
+        self.gegenlauf.games += other.gegenlauf.games;
+        self.gegenlauf.wins += other.gegenlauf.wins;
+    }
+}
+
 /// Zahlen zum Stock eines Abends (oder mehrerer Abende zusammen), alles in Cent.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StockStats {
@@ -307,6 +324,15 @@ pub struct TableStats {
     pub turnover: Cents,
     /// Teuerstes Spiel als (Index in `Table::games`, Einzelwert).
     pub most_expensive: Option<(usize, Cents)>,
+    /// Teuerstes Spiel je Spielart als (Index in `Table::games`, Einzelwert).
+    #[serde(default)]
+    pub most_expensive_by_kind: BTreeMap<GameKind, (usize, Cents)>,
+    /// Das Spiel mit den meisten Laufenden (Lauf oder Gegenlauf) als (Index, Anzahl).
+    #[serde(default)]
+    pub most_laufende: Option<(usize, u8)>,
+    /// Je Spielart: wie oft es wie viele Laufende gab (Schlüssel = Anzahl).
+    #[serde(default)]
+    pub laufende_counts: BTreeMap<GameKind, BTreeMap<u8, LaufCount>>,
     pub by_kind: BTreeMap<GameKind, KindStats>,
     /// Sauspiele nach gerufener Sau.
     pub by_called_ace: BTreeMap<Suit, RoleStats>,
@@ -363,6 +389,9 @@ pub fn table_stats(table: &Table) -> TableStats {
         games: 0,
         turnover: 0,
         most_expensive: None,
+        most_expensive_by_kind: BTreeMap::new(),
+        most_laufende: None,
+        laufende_counts: BTreeMap::new(),
         by_kind: BTreeMap::new(),
         by_called_ace: BTreeMap::new(),
         knocked_games: 0,
@@ -398,6 +427,13 @@ pub fn table_stats(table: &Table) -> TableStats {
         stats.turnover += game.payouts.iter().filter(|&&p| p > 0).sum::<Cents>();
         if stats.most_expensive.is_none_or(|(_, v)| game.value > v) {
             stats.most_expensive = Some((idx, game.value));
+        }
+        let priciest = stats
+            .most_expensive_by_kind
+            .entry(g.kind)
+            .or_insert((idx, game.value));
+        if game.value > priciest.1 {
+            *priciest = (idx, game.value);
         }
         let kind = stats.by_kind.entry(g.kind).or_default();
         kind.games += 1;
@@ -502,12 +538,25 @@ pub fn table_stats(table: &Table) -> TableStats {
         if g.kind.has_extras() {
             let entry = stats.laufende_by_kind.entry(g.kind).or_default();
             entry.games += 1;
+            let counts = stats
+                .laufende_counts
+                .entry(g.kind)
+                .or_default()
+                .entry(if lauf_counted { g.laufende } else { 0 })
+                .or_default();
             if lauf_counted && g.gegenlauf {
                 entry.gegenlauf += 1;
                 entry.gegenlauf_sum += u32::from(g.laufende);
+                counts.gegenlauf.record(g.won);
             } else if lauf_counted {
                 entry.lauf += 1;
                 entry.lauf_sum += u32::from(g.laufende);
+                counts.lauf.record(g.won);
+            } else {
+                counts.lauf.record(g.won);
+            }
+            if lauf_counted && stats.most_laufende.is_none_or(|(_, n)| g.laufende > n) {
+                stats.most_laufende = Some((idx, g.laufende));
             }
         }
 

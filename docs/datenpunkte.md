@@ -256,6 +256,10 @@ Spiele Bockspiele mit doppeltem Preis.
 
 Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `summary::check_lines` in Zeilen: Spiel und Ausgang (grün/rot); Spieler (bei Ramsch Verlierer) und Mitspieler; Schneider/Schwarz und Lauf (nur bei Spielen mit Extras); Doppler mit Namen und Kontra/Re; Bockspiel und ausgelöste Bockrunden; falsch verlangt mit Grund und Zurückverlangt. Das Farbsymbol steht vor der Spielart. Darunter `summary::price_line`: Preis vor dem Verdoppeln (`base_value` im Kern) × Faktor (2 hoch `price_doublings`) = Einzelwert. In der Tabelle sind Spieler und Mitspieler markiert. Reine Anzeige, keine neuen Daten.
 
+## Rekorde und Laufende
+
+`TableStats::most_expensive_by_kind` (teuerstes Spiel je Spielart), `most_laufende` und `laufende_counts` (je Spielart und Zahl der Laufenden `LaufCount`: Lauf und Gegenlauf, jeweils Spiele und Siege der Spielerpartei; 0 = kein Lauf) sowie in `OverallStats` dasselbe mit `GameRef` (Abend, Spiel, Wert). Alle neuen Felder haben `serde(default)`. Die Anzeige `views/records.rs` fasst für die Laufenden Sauspiele und alle Solos mit Zuschlägen zusammen. Ramsch und Bettel haben keine Laufenden.
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.
