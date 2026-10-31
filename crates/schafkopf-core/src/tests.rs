@@ -4240,3 +4240,29 @@ fn overall_history_starts_at_the_start_value_and_places_adjustments_between_even
         overall_history(&[&a, &b])
     );
 }
+
+#[test]
+fn the_flow_mode_chooses_between_whole_and_split_prices() {
+    let mut t = table();
+    t.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let whole = money_flows_with(&t, FlowMode::Whole);
+    assert_eq!(whole, money_flows(&t));
+    assert_eq!((whole[0][1], whole[0][3]), (20, 0));
+    let split = money_flows_with(&t, FlowMode::Split);
+    assert_eq!(
+        (split[0][1], split[0][3], split[2][1], split[2][3]),
+        (10, 10, 10, 10)
+    );
+    for (seat, &balance) in t.balances().iter().enumerate() {
+        assert_eq!(flow_balance(&split, seat), balance);
+    }
+    let h = overall_history(&[&t]);
+    assert_eq!(
+        overall_flows_with(&[&t], &h.names, FlowMode::Split)[0][1],
+        10
+    );
+}

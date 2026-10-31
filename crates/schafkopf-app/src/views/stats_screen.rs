@@ -5,8 +5,8 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
-    money_flows, table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats,
-    PlayerStock, RoleStats, StockStats, Suit, Table,
+    money_flows_with, table_meta, table_stats, Cents, FlowMode, GameKind, LaufendeStats,
+    OffenceKind, PlayerStats, PlayerStock, RoleStats, StockStats, Suit, Table,
 };
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
@@ -279,6 +279,7 @@ pub fn StatsScreen(
     back: Screen,
     focus: Option<usize>,
 ) -> Element {
+    let split = use_signal(|| false);
     let mut screen = screen;
     // Kommt man über den Namen eines Spielers hierher, scrollt die Seite zu seiner Karte.
     use_effect(move || {
@@ -358,7 +359,14 @@ pub fn StatsScreen(
     let pair_scale = pairs.iter().map(|r| r.stats.games).max().unwrap_or(0);
     let declarers = declarer_rate(&stats);
     let results = strip_cells(t);
-    let flows = money_flows(t);
+    let flows = money_flows_with(
+        t,
+        if split() {
+            FlowMode::Split
+        } else {
+            FlowMode::Whole
+        },
+    );
     // Wer an diesem Abend dabei war, für die Ranglisten beim Antippen einer Zahl.
     let peers: Vec<PeerRow> = stats
         .players
@@ -467,7 +475,7 @@ pub fn StatsScreen(
                 }
             }
 
-            FlowSection { names: t.players.clone(), flows: flows.clone() }
+            FlowSection { names: t.players.clone(), flows: flows.clone(), split }
 
             DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
             ToutSection { rows: tout_rows }

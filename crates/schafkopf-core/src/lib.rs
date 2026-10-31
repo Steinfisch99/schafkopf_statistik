@@ -25,7 +25,9 @@ pub use clock::{
     latest_clock_before, minutes_after_noon,
 };
 pub use error::{Error, Result};
-pub use flows::{money_flows, overall_flows, FlowMatrix};
+pub use flows::{
+    money_flows, money_flows_with, overall_flows, overall_flows_with, FlowMatrix, FlowMode,
+};
 pub use library::{AccountRow, Adjustment, Library, MergeReport, NamedTariff, RuleSet};
 pub use meta::{table_meta, Presence, TableMeta, UseCount};
 pub use model::{

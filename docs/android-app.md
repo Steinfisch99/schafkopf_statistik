@@ -545,6 +545,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Tippen auf einen Namen unter dem Diagramm hebt nur seine Bänder hervor und nennt darunter, an wen er gezahlt und von wem er bekommen hat.
 - [ ] Dasselbe in der Gesamtstatistik über die gewählten Abende.
 - [ ] Bei Sauspielen zahlt jeder Verlierer seinen ganzen Betrag an einen Gewinner (keine halben Preise wie 5 Cent), die Zuordnung wechselt von Spiel zu Spiel. Stock-Beträge kommen anteilig von denen, die eingezahlt haben, dabei können Beträge unter dem Tarifpreis vorkommen.
+- [ ] Über dem Sankey gibt es den Schalter "Sauspiel: Betrag auf beide Gewinner aufteilen" (Abend und Gesamtstatistik). Aus: ganze Preise wie oben. An: jeder Verlierer zahlt die Hälfte an jeden Gewinner (halbe Preise, z. B. 5 Cent, möglich). Er gilt auch für die Sankey-Diagramme in den Spielerkarten.
 
 ### 39. Sankey je Spieler, Startwerte im Verlauf
 - [ ] In der Karte jedes Spielers (Abend und Gesamtstatistik) steht "Geldflüsse": links von wem er Geld bekam, in der Mitte er mit seinem Stand, rechts an wen er zahlte. In den Bändern stehen die Beträge (bei sehr schmalen Bändern nicht, aber der Betrag steht immer unter dem Namen am Balken).

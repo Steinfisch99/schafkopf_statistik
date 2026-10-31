@@ -44,7 +44,8 @@ pub fn flow_lines(
 }
 
 #[component]
-pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
+pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>, split: Signal<bool>) -> Element {
+    let mut split = split;
     let mut picked = use_signal(|| None::<usize>);
     let total: Cents = flows.iter().flatten().sum();
     if total <= 0 {
@@ -60,7 +61,14 @@ pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
             h3 { "Geldflüsse" }
             p { class: "legend-note",
                 "Links steht, wer gezahlt hat, rechts, wer bekommen hat. Die Bänder zeigen, wie viel von wem zu wem geflossen ist. "
-                "Beim Sauspiel zahlt jeder Verlierer seinen ganzen Betrag an einen der beiden Gewinner (die Zuordnung wechselt von Spiel zu Spiel), beim Stock kommt es anteilig von denen, die eingezahlt haben."
+                "Beim Sauspiel zahlt jeder Verlierer seinen ganzen Betrag an einen der beiden Gewinner (die Zuordnung wechselt von Spiel zu Spiel). Mit dem Schalter zahlt er stattdessen die Hälfte an jeden, dann kommen halbe Preise vor. Beim Stock kommt es anteilig von denen, die eingezahlt haben."
+            }
+            div { class: "chips range",
+                Chip {
+                    label: "Sauspiel: Betrag auf beide Gewinner aufteilen".to_string(),
+                    on: split(),
+                    onclick: move |_| split.set(!split()),
+                }
             }
             div { class: "chart sankey", dangerous_inner_html: "{svg}" }
             div { class: "chips range",

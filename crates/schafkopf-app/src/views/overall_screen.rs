@@ -6,8 +6,8 @@ use std::collections::BTreeSet;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color};
 use schafkopf_core::{
-    overall_flows, overall_history, overall_history_with, overall_stats, Cents, HistoryStep,
-    Library, OverallHistory, OverallPlayer, OverallStats, PriceMistake, Table,
+    overall_flows_with, overall_history, overall_history_with, overall_stats, Cents, FlowMode,
+    HistoryStep, Library, OverallHistory, OverallPlayer, OverallStats, PriceMistake, Table,
 };
 
 use super::balance_chart::HistoryChart;
@@ -463,6 +463,7 @@ pub fn OverallScreen(
     let mut screen = screen;
     let _ = notice;
     let mut with_account = use_signal(|| true);
+    let split = use_signal(|| false);
     // Beim Öffnen einmal gelesen: Die früheren Abende ändern sich hier nicht.
     let past = use_signal(storage::list_past);
     let current: Option<Table> = table
@@ -502,7 +503,15 @@ pub fn OverallScreen(
     let evening_infos = evening_infos(&evenings, &off.read(), account);
     // Die Geldflüsse brauchen nur Spieler, die an den Abenden saßen.
     let flow_names = overall_history(&chosen).names;
-    let flows = overall_flows(&chosen, &flow_names);
+    let flows = overall_flows_with(
+        &chosen,
+        &flow_names,
+        if split() {
+            FlowMode::Split
+        } else {
+            FlowMode::Whole
+        },
+    );
     let keys: Vec<u64> = evenings.iter().map(|(k, _)| *k).collect();
 
     rsx! {
@@ -604,7 +613,7 @@ pub fn OverallScreen(
                         }
                     }
                 }
-                FlowSection { names: flow_names.clone(), flows: flows.clone() }
+                FlowSection { names: flow_names.clone(), flows: flows.clone(), split }
                 RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
                 OverallNumbers { stats, flow_names: flow_names.clone(), flows: flows.clone() }
             }

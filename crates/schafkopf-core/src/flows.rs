@@ -103,8 +103,23 @@ fn sides(payouts: &[Cents]) -> (Vec<Part>, Vec<Part>) {
     (pick(-1), pick(1))
 }
 
+/// Wie ein Sauspiel (zwei gegen zwei) in Flüsse zerlegt wird.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FlowMode {
+    /// Jeder Verlierer zahlt seinen ganzen Betrag an einen Gewinner (wechselnd von Spiel zu Spiel).
+    #[default]
+    Whole,
+    /// Jeder Verlierer zahlt die Hälfte an jeden der beiden Gewinner (halbe Preise möglich).
+    Split,
+}
+
 /// Wer wem wie viel gezahlt hat: Spiele, Strafen und Stock eines Abends, Sitzplatz für Sitzplatz.
 pub fn money_flows(table: &Table) -> FlowMatrix {
+    money_flows_with(table, FlowMode::Whole)
+}
+
+/// Wie [`money_flows`], mit wählbarer Zerlegung der Spiele zwei gegen zwei.
+pub fn money_flows_with(table: &Table, mode: FlowMode) -> FlowMatrix {
     let n = table.players.len();
     let mut out = vec![vec![0; n]; n];
     for (number, game) in table.games().iter().enumerate() {
@@ -113,7 +128,7 @@ pub fn money_flows(table: &Table) -> FlowMatrix {
         // an einen Gewinner, so fließen nie halbe Preise. Von Spiel zu Spiel wechselt die Zuordnung, damit
         // keiner dauernd an denselben zahlt.
         if let ([a, b], [c, d]) = (payers.as_slice(), receivers.as_slice()) {
-            if a.1 == b.1 && c.1 == d.1 && a.1 == c.1 {
+            if mode == FlowMode::Whole && a.1 == b.1 && c.1 == d.1 && a.1 == c.1 {
                 let (first, second) = if number % 2 == 0 { (*c, *d) } else { (*d, *c) };
                 spread(&mut out, &[*a], &[first]);
                 spread(&mut out, &[*b], &[second]);
@@ -159,6 +174,11 @@ pub fn money_flows(table: &Table) -> FlowMatrix {
 /// Die Flüsse über mehrere Abende, Spieler über den Namen zusammengeführt (in der Reihenfolge von
 /// `OverallHistory::names`).
 pub fn overall_flows(tables: &[&Table], names: &[String]) -> FlowMatrix {
+    overall_flows_with(tables, names, FlowMode::Whole)
+}
+
+/// Wie [`overall_flows`], mit wählbarer Zerlegung der Spiele zwei gegen zwei.
+pub fn overall_flows_with(tables: &[&Table], names: &[String], mode: FlowMode) -> FlowMatrix {
     let mut out = vec![vec![0; names.len()]; names.len()];
     for table in tables {
         let seats: Vec<Option<usize>> = table
@@ -166,7 +186,7 @@ pub fn overall_flows(tables: &[&Table], names: &[String]) -> FlowMatrix {
             .iter()
             .map(|p| names.iter().position(|n| n == p))
             .collect();
-        for (a, row) in money_flows(table).iter().enumerate() {
+        for (a, row) in money_flows_with(table, mode).iter().enumerate() {
             for (b, &v) in row.iter().enumerate() {
                 if let (Some(Some(x)), Some(Some(y))) = (seats.get(a), seats.get(b)) {
                     out[*x][*y] += v;
