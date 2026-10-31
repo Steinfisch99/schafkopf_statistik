@@ -4488,7 +4488,7 @@ dependencies = [
 
 [[package]]
 name = "schafkopf-app"
-version = "0.4.15"
+version = "0.4.16"
 dependencies = [
  "dioxus",
  "jni 0.21.1",
@@ -4499,11 +4499,11 @@ dependencies = [
 
 [[package]]
 name = "schafkopf-charts"
-version = "0.4.15"
+version = "0.4.16"
 
 [[package]]
 name = "schafkopf-core"
-version = "0.4.15"
+version = "0.4.16"
 dependencies = [
  "serde",
  "serde_json",

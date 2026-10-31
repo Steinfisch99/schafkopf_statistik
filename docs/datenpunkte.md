@@ -274,7 +274,7 @@ Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `sum
 
 ## Startwerte und Nachträge im Verlauf
 
-`overall_history_with(tables, Some(&library))`: Startwerte (`Library::start_balance`) sind der erste Eintrag, Nachträge (`Library::adjustments`) ein eigener Schritt `HistoryStep::Adjustment` zwischen den Abenden, und zwar vor dem ersten Abend, der nach `at` begann (`Table::created_at`), ohne `at` nach dem letzten. Namen werden ohne Beachtung der Schreibweise zugeordnet. Der Stand nach k Abenden (`evenings`) enthält die Nachträge bis dahin. Rangliste, Bilanzen und Sankey (Geld zwischen Spielern) bleiben beim reinen Spielgeld, denn Startwerte und Nachträge fließen nicht zwischen Spielern. Das Sankey eines Spielers: `player_sankey_svg` (Charts), `PlayerFlow` (`views/flow.rs`).
+`overall_history_with(tables, Some(&library))`: Startwerte (`Library::start_balance`) sind der erste Eintrag, Nachträge (`Library::adjustments`) ein eigener Schritt `HistoryStep::Adjustment` zwischen den Abenden, und zwar vor dem ersten Abend, der nach `at` begann (`Table::created_at`), ohne `at` nach dem letzten. Namen werden ohne Beachtung der Schreibweise zugeordnet. Der Stand nach k Abenden (`evenings`) enthält die Nachträge bis dahin. Rangliste, Bilanzen und Sankey (Geld zwischen Spielern) bleiben beim reinen Spielgeld, denn Startwerte und Nachträge fließen nicht zwischen Spielern. Das Sankey eines Spielers: `player_sankey_svg` (Charts). Jeder Knoten bekommt einen Platz von mindestens 26 Einheiten (Name und Betrag untereinander), der Balken bleibt so hoch wie sein Betrag, `PlayerFlow` (`views/flow.rs`).
 
 ## Version
 

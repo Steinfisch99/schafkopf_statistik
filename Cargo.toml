@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/schafkopf-core", "crates/schafkopf-charts", "crates/schafkopf-app"]
 
 [workspace.package]
-version = "0.4.15"
+version = "0.4.16"
 edition = "2021"
 
 # Release-Builds (`./scripts/build-apk.sh --release`, `cargo build --release`): kleiner und deutlich schneller als Debug,
