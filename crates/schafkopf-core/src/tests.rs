@@ -4115,14 +4115,22 @@ fn flow_balance(flows: &FlowMatrix, p: usize) -> Cents {
 #[test]
 fn money_flows_split_losers_over_winners_and_match_the_balances() {
     let mut t = table();
-    // Sauspiel gewonnen: Spieler 1 und 3 gewinnen je 20, Spieler 0 und 2 verlieren je 20: jeder zahlt 10 an beide.
+    // Sauspiel gewonnen: Spieler 1 und 3 gewinnen je 20, Spieler 0 und 2 verlieren je 20: jeder zahlt seine 20 ganz an einen Gewinner (nie halbe Preise).
     t.add_game(GameInput {
         won: true,
         ..sauspiel(0, 1, 3)
     })
     .unwrap();
     let f = money_flows(&t);
-    assert_eq!((f[0][1], f[0][3], f[2][1], f[2][3]), (10, 10, 10, 10));
+    assert_eq!((f[0][1], f[0][3], f[2][1], f[2][3]), (20, 0, 0, 20));
+    // Im nächsten Sauspiel wechselt die Zuordnung.
+    t.add_game(GameInput {
+        won: true,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    let g = money_flows(&t);
+    assert!(g[0][3] > 0 && g[2][1] > 0);
     // Solo verloren: Spieler 1 zahlt dreifach, an jeden Gegner 20 (Wenz 20).
     t.add_game(GameInput {
         won: false,

@@ -544,7 +544,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Statistik eines Abends steht nach der Rangliste "Geldflüsse": links die Zahler, rechts die Empfänger, dazwischen Bänder in der Farbe des Zahlers. Die Höhe der Balken entspricht dem Betrag. Unter jedem Namen steht der Betrag, auch bei sehr schmalen Balken (jeder Knoten hat mindestens Platz für zwei Zeilen, dafür sind die Abstände größer).
 - [ ] Tippen auf einen Namen unter dem Diagramm hebt nur seine Bänder hervor und nennt darunter, an wen er gezahlt und von wem er bekommen hat.
 - [ ] Dasselbe in der Gesamtstatistik über die gewählten Abende.
-- [ ] Bei Sauspielen zahlt jeder Verlierer gleichmäßig an beide Gewinner; Stock-Beträge kommen anteilig von denen, die eingezahlt haben.
+- [ ] Bei Sauspielen zahlt jeder Verlierer seinen ganzen Betrag an einen Gewinner (keine halben Preise wie 5 Cent), die Zuordnung wechselt von Spiel zu Spiel. Stock-Beträge kommen anteilig von denen, die eingezahlt haben, dabei können Beträge unter dem Tarifpreis vorkommen.
 
 ### 39. Sankey je Spieler, Startwerte im Verlauf
 - [ ] In der Karte jedes Spielers (Abend und Gesamtstatistik) steht "Geldflüsse": links von wem er Geld bekam, in der Mitte er mit seinem Stand, rechts an wen er zahlte. In den Bändern stehen die Beträge (bei sehr schmalen Bändern nicht, aber der Betrag steht immer unter dem Namen am Balken).

@@ -60,7 +60,7 @@ pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
             h3 { "Geldflüsse" }
             p { class: "legend-note",
                 "Links steht, wer gezahlt hat, rechts, wer bekommen hat. Die Bänder zeigen, wie viel von wem zu wem geflossen ist. "
-                "Bei Spielen mit mehreren Gewinnern ist die Aufteilung gleichmäßig nach Gewinn gerechnet, beim Stock nach dem, was jeder eingezahlt hat."
+                "Beim Sauspiel zahlt jeder Verlierer seinen ganzen Betrag an einen der beiden Gewinner (die Zuordnung wechselt von Spiel zu Spiel), beim Stock kommt es anteilig von denen, die eingezahlt haben."
             }
             div { class: "chart sankey", dangerous_inner_html: "{svg}" }
             div { class: "chips range",

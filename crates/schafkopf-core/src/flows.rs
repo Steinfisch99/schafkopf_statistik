@@ -107,13 +107,23 @@ fn sides(payouts: &[Cents]) -> (Vec<Part>, Vec<Part>) {
 pub fn money_flows(table: &Table) -> FlowMatrix {
     let n = table.players.len();
     let mut out = vec![vec![0; n]; n];
-    for payouts in table
-        .games()
-        .iter()
-        .map(|g| &g.payouts)
-        .chain(table.offences.iter().map(|o| &o.payouts))
-    {
-        let (payers, receivers) = sides(payouts);
+    for (number, game) in table.games().iter().enumerate() {
+        let (payers, receivers) = sides(&game.payouts);
+        // Zwei gegen zwei mit gleichen Beträgen (Sauspiel, Hochzeit): Jeder Verlierer zahlt seinen ganzen Betrag
+        // an einen Gewinner, so fließen nie halbe Preise. Von Spiel zu Spiel wechselt die Zuordnung, damit
+        // keiner dauernd an denselben zahlt.
+        if let ([a, b], [c, d]) = (payers.as_slice(), receivers.as_slice()) {
+            if a.1 == b.1 && c.1 == d.1 && a.1 == c.1 {
+                let (first, second) = if number % 2 == 0 { (*c, *d) } else { (*d, *c) };
+                spread(&mut out, &[*a], &[first]);
+                spread(&mut out, &[*b], &[second]);
+                continue;
+            }
+        }
+        spread(&mut out, &payers, &receivers);
+    }
+    for offence in &table.offences {
+        let (payers, receivers) = sides(&offence.payouts);
         spread(&mut out, &payers, &receivers);
     }
     // Im Stock liegt, was jeder eingezahlt hat. Wer etwas bekommt, bekommt es im Verhältnis dazu von den
