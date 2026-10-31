@@ -6,13 +6,14 @@ use std::collections::BTreeSet;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color};
 use schafkopf_core::{
-    overall_history, overall_stats, OverallHistory, OverallPlayer, OverallStats, PriceMistake,
-    Table,
+    overall_flows, overall_history, overall_stats, OverallHistory, OverallPlayer, OverallStats,
+    PriceMistake, Table,
 };
 
 use super::balance_chart::HistoryChart;
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
+use super::flow::FlowSection;
 use super::meta_sections::{EveningsOverview, OverallPresence, TariffSection};
 use super::records::{lauf_groups, overall_records, RecordsSection};
 use super::stat_widgets::{
@@ -574,6 +575,7 @@ pub fn OverallScreen(
                         }
                     }
                 }
+                FlowSection { names: history.names.clone(), flows: overall_flows(&chosen, &history.names) }
                 RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
                 OverallNumbers { stats }
             }

@@ -268,6 +268,10 @@ Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `sum
 
 `overall_history` (Kern, `overall.rs`) liefert `OverallHistory`: Spieler über den Namen zusammengeführt, `games[schritt][spieler]` über alle Spiele aller gewählten Abende hintereinander (Spieler, die an einem Abend fehlen, behalten ihren Stand; Strafen und Stock wie in `balance_history`), `steps` (Abend, Spiel), `evening_ends` für die Trennlinien und `evenings[k]` für den Stand nach k Abenden. Die Anzeige nutzt `HistoryChart` (`views/balance_chart.rs`, dasselbe Diagramm wie beim Abend) mit `balance_chart_svg_marked` (Trennlinien).
 
+## Geldflüsse
+
+`money_flows` (Kern, `flows.rs`) rechnet je Abend aus, wer wem wie viel gezahlt hat (`flows[von][an]`, Cent, Summe je Spieler = Kontostand), `overall_flows` über mehrere Abende nach Namen. Aus den Auszahlungen eines Spiels ist nicht ablesbar, wer wen bezahlt: Die Verlierer zahlen im Verhältnis der Gewinne an die Gewinner (Sauspiel: jeder Verlierer je die Hälfte an beide Gewinner), cent-genau mit Resten an die ersten. Strafen genauso. **Stock:** Im Stock liegt, was jeder eingezahlt hat (Einlage, Verdopplung). Wer etwas bekommt, bekommt es anteilig von den Einzahlern, also bei zwei Gewinnern geteilt (Nutzer: Zuordnung darf beliebig sein, solange sie sich auf beide Gewinner verteilt). Die Anzeige `views/flow.rs` zeichnet `sankey_svg` (Charts).
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.

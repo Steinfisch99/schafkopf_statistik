@@ -540,7 +540,13 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Darunter "Geldstand nach jedem Abend": ein Punkt je Abend auf der Zeitachse, Tippen zeigt Nummer, Datum und Zahl der Spiele.
 - [ ] Ab- und Zuwählen von Abenden ändert beide Diagramme. Die Namen unter den Diagrammen zeigen den Stand, sind aber keine Knöpfe.
 
-### 38. Darstellung
+### 38. Geldflüsse (Sankey)
+- [ ] In der Statistik eines Abends steht nach der Rangliste "Geldflüsse": links die Zahler, rechts die Empfänger, dazwischen Bänder in der Farbe des Zahlers. Die Höhe der Balken entspricht dem Betrag, der Betrag steht dabei.
+- [ ] Tippen auf einen Namen unter dem Diagramm hebt nur seine Bänder hervor und nennt darunter, an wen er gezahlt und von wem er bekommen hat.
+- [ ] Dasselbe in der Gesamtstatistik über die gewählten Abende.
+- [ ] Bei Sauspielen zahlt jeder Verlierer gleichmäßig an beide Gewinner; Stock-Beträge kommen anteilig von denen, die eingezahlt haben.
+
+### 39. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

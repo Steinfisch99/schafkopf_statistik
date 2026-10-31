@@ -7,6 +7,7 @@ mod backup;
 mod clock;
 mod csv;
 mod error;
+mod flows;
 mod library;
 mod meta;
 mod model;
@@ -24,6 +25,7 @@ pub use clock::{
     latest_clock_before, minutes_after_noon,
 };
 pub use error::{Error, Result};
+pub use flows::{money_flows, overall_flows, FlowMatrix};
 pub use library::{AccountRow, Adjustment, Library, MergeReport, NamedTariff, RuleSet};
 pub use meta::{table_meta, Presence, TableMeta, UseCount};
 pub use model::{

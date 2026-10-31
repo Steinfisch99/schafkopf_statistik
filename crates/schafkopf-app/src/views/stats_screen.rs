@@ -5,11 +5,12 @@ use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color, series_color};
 use schafkopf_core::{
-    table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats, PlayerStock,
-    RoleStats, StockStats, Suit, Table,
+    money_flows, table_meta, table_stats, Cents, GameKind, LaufendeStats, OffenceKind, PlayerStats,
+    PlayerStock, RoleStats, StockStats, Suit, Table,
 };
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
+use super::flow::FlowSection;
 use super::meta_sections::{EveningPresence, TariffSection};
 use super::records::{evening_records, lauf_groups, RecordsSection};
 use super::stat_widgets::{
@@ -460,6 +461,8 @@ pub fn StatsScreen(
                     }
                 }
             }
+
+            FlowSection { names: t.players.clone(), flows: money_flows(t) }
 
             DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
             ToutSection { rows: tout_rows }

@@ -73,6 +73,7 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - **Stock aufteilen/Zusammenwerfen/Gegeben** (0.4.4): `StockMoveKind::Split`, `StockMove::is_reshuffle`, `Table::pass_dealers`; Details in `docs/datenpunkte.md`. Nur per Test geprüft, nicht angesehen: Knopf "Stock fair an alle aufteilen" und `DoublingTable`.
 - **Geldstand** (`Library::account`, `start_balances`, `Adjustment`): Startwert und Nachträge je Spieler in der Bibliothek, Anzeige oben auf der Einrichtungsseite (`views/account.rs`).
   Zuordnung über den Namen; Umbenennen nimmt nur Startwert/Nachträge mit, nicht alte Abende.
+- **Rekorde, Serien, Verlauf, Geldflüsse** (0.4.11 bis 0.4.14): `views/records.rs` (teuerstes Spiel je Spielart, Laufende-Verteilung für Sauspiele und Solos), `stats_text::strip_cells`/`longest_runs` (Serien antippbar und umrahmt), `overall_history` + `HistoryChart` in `views/balance_chart.rs` (Verlauf über alle Abende), `money_flows`/`overall_flows` (Kern, `flows.rs`) + `sankey_svg` + `views/flow.rs`. **Stock im Sankey:** anteilig von den Einzahlern an die Empfänger (Nutzer: beliebig, solange auf beide Gewinner verteilt). `Screen::Overall { from_past }`: Knopf auch auf der Einrichtungsseite.
 
 ## Bauen und prüfen in der VM
 
@@ -84,7 +85,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 307 Tests im Kern und der App, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 319 Tests im Kern, in den Charts und der App, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
@@ -113,6 +114,7 @@ Muster geht oft schief; rustfmt bricht Zeilen um und macht spätere `sed`-Treffe
   Recherche möglich: Netz gesperrt).
 - Neu (0.4.1) und nur per Test sowie Kompilieren geprüft, nicht angesehen: Stock/"Keiner spielt" (`views/table_view.rs`, `StockList`, Regelwerk-Wahl in `library_screen.rs`, Tarif-Felder) und der Geldstand oben auf der Einrichtungsseite (`views/account.rs`). Die CSV der Spiele hat seit 0.4.4 Stock-Spalten.
 - Neu (0.4.5), nur per Test und Kompilieren geprüft, nicht angesehen: Ende-Uhrzeit-Feld am Tisch (`views/table_view.rs`) und "Abend wieder öffnen" (`views/past.rs`, `storage::reopen_past`).
+- Neu (0.4.11 bis 0.4.14), nur per Test und Kompilieren geprüft, nicht am Bildschirm: alle neuen Abschnitte der Statistik (Rekorde, Laufende, Serien antippen, Verlaufsdiagramme der Gesamtstatistik, Sankey in der App). Das Sankey-SVG selbst wurde mit `rsvg-convert` gerendert und angesehen.
 - Ideen, die nie verlangt wurden: nichts offen. Wunschliste kommt vom Nutzer.
 
 ## Release-Build

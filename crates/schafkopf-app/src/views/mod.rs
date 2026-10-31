@@ -4,6 +4,7 @@ mod balance_chart;
 mod common;
 mod compare;
 mod export_screen;
+mod flow;
 mod game_form;
 mod game_list;
 mod library_screen;

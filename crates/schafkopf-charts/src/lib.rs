@@ -52,10 +52,12 @@ fn nice_step(range: Cents, target: Cents) -> Cents {
 }
 
 mod donut;
+mod sankey;
 mod suits;
 mod view;
 
 pub use donut::donut_svg;
+pub use sankey::sankey_svg;
 pub use suits::{suit_icon_svg, SuitShape};
 pub use view::ChartView;
 

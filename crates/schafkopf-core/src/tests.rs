@@ -4089,3 +4089,76 @@ fn overall_history_chains_the_evenings_and_joins_players_by_name() {
     assert_eq!(h.games[2], h.evenings[1]);
     assert_eq!(overall_history(&[]).games.len(), 1);
 }
+
+fn flow_balance(flows: &FlowMatrix, p: usize) -> Cents {
+    let got: Cents = flows.iter().map(|row| row[p]).sum();
+    let paid: Cents = flows[p].iter().sum();
+    got - paid
+}
+
+#[test]
+fn money_flows_split_losers_over_winners_and_match_the_balances() {
+    let mut t = table();
+    // Sauspiel gewonnen: Spieler 1 und 3 gewinnen je 20, Spieler 0 und 2 verlieren je 20: jeder zahlt 10 an beide.
+    t.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let f = money_flows(&t);
+    assert_eq!((f[0][1], f[0][3], f[2][1], f[2][3]), (10, 10, 10, 10));
+    // Solo verloren: Spieler 1 zahlt dreifach, an jeden Gegner 20 (Wenz 20).
+    t.add_game(GameInput {
+        won: false,
+        ..GameInput::new(1, GameKind::Wenz, 1)
+    })
+    .unwrap();
+    let f = money_flows(&t);
+    let balances = t.balances();
+    for (seat, &balance) in balances.iter().enumerate() {
+        assert_eq!(flow_balance(&f, seat), balance);
+        assert_eq!(f[seat][seat], 0);
+    }
+}
+
+#[test]
+fn money_flows_stay_exact_with_odd_cents_and_include_the_stock() {
+    let mut t = table();
+    t.tariff.stock_amount = 30;
+    t.no_game_rule = NoGameRule::Stock;
+    t.add_no_game(None).unwrap();
+    t.add_game(GameInput {
+        won: true,
+        laufende: 3,
+        ..sauspiel(1, 1, 3)
+    })
+    .unwrap();
+    let f = money_flows(&t);
+    for (seat, &balance) in t.balances().iter().enumerate() {
+        assert_eq!(flow_balance(&f, seat), balance, "Spieler {seat}");
+    }
+}
+
+#[test]
+fn overall_flows_join_players_by_name() {
+    let mut a = table();
+    a.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let mut b = table();
+    b.players.reverse();
+    b.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let h = overall_history(&[&a, &b]);
+    let f = overall_flows(&[&a, &b], &h.names);
+    let o = overall_stats(&[&a, &b]);
+    for p in &o.players {
+        let i = h.names.iter().position(|n| *n == p.name).unwrap();
+        assert_eq!(flow_balance(&f, i), p.balance);
+    }
+}
