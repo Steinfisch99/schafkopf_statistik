@@ -57,7 +57,7 @@ mod suits;
 mod view;
 
 pub use donut::donut_svg;
-pub use sankey::sankey_svg;
+pub use sankey::{player_sankey_svg, sankey_svg};
 pub use suits::{suit_icon_svg, SuitShape};
 pub use view::ChartView;
 

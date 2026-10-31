@@ -1,7 +1,7 @@
 //! Geldflüsse als Sankey-Diagramm: wer an wen wie viel gezahlt hat.
 
 use dioxus::prelude::*;
-use schafkopf_charts::{format_euro, sankey_svg};
+use schafkopf_charts::{format_euro, player_sankey_svg, sankey_svg};
 use schafkopf_core::Cents;
 
 use super::common::Chip;
@@ -91,5 +91,25 @@ pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
                 p { class: "chart-info muted", "Tippe auf einen Namen, um nur seine Bänder zu sehen." }
             }
         }
+    }
+}
+
+/// Das Sankey-Diagramm eines einzelnen Spielers mit den Beträgen in den Flüssen.
+#[component]
+pub fn PlayerFlow(names: Vec<String>, flows: Vec<Vec<Cents>>, player: usize) -> Element {
+    let touched = flows
+        .get(player)
+        .is_some_and(|row| row.iter().any(|&v| v > 0))
+        || flows
+            .iter()
+            .any(|row| row.get(player).copied().unwrap_or(0) > 0);
+    if !touched {
+        return rsx! {};
+    }
+    let svg = player_sankey_svg(&names, &flows, player);
+    rsx! {
+        h4 { "Geldflüsse" }
+        p { class: "legend-note", "Links: von wem er Geld bekam, rechts: an wen er zahlte. Die Zahlen stehen in den Bändern." }
+        div { class: "chart sankey", dangerous_inner_html: "{svg}" }
     }
 }

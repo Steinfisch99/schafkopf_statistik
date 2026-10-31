@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 
 use crate::clock::minutes_after_noon;
+use crate::library::Library;
 use crate::meta::{table_meta, UseCount};
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
@@ -465,26 +466,43 @@ pub struct EveningFact {
     pub length: Option<i64>,
 }
 
+/// Ein Schritt im Verlauf über mehrere Abende.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryStep {
+    /// Ein Spiel: Abend (Index in der Liste der Abende) und Spiel im Abend, jeweils nullbasiert.
+    Game { evening: usize, game: usize },
+    /// Ein Nachtrag aus der Bibliothek (Index in `Library::adjustments`).
+    Adjustment { index: usize },
+}
+
 /// Der Geldstand der Spieler (über den Namen zusammengeführt) über mehrere Abende.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OverallHistory {
-    /// Die Spieler in der Reihenfolge ihres ersten Auftretens (wie `OverallStats::players`).
+    /// Die Spieler in der Reihenfolge ihres ersten Auftretens (wie `OverallStats::players`), danach
+    /// Spieler der Bibliothek, die nur einen Startwert oder Nachträge haben.
     pub names: Vec<String>,
-    /// `games[s][p]`: Stand von Spieler `p` nach `s` Spielen aller Abende zusammen. Der erste Eintrag ist der
-    /// Start bei 0. Wer an einem Abend nicht dabei war, behält seinen Stand.
+    /// `games[s][p]`: Stand von Spieler `p` nach `s` Schritten. Der erste Eintrag ist der Start (Startwert
+    /// aus der Bibliothek, sonst 0). Wer an einem Abend nicht dabei war, behält seinen Stand.
     pub games: Vec<Vec<Cents>>,
-    /// Zu jedem Schritt ab 1 das Spiel als (Abend, Spiel im Abend), jeweils nullbasiert in der Liste der Abende.
-    pub steps: Vec<(usize, usize)>,
-    /// Die Schritte, nach denen ein Abend endet (ohne den letzten Abend, nur Abende mit Spielen).
+    /// Was zu jedem Schritt ab 1 geschah.
+    pub steps: Vec<HistoryStep>,
+    /// Die Schritte, nach denen ein Abend endet.
     pub evening_ends: Vec<usize>,
-    /// `evenings[k][p]`: Stand von Spieler `p` nach `k` Abenden, `evenings[0]` ist der Start bei 0.
+    /// `evenings[k][p]`: Stand von Spieler `p` nach `k` Abenden (mit den Nachträgen bis dahin),
+    /// `evenings[0]` ist der Start.
     pub evenings: Vec<Vec<Cents>>,
 }
 
 /// Der Verlauf des Geldstands Spiel für Spiel und Abend für Abend. Strafen und Stock stecken in den
 /// Ständen wie in `balance_history`; was vor dem ersten Spiel eines Abends bewegt wurde, zählt ab dessen
-/// erstem Spiel.
+/// erstem Spiel. Mit einer Bibliothek beginnt jeder Spieler bei seinem Startwert, und Nachträge erscheinen
+/// als eigener Schritt zwischen den Abenden: vor dem ersten Abend, der nach ihrem Zeitpunkt begann (ohne
+/// Zeitpunkt nach dem letzten Abend).
 pub fn overall_history(tables: &[&Table]) -> OverallHistory {
+    overall_history_with(tables, None)
+}
+
+pub fn overall_history_with(tables: &[&Table], library: Option<&Library>) -> OverallHistory {
     let mut names: Vec<String> = Vec::new();
     for table in tables {
         for name in &table.players {
@@ -493,14 +511,74 @@ pub fn overall_history(tables: &[&Table]) -> OverallHistory {
             }
         }
     }
+    let same = |a: &str, b: &str| a.to_lowercase() == b.to_lowercase();
+    let mut start: Vec<Cents> = Vec::new();
+    let mut adjustments: Vec<(usize, usize, Cents)> = Vec::new();
+    if let Some(lib) = library {
+        // Spieler der Bibliothek mit Startwert oder Nachträgen, die in keinem Abend vorkommen, kommen hinten dazu.
+        let position = |name: &str, names: &mut Vec<String>| -> usize {
+            match names.iter().position(|n| same(n, name)) {
+                Some(i) => i,
+                None => {
+                    names.push(name.to_owned());
+                    names.len() - 1
+                }
+            }
+        };
+        let mut starts: Vec<(usize, Cents)> = Vec::new();
+        for name in lib.players() {
+            let value = lib.start_balance(name);
+            if value != 0 {
+                starts.push((position(name, &mut names), value));
+            }
+        }
+        start = vec![0; names.len()];
+        for (i, v) in starts {
+            if i >= start.len() {
+                start.resize(i + 1, 0);
+            }
+            start[i] += v;
+        }
+        for (k, a) in lib.adjustments().iter().enumerate() {
+            adjustments.push((k, position(&a.player, &mut names), a.amount));
+        }
+    }
+    start.resize(names.len(), 0);
     let index = |name: &String| names.iter().position(|n| n == name).unwrap_or(0);
+
+    // Die Abende mit Spielen, mit dem Beginn zum Einsortieren der Nachträge.
+    let played: Vec<usize> = (0..tables.len())
+        .filter(|&e| !tables[e].games().is_empty())
+        .collect();
+    let began = |e: usize| tables[e].created_at.unwrap_or(0);
+    let gap_of = |at: Option<i64>| match at {
+        Some(at) => played.iter().take_while(|&&e| began(e) <= at).count(),
+        None => played.len(),
+    };
+    let mut gaps: Vec<Vec<(usize, usize, Cents)>> = vec![Vec::new(); played.len() + 1];
+    for &(k, who, amount) in &adjustments {
+        let at = library
+            .and_then(|l| l.adjustments().get(k))
+            .and_then(|a| a.at);
+        gaps[gap_of(at)].push((k, who, amount));
+    }
+
+    let mut total = start;
     let mut out = OverallHistory {
-        games: vec![vec![0; names.len()]],
-        evenings: vec![vec![0; names.len()]],
+        games: vec![total.clone()],
         ..OverallHistory::default()
     };
-    let mut total: Vec<Cents> = vec![0; names.len()];
-    for (evening, table) in tables.iter().enumerate() {
+    let apply_gap = |gap: usize, total: &mut Vec<Cents>, out: &mut OverallHistory| {
+        for &(k, who, amount) in &gaps[gap] {
+            total[who] += amount;
+            out.games.push(total.clone());
+            out.steps.push(HistoryStep::Adjustment { index: k });
+        }
+    };
+    apply_gap(0, &mut total, &mut out);
+    out.evenings.push(total.clone());
+    for (n, &evening) in played.iter().enumerate() {
+        let table = tables[evening];
         let history = balance_history(table);
         let seats: Vec<usize> = table.players.iter().map(index).collect();
         for (game, row) in history.iter().enumerate().skip(1) {
@@ -509,19 +587,20 @@ pub fn overall_history(tables: &[&Table]) -> OverallHistory {
                 step[seats[seat]] += value;
             }
             out.games.push(step);
-            out.steps.push((evening, game - 1));
+            out.steps.push(HistoryStep::Game {
+                evening,
+                game: game - 1,
+            });
         }
         if let Some(last) = history.last() {
             for (seat, &value) in last.iter().enumerate() {
                 total[seats[seat]] += value;
             }
         }
-        if history.len() > 1 {
-            out.evening_ends.push(out.games.len() - 1);
-            out.evenings.push(total.clone());
-        }
+        out.evening_ends.push(out.games.len() - 1);
+        apply_gap(n + 1, &mut total, &mut out);
+        out.evenings.push(total.clone());
     }
-    out.evening_ends.pop();
     out.names = names;
     out
 }

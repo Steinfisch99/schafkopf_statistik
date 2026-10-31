@@ -174,7 +174,7 @@ fn App() -> Element {
                     Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },
                     Screen::PastList => rsx! { PastList { screen, has_table } },
                     // Diese drei zeigt `PastEveningView` oben.
-                    Screen::Overall { from_past } => rsx! { OverallScreen { table, screen, notice, from_past } },
+                    Screen::Overall { from_past } => rsx! { OverallScreen { table, screen, notice, library, from_past } },
                     Screen::Backup => rsx! { BackupScreen { table, screen, notice, library } },
                     Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_) => rsx! {},
                 }

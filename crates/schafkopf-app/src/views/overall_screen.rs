@@ -6,14 +6,14 @@ use std::collections::BTreeSet;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color};
 use schafkopf_core::{
-    overall_flows, overall_history, overall_stats, OverallHistory, OverallPlayer, OverallStats,
-    PriceMistake, Table,
+    overall_flows, overall_history, overall_history_with, overall_stats, Cents, HistoryStep,
+    Library, OverallHistory, OverallPlayer, OverallStats, PriceMistake, Table,
 };
 
 use super::balance_chart::HistoryChart;
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
-use super::flow::FlowSection;
+use super::flow::{FlowSection, PlayerFlow};
 use super::meta_sections::{EveningsOverview, OverallPresence, TariffSection};
 use super::records::{lauf_groups, overall_records, RecordsSection};
 use super::stat_widgets::{
@@ -32,8 +32,15 @@ use crate::{storage, Screen};
 const CURRENT: u64 = 0;
 
 #[component]
-fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow>) -> Element {
+fn OverallPlayerCard(
+    player: OverallPlayer,
+    games_total: u32,
+    peers: Vec<PeerRow>,
+    names: Vec<String>,
+    flows: Vec<Vec<Cents>>,
+) -> Element {
     let p = player;
+    let flow_seat = names.iter().position(|n| *n == p.name);
     let compare = use_signal(|| None::<Metric>);
     let me = p.name.clone();
     let doubling_scale = p.by_doublings.values().copied().max().unwrap_or(0);
@@ -114,6 +121,10 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow
                         max_abs: evening_scale,
                     }
                 }
+            }
+
+            if let Some(seat) = flow_seat {
+                PlayerFlow { names: names.clone(), flows: flows.clone(), player: seat }
             }
 
             h4 { "Siege nach Rolle" }
@@ -225,7 +236,7 @@ fn OverallPlayerCard(player: OverallPlayer, games_total: u32, peers: Vec<PeerRow
 
 /// Die Zahlen aller gewählten Abende zusammen, ohne die Wahl der Abende.
 #[component]
-fn OverallNumbers(stats: OverallStats) -> Element {
+fn OverallNumbers(stats: OverallStats, flow_names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
     let games = stats.games;
     let mut ranked: Vec<OverallPlayer> = stats.players.clone();
     ranked.sort_by_key(|p| (std::cmp::Reverse(p.balance), p.name.clone()));
@@ -431,7 +442,7 @@ fn OverallNumbers(stats: OverallStats) -> Element {
         section {
             h3 { "Spieler" }
             for p in ranked.iter() {
-                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games, peers: peers.clone() }
+                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games, peers: peers.clone(), names: flow_names.clone(), flows: flows.clone() }
             }
         }
 
@@ -446,10 +457,12 @@ pub fn OverallScreen(
     table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
+    library: Signal<Library>,
     from_past: bool,
 ) -> Element {
     let mut screen = screen;
     let _ = notice;
+    let mut with_account = use_signal(|| true);
     // Beim Öffnen einmal gelesen: Die früheren Abende ändern sich hier nicht.
     let past = use_signal(storage::list_past);
     let current: Option<Table> = table
@@ -480,9 +493,16 @@ pub fn OverallScreen(
         .map(|(_, t)| t)
         .collect();
     let stats = overall_stats(&chosen);
-    let history = overall_history(&chosen);
-    let game_infos = history_infos(&evenings, &off.read(), &history);
-    let evening_infos = evening_infos(&evenings, &off.read());
+    let lib = library.read();
+    let account = with_account()
+        && (lib.players().iter().any(|p| lib.start_balance(p) != 0)
+            || !lib.adjustments().is_empty());
+    let history = overall_history_with(&chosen, if with_account() { Some(&*lib) } else { None });
+    let game_infos = history_infos(&evenings, &off.read(), &history, &lib);
+    let evening_infos = evening_infos(&evenings, &off.read(), account);
+    // Die Geldflüsse brauchen nur Spieler, die an den Abenden saßen.
+    let flow_names = overall_history(&chosen).names;
+    let flows = overall_flows(&chosen, &flow_names);
     let keys: Vec<u64> = evenings.iter().map(|(k, _)| *k).collect();
 
     rsx! {
@@ -550,6 +570,15 @@ pub fn OverallScreen(
                     section {
                         h3 { "Geldstand über alle gewählten Abende" }
                         p { class: "legend-note", "Spiel für Spiel, die Abende hintereinander. Die senkrechten Linien trennen die Abende." }
+                        if !lib.players().is_empty() {
+                            div { class: "chips range",
+                                Chip {
+                                    label: "Startwerte und Nachträge einrechnen".to_string(),
+                                    on: with_account(),
+                                    onclick: move |_| with_account.set(!with_account()),
+                                }
+                            }
+                        }
                         HistoryChart {
                             history: history.games.clone(),
                             infos: game_infos,
@@ -575,9 +604,9 @@ pub fn OverallScreen(
                         }
                     }
                 }
-                FlowSection { names: history.names.clone(), flows: overall_flows(&chosen, &history.names) }
+                FlowSection { names: flow_names.clone(), flows: flows.clone() }
                 RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
-                OverallNumbers { stats }
+                OverallNumbers { stats, flow_names: flow_names.clone(), flows: flows.clone() }
             }
         }
     }
@@ -597,10 +626,33 @@ fn history_infos(
     evenings: &[(u64, Table)],
     off: &BTreeSet<u64>,
     history: &OverallHistory,
+    library: &Library,
 ) -> Vec<String> {
     let chosen = chosen_evenings(evenings, off);
-    let mut infos = vec!["Start: alle bei 0,00 €".to_string()];
-    for &(evening, game) in &history.steps {
+    let mut infos = vec![start_text(
+        history
+            .games
+            .first()
+            .is_some_and(|row| row.iter().any(|&v| v != 0)),
+    )];
+    for step in &history.steps {
+        let (evening, game) = match *step {
+            HistoryStep::Game { evening, game } => (evening, game),
+            HistoryStep::Adjustment { index } => {
+                infos.push(library.adjustments().get(index).map_or(String::new(), |a| {
+                    format!(
+                        "Nachtrag für {}: {}{}",
+                        a.player,
+                        signed_euro(a.amount),
+                        a.note
+                            .as_ref()
+                            .map(|n| format!(" ({n})"))
+                            .unwrap_or_default()
+                    )
+                }));
+                continue;
+            }
+        };
         infos.push(match chosen.get(evening) {
             Some((key, t)) => t.games().get(game).map_or(String::new(), |g| {
                 format!(
@@ -619,8 +671,8 @@ fn history_infos(
 }
 
 /// Text zu jedem angetippten Abend im Verlauf nach Abenden.
-fn evening_infos(evenings: &[(u64, Table)], off: &BTreeSet<u64>) -> Vec<String> {
-    let mut infos = vec!["Start: alle bei 0,00 €".to_string()];
+fn evening_infos(evenings: &[(u64, Table)], off: &BTreeSet<u64>, account: bool) -> Vec<String> {
+    let mut infos = vec![start_text(account)];
     for (n, (key, t)) in chosen_evenings(evenings, off)
         .into_iter()
         .filter(|(_, t)| !t.games().is_empty())
@@ -634,4 +686,12 @@ fn evening_infos(evenings: &[(u64, Table)], off: &BTreeSet<u64>) -> Vec<String> 
         ));
     }
     infos
+}
+
+fn start_text(with_account: bool) -> String {
+    if with_account {
+        "Start: Startwerte aus der Verwaltung (und Nachträge davor)".to_string()
+    } else {
+        "Start: alle bei 0,00 €".to_string()
+    }
 }

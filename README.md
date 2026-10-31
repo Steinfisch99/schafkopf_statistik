@@ -133,7 +133,7 @@ Entscheidungen:
 - [x] Keiner spielt: Regelwerk wählt Ramsch, Zusammenwerfen oder Stock (Einlage im Tarif, Sauspiel gewonnen: Stock geteilt, verloren: gedoppelt)
 - [x] Geldstand aller Spieler über alle Abende auf der ersten Seite, mit Startwert und Nachträgen (Spiele woanders)
 - [x] Statistik zum Stock: höchster Stand, hineingeflossen, ausgezahlt, je Spieler eingezahlt und unterm Strich
-- [x] Geldflüsse als Sankey-Diagramm (wer an wen wie viel gezahlt hat) für Abend und Gesamtstatistik
+- [x] Geldflüsse als Sankey-Diagramm (wer an wen wie viel gezahlt hat) für Abend, Gesamtstatistik und je Spieler (mit Beträgen in den Bändern); Startwerte und Nachträge im Gesamtverlauf
 - [x] Gesamtstatistik: Geldstand-Verlauf über alle Spiele und nach jedem Abend, Knopf "Statistik über mehrere Abende" auch auf der Einrichtungsseite
 - [x] Serien: Kästchen antippen zeigt das Spiel mit Uhrzeit, längste Sieg- und Verlustserie sind umrahmt
 - [x] Rekorde (teuerstes Spiel je Spielart, meiste Laufende) und Verteilung der Laufenden bei Sauspielen und Solos, für Abend und Gesamtstatistik

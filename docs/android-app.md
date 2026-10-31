@@ -546,7 +546,12 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Dasselbe in der Gesamtstatistik über die gewählten Abende.
 - [ ] Bei Sauspielen zahlt jeder Verlierer gleichmäßig an beide Gewinner; Stock-Beträge kommen anteilig von denen, die eingezahlt haben.
 
-### 39. Darstellung
+### 39. Sankey je Spieler, Startwerte im Verlauf
+- [ ] In der Karte jedes Spielers (Abend und Gesamtstatistik) steht "Geldflüsse": links von wem er Geld bekam, in der Mitte er mit seinem Stand, rechts an wen er zahlte. In den Bändern stehen die Beträge (bei sehr schmalen Bändern nicht, dort hilft Antippen/Halten).
+- [ ] In der Gesamtstatistik gibt es über dem Verlauf den Schalter "Startwerte und Nachträge einrechnen" (an). Dann beginnen die Linien beim Startwert aus der Verwaltung, und jeder Nachtrag ist ein eigener Schritt (Tippen zeigt "Nachtrag für ...") zwischen den Abenden, je nach Zeitpunkt. Ohne Zeitpunkt zählt er nach dem letzten Abend. Aus: alles beginnt bei 0.
+- [ ] Spieler, die nur einen Startwert oder Nachträge haben und nie gespielt haben, erscheinen als eigene Linie.
+
+### 40. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

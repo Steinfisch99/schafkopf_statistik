@@ -34,8 +34,8 @@ pub use model::{
 };
 pub use money::parse_euro;
 pub use overall::{
-    overall_history, overall_stats, time_spread, EveningFact, GameRef, OverallHistory,
-    OverallPlayer, OverallStats,
+    overall_history, overall_history_with, overall_stats, time_spread, EveningFact, GameRef,
+    HistoryStep, OverallHistory, OverallPlayer, OverallStats,
 };
 pub use scoring::{
     base_value, calculated_value, game_value, payouts, price_doublings, reclaimed_value, validate,

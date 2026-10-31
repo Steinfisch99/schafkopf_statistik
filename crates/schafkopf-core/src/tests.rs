@@ -4075,8 +4075,24 @@ fn overall_history_chains_the_evenings_and_joins_players_by_name() {
     .unwrap();
     let h = overall_history(&[&a, &b]);
     assert_eq!(h.games.len(), 4);
-    assert_eq!(h.steps, vec![(0, 0), (0, 1), (1, 0)]);
-    assert_eq!(h.evening_ends, vec![2]);
+    assert_eq!(
+        h.steps,
+        vec![
+            HistoryStep::Game {
+                evening: 0,
+                game: 0
+            },
+            HistoryStep::Game {
+                evening: 0,
+                game: 1
+            },
+            HistoryStep::Game {
+                evening: 1,
+                game: 0
+            },
+        ]
+    );
+    assert_eq!(h.evening_ends, vec![2, 3]);
     assert_eq!(h.evenings.len(), 3);
     assert_eq!(h.games[0], vec![0; 4]);
     // Der Endstand ist die Summe der Abendergebnisse je Name.
@@ -4161,4 +4177,58 @@ fn overall_flows_join_players_by_name() {
         let i = h.names.iter().position(|n| *n == p.name).unwrap();
         assert_eq!(flow_balance(&f, i), p.balance);
     }
+}
+
+#[test]
+fn overall_history_starts_at_the_start_value_and_places_adjustments_between_evenings() {
+    let mut lib = lib_with(&["Anna", "Ben", "Zoe"]);
+    lib.set_start_balance("Anna", 1000).unwrap();
+    lib.set_start_balance("Zoe", 300).unwrap();
+    // Vor dem ersten Abend (Beginn 100), zwischen den Abenden (Beginn 100 und 200) und danach.
+    lib.add_adjustment("Anna", 50, Some(50), None).unwrap();
+    lib.add_adjustment("Ben", -70, Some(150), None).unwrap();
+    lib.add_adjustment("Anna", 5, None, None).unwrap();
+    let mut a = table();
+    a.created_at = Some(100);
+    a.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let mut b = table();
+    b.created_at = Some(200);
+    b.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let h = overall_history_with(&[&a, &b], Some(&lib));
+    let at = |n: &str| {
+        h.names
+            .iter()
+            .position(|x| x.eq_ignore_ascii_case(n))
+            .unwrap()
+    };
+    // Zoe kommt nur aus der Bibliothek.
+    assert_eq!(h.names.len(), 5);
+    assert_eq!(h.games[0][at("Anna")], 1000);
+    assert_eq!(h.games[0][at("Zoe")], 300);
+    assert_eq!(h.steps[0], HistoryStep::Adjustment { index: 0 });
+    assert_eq!(h.games[1][at("Anna")], 1050);
+    // Anna bekommt im Sauspiel (Sitz 0) -20, Ben (Sitz 1) +20: Nachtrag -70 liegt zwischen den Abenden.
+    let mid = h
+        .steps
+        .iter()
+        .position(|s| *s == HistoryStep::Adjustment { index: 1 })
+        .unwrap();
+    assert_eq!(h.games[mid + 1][at("Ben")], 20 - 70);
+    assert_eq!(h.steps.last(), Some(&HistoryStep::Adjustment { index: 2 }));
+    assert_eq!(h.evenings.len(), 3);
+    assert_eq!(h.evenings[2], *h.games.last().unwrap());
+    assert_eq!(h.evenings[0][at("Anna")], 1050);
+    // Ohne Bibliothek bleibt alles beim Alten.
+    assert_eq!(
+        overall_history_with(&[&a, &b], None),
+        overall_history(&[&a, &b])
+    );
 }

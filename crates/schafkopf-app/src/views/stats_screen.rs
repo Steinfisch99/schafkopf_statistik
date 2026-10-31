@@ -10,7 +10,7 @@ use schafkopf_core::{
 };
 
 use super::compare::{evening_peer, Metric, PeerRow, Tap, TapKv};
-use super::flow::FlowSection;
+use super::flow::{FlowSection, PlayerFlow};
 use super::meta_sections::{EveningPresence, TariffSection};
 use super::records::{evening_records, lauf_groups, RecordsSection};
 use super::stat_widgets::{
@@ -58,6 +58,8 @@ fn PlayerDetail(
     player: PlayerStats,
     results: Vec<StripCell>,
     open: bool,
+    names: Vec<String>,
+    flows: Vec<Vec<Cents>>,
     /// Die Zahlen aller Spieler des Abends für die Ranglisten beim Antippen.
     peers: Vec<PeerRow>,
 ) -> Element {
@@ -205,6 +207,8 @@ fn PlayerDetail(
                 reclaim_saved: p.reclaim_saved,
                 undercharge_benefit: p.undercharge_benefit,
             }
+
+            PlayerFlow { names: names.clone(), flows: flows.clone(), player: p.seat }
 
             h4 { "Serien" }
             p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt. Die längsten Serien sind umrahmt. Tippe ein Kästchen an, um das Spiel zu sehen." }
@@ -354,6 +358,7 @@ pub fn StatsScreen(
     let pair_scale = pairs.iter().map(|r| r.stats.games).max().unwrap_or(0);
     let declarers = declarer_rate(&stats);
     let results = strip_cells(t);
+    let flows = money_flows(t);
     // Wer an diesem Abend dabei war, für die Ranglisten beim Antippen einer Zahl.
     let peers: Vec<PeerRow> = stats
         .players
@@ -462,7 +467,7 @@ pub fn StatsScreen(
                 }
             }
 
-            FlowSection { names: t.players.clone(), flows: money_flows(t) }
+            FlowSection { names: t.players.clone(), flows: flows.clone() }
 
             DoublerSection { rows: doubler_rows, intro: "Klopfen, Kontra und Re zusammen, gezählt in den Spielen, bei denen man mitgespielt hat." }
             ToutSection { rows: tout_rows }
@@ -711,6 +716,8 @@ pub fn StatsScreen(
                     PlayerDetail {
                         key: "{p.seat}",
                         results: results[p.seat].clone(),
+                        names: t.players.clone(),
+                        flows: flows.clone(),
                         open: focus == Some(p.seat),
                         peers: peers.clone(),
                         player: p,

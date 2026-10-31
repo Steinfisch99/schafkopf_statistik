@@ -272,6 +272,10 @@ Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `sum
 
 `money_flows` (Kern, `flows.rs`) rechnet je Abend aus, wer wem wie viel gezahlt hat (`flows[von][an]`, Cent, Summe je Spieler = Kontostand), `overall_flows` über mehrere Abende nach Namen. Aus den Auszahlungen eines Spiels ist nicht ablesbar, wer wen bezahlt: Die Verlierer zahlen im Verhältnis der Gewinne an die Gewinner (Sauspiel: jeder Verlierer je die Hälfte an beide Gewinner), cent-genau mit Resten an die ersten. Strafen genauso. **Stock:** Im Stock liegt, was jeder eingezahlt hat (Einlage, Verdopplung). Wer etwas bekommt, bekommt es anteilig von den Einzahlern, also bei zwei Gewinnern geteilt (Nutzer: Zuordnung darf beliebig sein, solange sie sich auf beide Gewinner verteilt). Die Anzeige `views/flow.rs` zeichnet `sankey_svg` (Charts).
 
+## Startwerte und Nachträge im Verlauf
+
+`overall_history_with(tables, Some(&library))`: Startwerte (`Library::start_balance`) sind der erste Eintrag, Nachträge (`Library::adjustments`) ein eigener Schritt `HistoryStep::Adjustment` zwischen den Abenden, und zwar vor dem ersten Abend, der nach `at` begann (`Table::created_at`), ohne `at` nach dem letzten. Namen werden ohne Beachtung der Schreibweise zugeordnet. Der Stand nach k Abenden (`evenings`) enthält die Nachträge bis dahin. Rangliste, Bilanzen und Sankey (Geld zwischen Spielern) bleiben beim reinen Spielgeld, denn Startwerte und Nachträge fließen nicht zwischen Spielern. Das Sankey eines Spielers: `player_sankey_svg` (Charts), `PlayerFlow` (`views/flow.rs`).
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.

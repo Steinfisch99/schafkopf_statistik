@@ -85,7 +85,7 @@ nix-shell -I nixpkgs=flake:nixpkgs -p cargo rustc gcc pkg-config webkitgtk_4_1 g
   --run "cargo fmt --all && cargo clippy --workspace --features schafkopf-app/desktop --all-targets && cargo test --workspace --features schafkopf-app/desktop"
 ```
 
-Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 319 Tests im Kern, in den Charts und der App, alle grün.
+Für das reine Kern-Crate reichen `cargo rustc gcc pkg-config openssl`. Stand: 321 Tests im Kern, in den Charts und der App, alle grün.
 
 Die Oberfläche lässt sich am Desktop prüfen: App mit `cargo build -p schafkopf-app --features desktop` bauen, unter
 `Xvfb` (z. B. 440 Pixel breit, 2000 hoch) starten, mit `xdotool` klicken, mit ImageMagick (`import -window root`,
