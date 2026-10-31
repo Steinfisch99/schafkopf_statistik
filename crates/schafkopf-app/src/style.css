@@ -200,10 +200,15 @@ main { padding-bottom: max(7rem, env(safe-area-inset-bottom)); }
 .diverge::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: currentColor; opacity: 0.55; }
 .diverge .fill { position: absolute; top: 0; bottom: 0; }
 .strip { display: flex; flex-wrap: wrap; gap: 3px; margin: 0.3rem 0 0.4rem; }
-.strip span { width: 1.25rem; height: 1.25rem; border-radius: 3px; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: white; }
+.strip span, .strip button { width: 1.25rem; height: 1.25rem; border-radius: 3px; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: white; }
 .strip .w { background: var(--win); }
 .strip .l { background: var(--lose); }
 .strip .off { border: 1px dashed var(--line); background: transparent; }
+.strip button { padding: 0; border: 0; min-height: 0; cursor: pointer; font-family: inherit; }
+.strip button.off { border: 1px dashed var(--line); }
+.strip .best { outline: 2px solid CanvasText; outline-offset: 1px; }
+.strip .picked { transform: scale(1.15); }
+.strip-info { font-size: 0.85rem; margin: 0 0 0.5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--line); border-radius: 0.5rem; }
 .legend-note { font-size: 0.8rem; opacity: 0.75; margin: 0 0 0.4rem; }
 .bar-seg { height: 100%; }
 

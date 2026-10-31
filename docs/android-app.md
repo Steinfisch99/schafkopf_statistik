@@ -530,7 +530,11 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Darunter "Wie viele Laufende?" für Sauspiele und Solos: je Zahl der Laufenden ein Balken (grün gewonnen, orange verloren), Gegenläufe getrennt, "ohne Lauf" eingeschlossen.
 - [ ] Dasselbe in der Gesamtstatistik, über die gewählten Abende; die Beschreibung der Rekorde nennt das Datum des Abends.
 
-### 36. Darstellung
+### 36. Serien antippen
+- [ ] In der Statistik eines Spielers sind die Kästchen unter "Serien" antippbar: darunter erscheint "Spiel 12 · 21:07 Uhr: Sauspiel Eichel, ... · +1,20 €" (oder "ausgesetzt"). Nochmal tippen blendet es aus.
+- [ ] Die längste Siegesserie und die längste Verlustserie sind mit einem Rahmen markiert (bei Gleichstand die erste). Ausgesetzte Spiele dazwischen unterbrechen die Serie nicht.
+
+### 37. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

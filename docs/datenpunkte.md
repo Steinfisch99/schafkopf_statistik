@@ -260,6 +260,10 @@ Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `sum
 
 `TableStats::most_expensive_by_kind` (teuerstes Spiel je Spielart), `most_laufende` und `laufende_counts` (je Spielart und Zahl der Laufenden `LaufCount`: Lauf und Gegenlauf, jeweils Spiele und Siege der Spielerpartei; 0 = kein Lauf) sowie in `OverallStats` dasselbe mit `GameRef` (Abend, Spiel, Wert). Alle neuen Felder haben `serde(default)`. Die Anzeige `views/records.rs` fasst für die Laufenden Sauspiele und alle Solos mit Zuschlägen zusammen. Ramsch und Bettel haben keine Laufenden.
 
+## Serien antippen
+
+`stats_text::strip_cells` liefert je Spieler die Kästchen der Ergebnisreihe mit Beschreibung (Spielnummer, Uhrzeit aus `played_at`, Spiel, Betrag) und der Markierung der längsten Serien (`longest_runs`, bei Gleichstand die erste; ausgesetzte Spiele unterbrechen nicht, wie bei `PlayerStats::longest_win_streak`). Reine Anzeige.
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.

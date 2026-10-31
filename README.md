@@ -133,6 +133,7 @@ Entscheidungen:
 - [x] Keiner spielt: Regelwerk wählt Ramsch, Zusammenwerfen oder Stock (Einlage im Tarif, Sauspiel gewonnen: Stock geteilt, verloren: gedoppelt)
 - [x] Geldstand aller Spieler über alle Abende auf der ersten Seite, mit Startwert und Nachträgen (Spiele woanders)
 - [x] Statistik zum Stock: höchster Stand, hineingeflossen, ausgezahlt, je Spieler eingezahlt und unterm Strich
+- [x] Serien: Kästchen antippen zeigt das Spiel mit Uhrzeit, längste Sieg- und Verlustserie sind umrahmt
 - [x] Rekorde (teuerstes Spiel je Spielart, meiste Laufende) und Verteilung der Laufenden bei Sauspielen und Solos, für Abend und Gesamtstatistik
 - [x] Stock fair an alle aufteilen, Zusammenwerfen getrennt vom Einzahlen gezählt, Stock in Bewegtem Geld und in der CSV, Doppler-Tabelle mit Kuchen
 - [ ] JSON-Sicherung exportieren und wieder importieren

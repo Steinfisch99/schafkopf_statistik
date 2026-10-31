@@ -7,7 +7,7 @@ use schafkopf_charts::{donut_svg, format_euro, player_color};
 use schafkopf_core::Cents;
 
 use crate::stats_text::{
-    bar_percent, diverging, doubler_ranking, percent, tout_ranking, DoublerRow, ToutRow,
+    bar_percent, diverging, doubler_ranking, percent, tout_ranking, DoublerRow, StripCell, ToutRow,
 };
 
 /// Sieg und Niederlage in zwei Farben, die sich auch bei Farbschwäche unterscheiden (Okabe/Ito).
@@ -127,18 +127,49 @@ pub fn DivergingRow(label: String, seat: Option<usize>, balance: Cents, max_abs:
 }
 
 /// Die Ergebnisse Spiel für Spiel: ein Kästchen je Spiel, `+` Sieg, `−` Niederlage, gestrichelt
-/// ausgesetzt.
+/// ausgesetzt. Die längste Sieg- und Verlustserie sind umrahmt. Ein Tipp auf ein Kästchen zeigt darunter
+/// das Spiel mit Uhrzeit, Ausgang und Betrag.
 #[component]
-pub fn ResultStrip(results: Vec<Option<bool>>) -> Element {
+pub fn ResultStrip(cells: Vec<StripCell>) -> Element {
+    let mut selected = use_signal(|| None::<usize>);
+    let shown = selected().and_then(|i| cells.get(i).map(|c| (i, c.info.clone())));
     rsx! {
-        div { class: "strip", role: "img", "aria-label": "Ergebnisse Spiel für Spiel",
-            for (index, result) in results.into_iter().enumerate() {
-                match result {
-                    Some(true) => rsx! { span { key: "{index}", class: "w", title: "Spiel {index + 1}: Sieg", "+" } },
-                    Some(false) => rsx! { span { key: "{index}", class: "l", title: "Spiel {index + 1}: Niederlage", "−" } },
-                    None => rsx! { span { key: "{index}", class: "off", title: "Spiel {index + 1}: ausgesetzt" } },
+        div { class: "strip", role: "group", "aria-label": "Ergebnisse Spiel für Spiel",
+            for (index, cell) in cells.into_iter().enumerate() {
+                {
+                    let base = match cell.result {
+                        Some(true) => "w",
+                        Some(false) => "l",
+                        None => "off",
+                    };
+                    let class = format!(
+                        "{base}{}{}",
+                        if cell.longest_win || cell.longest_loss { " best" } else { "" },
+                        if selected() == Some(index) { " picked" } else { "" }
+                    );
+                    let mark = match cell.result {
+                        Some(true) => "+",
+                        Some(false) => "−",
+                        None => "",
+                    };
+                    rsx! {
+                        button {
+                            key: "{index}",
+                            r#type: "button",
+                            class: "{class}",
+                            title: "{cell.info}",
+                            onclick: move |_| {
+                                let now = selected();
+                                selected.set(if now == Some(index) { None } else { Some(index) });
+                            },
+                            "{mark}"
+                        }
+                    }
                 }
             }
+        }
+        if let Some((_, text)) = shown {
+            p { class: "strip-info", "{text}" }
         }
     }
 }

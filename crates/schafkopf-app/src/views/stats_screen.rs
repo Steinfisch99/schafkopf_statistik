@@ -19,7 +19,7 @@ use super::stat_widgets::{
 use super::suit_icon::SuitIcon;
 use crate::stats_text::{
     average_laufende, average_per_game, declarer_rate, doubling_label, kind_rows, max_abs, overall,
-    pair_rows, percent, position_label, ranking, results_per_player, share, streak, DoublerRow,
+    pair_rows, percent, position_label, ranking, share, streak, strip_cells, DoublerRow, StripCell,
     ToutRow,
 };
 use crate::summary::{detail, signed_euro, title};
@@ -55,7 +55,7 @@ pub(super) fn Kv(label: String, value: String) -> Element {
 #[component]
 fn PlayerDetail(
     player: PlayerStats,
-    results: Vec<Option<bool>>,
+    results: Vec<StripCell>,
     open: bool,
     /// Die Zahlen aller Spieler des Abends für die Ranglisten beim Antippen.
     peers: Vec<PeerRow>,
@@ -206,8 +206,8 @@ fn PlayerDetail(
             }
 
             h4 { "Serien" }
-            p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt." }
-            ResultStrip { results }
+            p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt. Die längsten Serien sind umrahmt. Tippe ein Kästchen an, um das Spiel zu sehen." }
+            ResultStrip { cells: results }
             TapKv { label: "Längste Siegesserie", value: p.longest_win_streak.to_string(), metric: Metric::LongestWinStreak, me: me.clone(), peers: peers.clone(), open: compare }
             TapKv { label: "Längste Verlustserie", value: p.longest_loss_streak.to_string(), metric: Metric::LongestLossStreak, me: me.clone(), peers: peers.clone(), open: compare }
             Kv { label: "Aktuell", value: streak(p.current_streak) }
@@ -352,7 +352,7 @@ pub fn StatsScreen(
     ];
     let pair_scale = pairs.iter().map(|r| r.stats.games).max().unwrap_or(0);
     let declarers = declarer_rate(&stats);
-    let results = results_per_player(t);
+    let results = strip_cells(t);
     // Wer an diesem Abend dabei war, für die Ranglisten beim Antippen einer Zahl.
     let peers: Vec<PeerRow> = stats
         .players

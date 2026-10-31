@@ -212,6 +212,100 @@ pub fn results_per_player(table: &Table) -> Vec<Vec<Option<bool>>> {
     rows
 }
 
+/// Ein Kästchen der Ergebnisreihe: Ergebnis, Beschreibung zum Antippen und ob es zur längsten Sieg- oder
+/// Verlustserie gehört.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StripCell {
+    /// `Some(true)` Sieg, `Some(false)` Niederlage, `None` ausgesetzt.
+    pub result: Option<bool>,
+    pub info: String,
+    pub longest_win: bool,
+    pub longest_loss: bool,
+}
+
+/// Erstes und letztes Kästchen einer Serie.
+pub type Run = (usize, usize);
+
+/// Die längste Siegserie und die längste Verlustserie als Bereiche `(erstes, letztes)` von Positionen in
+/// der Reihe. Ausgesetzte Spiele unterbrechen eine Serie nicht (wie bei `PlayerStats`), bei Gleichstand
+/// zählt die erste.
+pub fn longest_runs(results: &[Option<bool>]) -> (Option<Run>, Option<Run>) {
+    let mut best: [Option<Run>; 2] = [None, None];
+    let mut best_len = [0usize; 2];
+    let mut run: Option<(bool, usize, usize, usize)> = None;
+    for (i, r) in results.iter().enumerate() {
+        let Some(won) = *r else { continue };
+        run = match run {
+            Some((w, first, _, len)) if w == won => Some((w, first, i, len + 1)),
+            _ => Some((won, i, i, 1)),
+        };
+        if let Some((w, first, last, len)) = run {
+            let slot = usize::from(!w);
+            if len > best_len[slot] {
+                best_len[slot] = len;
+                best[slot] = Some((first, last));
+            }
+        }
+    }
+    (best[0], best[1])
+}
+
+/// Pro Sitzplatz die Kästchen aller Spiele in Reihenfolge, mit Beschreibung (Spiel, Uhrzeit, Ausgang,
+/// Betrag) und Markierung der längsten Serien.
+pub fn strip_cells(table: &Table) -> Vec<Vec<StripCell>> {
+    let results = results_per_player(table);
+    let mut rows: Vec<Vec<StripCell>> = Vec::new();
+    for (seat, row) in results.iter().enumerate() {
+        let mut games = table
+            .games()
+            .iter()
+            .enumerate()
+            .filter(|(_, g)| table.was_at_table(g, seat));
+        let (win, loss) = longest_runs(row);
+        let inside = |range: Option<(usize, usize)>, i: usize| {
+            range.is_some_and(|(a, b)| (a..=b).contains(&i))
+        };
+        let mut cells = Vec::with_capacity(row.len());
+        for (i, result) in row.iter().enumerate() {
+            let info = games
+                .next()
+                .map(|(index, game)| {
+                    let mut text = format!("Spiel {}", index + 1);
+                    if let Some(at) = game.input.played_at {
+                        text.push_str(&format!(
+                            " · {} Uhr",
+                            format_clock(at, table.utc_offset_min)
+                        ));
+                    }
+                    text.push_str(&format!(
+                        ": {}, {}",
+                        crate::summary::title(game),
+                        crate::summary::detail(table, game)
+                    ));
+                    match result {
+                        Some(_) => text.push_str(&format!(
+                            " · {}",
+                            crate::summary::signed_euro(
+                                game.payouts.get(seat).copied().unwrap_or(0)
+                            )
+                        )),
+                        None => text.push_str(" · ausgesetzt"),
+                    }
+                    text
+                })
+                .unwrap_or_default();
+            cells.push(StripCell {
+                result: *result,
+                info,
+                longest_win: inside(win, i) && *result == Some(true),
+                longest_loss: inside(loss, i) && *result == Some(false),
+            });
+        }
+        rows.push(cells);
+    }
+    rows
+}
+
 /// Wie oft ein Spieler gedoppelt hat: Klopfen, Kontra und Re einzeln, dazu die Zahl seiner Spiele.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DoublerRow {
@@ -460,6 +554,24 @@ mod tests {
         assert_eq!(doubling_label(2), "Vervierfacht (mal 4)");
         assert_eq!(doubling_label(3), "Verachtfacht (mal 8)");
         assert_eq!(doubling_label(5), "Mal 32 (5 Doppler)");
+    }
+
+    #[test]
+    fn longest_runs_skip_sat_out_games_and_take_the_first_on_a_tie() {
+        let r = [
+            Some(true),
+            Some(true),
+            None,
+            Some(true),
+            Some(false),
+            Some(false),
+            Some(true),
+            Some(false),
+            Some(false),
+        ];
+        assert_eq!(longest_runs(&r), (Some((0, 3)), Some((4, 5))));
+        assert_eq!(longest_runs(&[None, None]), (None, None));
+        assert_eq!(longest_runs(&[Some(false)]), (None, Some((0, 0))));
     }
 
     #[test]
