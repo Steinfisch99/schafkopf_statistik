@@ -4052,3 +4052,40 @@ fn records_and_lauf_counts_per_kind_for_one_evening_and_overall() {
         .unwrap();
     assert_eq!(sau_best.value, max);
 }
+
+#[test]
+fn overall_history_chains_the_evenings_and_joins_players_by_name() {
+    let mut a = table();
+    a.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    a.add_game(GameInput {
+        won: false,
+        ..sauspiel(1, 0, 2)
+    })
+    .unwrap();
+    let mut b = table();
+    b.players.reverse();
+    b.add_game(GameInput {
+        won: true,
+        ..sauspiel(0, 1, 3)
+    })
+    .unwrap();
+    let h = overall_history(&[&a, &b]);
+    assert_eq!(h.games.len(), 4);
+    assert_eq!(h.steps, vec![(0, 0), (0, 1), (1, 0)]);
+    assert_eq!(h.evening_ends, vec![2]);
+    assert_eq!(h.evenings.len(), 3);
+    assert_eq!(h.games[0], vec![0; 4]);
+    // Der Endstand ist die Summe der Abendergebnisse je Name.
+    let o = overall_stats(&[&a, &b]);
+    for p in &o.players {
+        let i = h.names.iter().position(|n| *n == p.name).unwrap();
+        assert_eq!(h.games[3][i], p.balance);
+        assert_eq!(h.evenings[2][i], p.balance);
+    }
+    assert_eq!(h.games[2], h.evenings[1]);
+    assert_eq!(overall_history(&[]).games.len(), 1);
+}

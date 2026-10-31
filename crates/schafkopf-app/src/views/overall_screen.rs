@@ -5,8 +5,12 @@ use std::collections::BTreeSet;
 
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color};
-use schafkopf_core::{overall_stats, OverallPlayer, OverallStats, PriceMistake, Table};
+use schafkopf_core::{
+    overall_history, overall_stats, OverallHistory, OverallPlayer, OverallStats, PriceMistake,
+    Table,
+};
 
+use super::balance_chart::HistoryChart;
 use super::common::{Chip, Notice};
 use super::compare::{overall_peer, Metric, PeerRow, Tap, TapKv};
 use super::meta_sections::{EveningsOverview, OverallPresence, TariffSection};
@@ -20,7 +24,7 @@ use super::stats_screen::{
 use crate::stats_text::{
     doubling_label, kind_rows, max_abs, percent, share, streak, DoublerRow, ToutRow,
 };
-use crate::summary::{evening_date, evening_times, games_text, signed_euro};
+use crate::summary::{detail, evening_date, evening_times, games_text, signed_euro, title};
 use crate::{storage, Screen};
 
 /// Der laufende Abend hat keinen Zeitstempel im Archiv, er zählt unter dieser Nummer.
@@ -441,6 +445,7 @@ pub fn OverallScreen(
     table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
+    from_past: bool,
 ) -> Element {
     let mut screen = screen;
     let _ = notice;
@@ -474,11 +479,14 @@ pub fn OverallScreen(
         .map(|(_, t)| t)
         .collect();
     let stats = overall_stats(&chosen);
+    let history = overall_history(&chosen);
+    let game_infos = history_infos(&evenings, &off.read(), &history);
+    let evening_infos = evening_infos(&evenings, &off.read());
     let keys: Vec<u64> = evenings.iter().map(|(k, _)| *k).collect();
 
     rsx! {
         h2 { "Gesamtstatistik" }
-        button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::PastList), "← Zurück" }
+        button { class: "secondary", r#type: "button", onclick: move |_| screen.set(if from_past { Screen::PastList } else { Screen::Setup }), "← Zurück" }
 
         if evenings.is_empty() {
             p { class: "hint empty",
@@ -537,9 +545,91 @@ pub fn OverallScreen(
             if chosen.is_empty() {
                 p { class: "hint empty", "Kein Abend gewählt." }
             } else {
+                if history.games.len() > 1 {
+                    section {
+                        h3 { "Geldstand über alle gewählten Abende" }
+                        p { class: "legend-note", "Spiel für Spiel, die Abende hintereinander. Die senkrechten Linien trennen die Abende." }
+                        HistoryChart {
+                            history: history.games.clone(),
+                            infos: game_infos,
+                            names: history.names.clone(),
+                            away: vec![false; history.names.len()],
+                            markers: history.evening_ends.clone(),
+                            unit: "Spiele".to_string(),
+                            step: "Spiel".to_string(),
+                            empty_text: String::new(),
+                            on_player: None,
+                        }
+                        h3 { "Geldstand nach jedem Abend" }
+                        HistoryChart {
+                            history: history.evenings.clone(),
+                            infos: evening_infos,
+                            names: history.names.clone(),
+                            away: vec![false; history.names.len()],
+                            markers: Vec::new(),
+                            unit: "Abende".to_string(),
+                            step: "Abend".to_string(),
+                            empty_text: String::new(),
+                            on_player: None,
+                        }
+                    }
+                }
                 RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
                 OverallNumbers { stats }
             }
         }
     }
+}
+
+/// Die gewählten Abende (mit Schlüssel) in der Reihenfolge, in der sie an `overall_stats` gehen.
+fn chosen_evenings<'a>(evenings: &'a [(u64, Table)], off: &BTreeSet<u64>) -> Vec<(u64, &'a Table)> {
+    evenings
+        .iter()
+        .filter(|(key, _)| !off.contains(key))
+        .map(|(key, t)| (*key, t))
+        .collect()
+}
+
+/// Text zu jedem angetippten Spiel im Verlauf über alle Abende: Abend, Spiel und was gespielt wurde.
+fn history_infos(
+    evenings: &[(u64, Table)],
+    off: &BTreeSet<u64>,
+    history: &OverallHistory,
+) -> Vec<String> {
+    let chosen = chosen_evenings(evenings, off);
+    let mut infos = vec!["Start: alle bei 0,00 €".to_string()];
+    for &(evening, game) in &history.steps {
+        infos.push(match chosen.get(evening) {
+            Some((key, t)) => t.games().get(game).map_or(String::new(), |g| {
+                format!(
+                    "Abend {} ({}), Spiel {}: {} · {}",
+                    evening + 1,
+                    evening_date(t, *key),
+                    game + 1,
+                    title(g),
+                    detail(t, g)
+                )
+            }),
+            None => String::new(),
+        });
+    }
+    infos
+}
+
+/// Text zu jedem angetippten Abend im Verlauf nach Abenden.
+fn evening_infos(evenings: &[(u64, Table)], off: &BTreeSet<u64>) -> Vec<String> {
+    let mut infos = vec!["Start: alle bei 0,00 €".to_string()];
+    for (n, (key, t)) in chosen_evenings(evenings, off)
+        .into_iter()
+        .filter(|(_, t)| !t.games().is_empty())
+        .enumerate()
+    {
+        infos.push(format!(
+            "Abend {} ({}, {})",
+            n + 1,
+            evening_date(t, key),
+            games_text(t.games().len())
+        ));
+    }
+    infos
 }

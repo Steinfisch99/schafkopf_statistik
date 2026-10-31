@@ -95,6 +95,16 @@ pub fn balance_chart_svg(history: &[Vec<Cents>]) -> String {
 /// Verlauf ist die Nulllinie immer dabei, weil der Start bei 0 liegt. Ist ein Spiel markiert, zeigt
 /// eine senkrechte Linie und je ein Punkt pro Spieler dessen Stand, sonst der Punkt am Ende.
 pub fn balance_chart_svg_view(history: &[Vec<Cents>], view: &ChartView) -> String {
+    balance_chart_svg_marked(history, view, &[])
+}
+
+/// Wie [`balance_chart_svg_view`], dazu senkrechte Trennlinien an den Stellen `markers` (zum Beispiel
+/// das Ende jedes Abends im Verlauf über mehrere Abende).
+pub fn balance_chart_svg_marked(
+    history: &[Vec<Cents>],
+    view: &ChartView,
+    markers: &[usize],
+) -> String {
     let players = history.first().map_or(0, Vec::len);
     let games = history.len().saturating_sub(1);
     let view = view.adapted(games);
@@ -168,6 +178,18 @@ pub fn balance_chart_svg_view(history: &[Vec<Cents>], view: &ChartView) -> Strin
                 HEIGHT - 6.0,
             );
             game += x_step;
+        }
+    }
+
+    for &marker in markers {
+        if marker > 0 && marker < games && (start..=end).contains(&(marker as f64)) {
+            let _ = write!(
+                svg,
+                "<line x1=\"{mx:.1}\" x2=\"{mx:.1}\" y1=\"{TOP}\" y2=\"{bottom}\" stroke=\"currentColor\" \
+                 stroke-opacity=\"0.3\" stroke-width=\"1\"/>",
+                mx = x(marker as f64),
+                bottom = TOP + plot_h,
+            );
         }
     }
 
@@ -332,6 +354,19 @@ mod tests {
         assert!(!svg.contains(">12<") && !svg.contains(">24<"));
     }
 
+    #[test]
+    fn markers_draw_separator_lines_only_inside_the_view() {
+        let history = sample(10);
+        let view = ChartView::full(10);
+        let plain = balance_chart_svg_view(&history, &view);
+        let marked = balance_chart_svg_marked(&history, &view, &[4, 8]);
+        assert_eq!(marked.matches("stroke-opacity=\"0.3\"").count(), 2);
+        assert_eq!(plain.matches("stroke-opacity=\"0.3\"").count(), 0);
+        let mut zoomed = ChartView::full(10);
+        zoomed.set_range(5.0, 10.0);
+        let svg = balance_chart_svg_marked(&history, &zoomed, &[4, 8]);
+        assert_eq!(svg.matches("stroke-opacity=\"0.3\"").count(), 1);
+    }
     #[test]
     fn selected_game_gets_a_line_and_dots_for_every_player() {
         let history = sample(10);

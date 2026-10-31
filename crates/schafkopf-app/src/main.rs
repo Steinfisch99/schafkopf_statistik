@@ -57,8 +57,10 @@ pub enum Screen {
         player: Option<usize>,
     },
     PastExport(u64),
-    /// Die Statistik über mehrere Abende.
-    Overall,
+    /// Die Statistik über mehrere Abende, erreichbar von den früheren Abenden und von der Einrichtung.
+    Overall {
+        from_past: bool,
+    },
     /// Sicherung aller Daten als ZIP und Einspielen einer Sicherung.
     Backup,
 }
@@ -172,7 +174,7 @@ fn App() -> Element {
                     Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },
                     Screen::PastList => rsx! { PastList { screen, has_table } },
                     // Diese drei zeigt `PastEveningView` oben.
-                    Screen::Overall => rsx! { OverallScreen { table, screen, notice } },
+                    Screen::Overall { from_past } => rsx! { OverallScreen { table, screen, notice, from_past } },
                     Screen::Backup => rsx! { BackupScreen { table, screen, notice, library } },
                     Screen::Past(_) | Screen::PastStats { .. } | Screen::PastExport(_) => rsx! {},
                 }

@@ -5,8 +5,8 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use schafkopf_charts::{balance_chart_svg_view, format_euro, player_color, ChartView};
-use schafkopf_core::{balance_history, Table};
+use schafkopf_charts::{balance_chart_svg_marked, format_euro, player_color, ChartView};
+use schafkopf_core::{balance_history, Cents, Table};
 
 use super::common::Chip;
 use crate::gestures::{Gestures, Outcome};
@@ -21,23 +21,63 @@ fn now_millis() -> u64 {
         .map_or(0, |d| d.as_millis() as u64)
 }
 
+/// Der Geldstand eines Abends, Spiel für Spiel.
 #[component]
 pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>) -> Element {
+    let guard = table.read();
+    let Some(t) = guard.as_ref() else {
+        return rsx! {};
+    };
+    let history = balance_history(t);
+    let infos: Vec<String> = (0..history.len())
+        .map(|n| match n {
+            0 => "Start: alle bei 0,00 €".to_string(),
+            n => t
+                .games()
+                .get(n - 1)
+                .map(|g| format!("Spiel {n}: {} · {}", title(g), detail(t, g)))
+                .unwrap_or_default(),
+        })
+        .collect();
+    rsx! {
+        HistoryChart {
+            history,
+            infos,
+            names: t.players.clone(),
+            away: (0..t.players.len()).map(|s| !t.is_present(s)).collect(),
+            markers: Vec::new(),
+            unit: "Spiele".to_string(),
+            step: "Spiel".to_string(),
+            empty_text: "Noch kein Spiel eingetragen. Sobald das erste Spiel gespeichert ist, erscheint hier der Geldstand.".to_string(),
+            on_player: Some(on_player),
+        }
+    }
+}
+
+/// Ein Verlaufsdiagramm mit Linien je Spieler zum Bedienen. `history[n]` ist der Stand nach `n` Schritten
+/// (Spiele oder Abende), `infos[n]` der Text zum angetippten Schritt, `markers` sind Trennlinien.
+#[component]
+pub fn HistoryChart(
+    history: Vec<Vec<Cents>>,
+    infos: Vec<String>,
+    names: Vec<String>,
+    away: Vec<bool>,
+    markers: Vec<usize>,
+    unit: String,
+    step: String,
+    empty_text: String,
+    on_player: Option<EventHandler<usize>>,
+) -> Element {
     let mut view = use_signal(|| ChartView::full(0));
     let mut gestures = use_signal(Gestures::default);
     let mut width = use_signal(|| 360.0_f64);
     let mut mounted = use_signal(|| None::<Rc<MountedData>>);
 
-    let guard = table.read();
-    let Some(t) = guard.as_ref() else {
-        return rsx! {};
-    };
-    let games = t.games().len();
-    let history = balance_history(t);
+    let games = history.len().saturating_sub(1);
     let current = view.read().adapted(games);
-    let svg = balance_chart_svg_view(&history, &current);
+    let svg = balance_chart_svg_marked(&history, &current, &markers);
     let shown = current.selected.unwrap_or(games);
-    let balances = history[shown].clone();
+    let balances = history.get(shown).cloned().unwrap_or_default();
 
     // Die Breite des Diagramms in Pixeln braucht die Gestenrechnung. Sie wird beim Einhängen und bei
     // jedem neuen Berühren gemessen, damit Drehen des Geräts nicht zu falschen Positionen führt.
@@ -53,19 +93,15 @@ pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>
         }
     };
 
-    let info = match current.selected {
-        Some(0) => Some("Start: alle bei 0,00 €".to_string()),
-        Some(n) => t
-            .games()
-            .get(n - 1)
-            .map(|g| format!("Spiel {n}: {} · {}", title(g), detail(t, g))),
-        None => None,
-    };
+    let info = current
+        .selected
+        .and_then(|n| infos.get(n).cloned())
+        .filter(|s| !s.is_empty());
 
     rsx! {
         if games == 0 {
             p { class: "hint empty",
-                "Noch kein Spiel eingetragen. Sobald das erste Spiel gespeichert ist, erscheint hier der Geldstand."
+                "{empty_text}"
             }
         }
         if games > 0 {
@@ -147,35 +183,54 @@ pub fn BalanceChart(table: Signal<Option<Table>>, on_player: EventHandler<usize>
                 }
             }
         } else if !current.is_full() {
-            p { class: "chart-info muted", "Spiele {current.start.round()} bis {current.end.round()} von {games}. Doppeltippen zeigt alles." }
+            p { class: "chart-info muted", "{unit} {current.start.round()} bis {current.end.round()} von {games}. Doppeltippen zeigt alles." }
         } else if games > 1 {
-            p { class: "chart-info muted", "Tippen zeigt ein Spiel, Ziehen verschiebt, mit zwei Fingern zoomen." }
+            p { class: "chart-info muted", "Tippen zeigt die Werte eines {step}s, Ziehen verschiebt, mit zwei Fingern zoomen." }
         }
 
         }
 
         p { class: "muted legend-title",
             if current.selected.is_some() {
-                "Stand nach Spiel {shown}"
+                "Stand nach {step} {shown}"
             } else {
                 "Aktueller Stand"
             }
         }
-        p { class: "legend-note", "Tippe auf einen Namen für die Statistik des Spielers." }
+        if on_player.is_some() {
+            p { class: "legend-note", "Tippe auf einen Namen für die Statistik des Spielers." }
+        }
         ul { class: "legend",
-            for (seat, name) in t.players.iter().enumerate() {
-                li { key: "{seat}",
-                    button {
-                        class: if t.is_present(seat) { "legend-btn" } else { "legend-btn away" },
-                        r#type: "button",
-                        "aria-label": "Statistik von {name}",
-                        onclick: move |_| on_player.call(seat),
-                        span { class: "dot", style: "background:{player_color(seat)}" }
-                        span { class: "legend-text",
-                            span { class: "name", "{name}" }
-                            span { class: if balances[seat] < 0 { "amount neg" } else { "amount" }, "{format_euro(balances[seat])}" }
+            for (seat, name) in names.iter().enumerate() {
+                {
+                    let balance = balances.get(seat).copied().unwrap_or(0);
+                    let amount_class = if balance < 0 { "amount neg" } else { "amount" };
+                    let away_class = if away.get(seat).copied().unwrap_or(false) { "legend-btn away" } else { "legend-btn" };
+                    rsx! {
+                        li { key: "{seat}",
+                            if let Some(on_player) = on_player {
+                                button {
+                                    class: "{away_class}",
+                                    r#type: "button",
+                                    "aria-label": "Statistik von {name}",
+                                    onclick: move |_| on_player.call(seat),
+                                    span { class: "dot", style: "background:{player_color(seat)}" }
+                                    span { class: "legend-text",
+                                        span { class: "name", "{name}" }
+                                        span { class: "{amount_class}", "{format_euro(balance)}" }
+                                    }
+                                    span { class: "chev", "›" }
+                                }
+                            } else {
+                                div { class: "{away_class}",
+                                    span { class: "dot", style: "background:{player_color(seat)}" }
+                                    span { class: "legend-text",
+                                        span { class: "name", "{name}" }
+                                        span { class: "{amount_class}", "{format_euro(balance)}" }
+                                    }
+                                }
+                            }
                         }
-                        span { class: "chev", "›" }
                     }
                 }
             }

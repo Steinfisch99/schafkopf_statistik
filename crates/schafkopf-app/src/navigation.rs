@@ -33,7 +33,7 @@ pub fn is_past_screen(screen: Screen) -> bool {
             | Screen::Past(_)
             | Screen::PastStats { .. }
             | Screen::PastExport(_)
-            | Screen::Overall
+            | Screen::Overall { .. }
     )
 }
 
@@ -57,7 +57,8 @@ pub fn back_target(screen: Screen, has_table: bool) -> Option<Screen> {
         } else {
             Screen::Setup
         }),
-        Screen::Past(_) | Screen::Overall => Some(Screen::PastList),
+        Screen::Past(_) | Screen::Overall { from_past: true } => Some(Screen::PastList),
+        Screen::Overall { from_past: false } => Some(Screen::Setup),
         Screen::Backup => Some(if has_table {
             Screen::Settings
         } else {
@@ -153,7 +154,8 @@ mod tests {
                 player: Some(1),
             },
             Screen::PastExport(7),
-            Screen::Overall,
+            Screen::Overall { from_past: true },
+            Screen::Overall { from_past: false },
             Screen::Backup,
         ];
         for has_table in [true, false] {
@@ -235,7 +237,7 @@ mod tests {
                 player: None,
             },
             Screen::PastExport(3),
-            Screen::Overall,
+            Screen::Overall { from_past: true },
         ] {
             assert!(is_past_screen(screen));
             assert_eq!(effective_screen(None, screen), screen, "{screen:?}");

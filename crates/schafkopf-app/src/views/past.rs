@@ -67,7 +67,7 @@ pub fn PastList(screen: Signal<Screen>, has_table: bool) -> Element {
             }
         }
         div { class: "actions stack",
-            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Overall), "Gesamtstatistik über mehrere Abende" }
+            button { class: "secondary", r#type: "button", onclick: move |_| screen.set(Screen::Overall { from_past: true }), "Gesamtstatistik über mehrere Abende" }
         }
         div { class: "actions",
             button { class: "secondary", r#type: "button", onclick: move |_| screen.set(back), "Zurück" }

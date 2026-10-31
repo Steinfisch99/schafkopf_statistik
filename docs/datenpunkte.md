@@ -264,6 +264,10 @@ Vor dem Speichern zeigt das Formular über der Auszahlungstabelle den Block `sum
 
 `stats_text::strip_cells` liefert je Spieler die Kästchen der Ergebnisreihe mit Beschreibung (Spielnummer, Uhrzeit aus `played_at`, Spiel, Betrag) und der Markierung der längsten Serien (`longest_runs`, bei Gleichstand die erste; ausgesetzte Spiele unterbrechen nicht, wie bei `PlayerStats::longest_win_streak`). Reine Anzeige.
 
+## Verlauf über mehrere Abende
+
+`overall_history` (Kern, `overall.rs`) liefert `OverallHistory`: Spieler über den Namen zusammengeführt, `games[schritt][spieler]` über alle Spiele aller gewählten Abende hintereinander (Spieler, die an einem Abend fehlen, behalten ihren Stand; Strafen und Stock wie in `balance_history`), `steps` (Abend, Spiel), `evening_ends` für die Trennlinien und `evenings[k]` für den Stand nach k Abenden. Die Anzeige nutzt `HistoryChart` (`views/balance_chart.rs`, dasselbe Diagramm wie beim Abend) mit `balance_chart_svg_marked` (Trennlinien).
+
 ## Version
 
 Die Versionsnummer steht in `Cargo.toml` (`[workspace.package]`) und erscheint in der App unten in der Tischübersicht und oben in der Einrichtung. Neuer Tag: zweite Stelle erhöhen, sonst die dritte.

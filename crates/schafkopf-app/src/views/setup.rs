@@ -469,6 +469,12 @@ pub fn Setup(
             button {
                 class: "secondary",
                 r#type: "button",
+                onclick: move |_| screen.set(Screen::Overall { from_past: false }),
+                "Statistik über mehrere Abende"
+            }
+            button {
+                class: "secondary",
+                r#type: "button",
                 onclick: move |_| screen.set(Screen::Backup),
                 "Sicherung: Daten sichern und einspielen"
             }

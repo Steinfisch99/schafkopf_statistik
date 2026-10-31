@@ -8,7 +8,8 @@ use crate::meta::{table_meta, UseCount};
 use crate::model::{Cents, GameKind, PriceMistake};
 use crate::scoring::price_doublings;
 use crate::stats::{
-    table_stats, KindStats, LaufCount, PlayerStats, PlayerStock, RoleStats, StockStats,
+    balance_history, table_stats, KindStats, LaufCount, PlayerStats, PlayerStock, RoleStats,
+    StockStats,
 };
 use crate::table::{OffenceKind, Table};
 
@@ -462,4 +463,65 @@ pub struct EveningFact {
     pub games: u32,
     /// Dauer in Sekunden (bis zum Ende oder zur letzten Aktivität), falls Beginn und Ende bekannt sind.
     pub length: Option<i64>,
+}
+
+/// Der Geldstand der Spieler (über den Namen zusammengeführt) über mehrere Abende.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct OverallHistory {
+    /// Die Spieler in der Reihenfolge ihres ersten Auftretens (wie `OverallStats::players`).
+    pub names: Vec<String>,
+    /// `games[s][p]`: Stand von Spieler `p` nach `s` Spielen aller Abende zusammen. Der erste Eintrag ist der
+    /// Start bei 0. Wer an einem Abend nicht dabei war, behält seinen Stand.
+    pub games: Vec<Vec<Cents>>,
+    /// Zu jedem Schritt ab 1 das Spiel als (Abend, Spiel im Abend), jeweils nullbasiert in der Liste der Abende.
+    pub steps: Vec<(usize, usize)>,
+    /// Die Schritte, nach denen ein Abend endet (ohne den letzten Abend, nur Abende mit Spielen).
+    pub evening_ends: Vec<usize>,
+    /// `evenings[k][p]`: Stand von Spieler `p` nach `k` Abenden, `evenings[0]` ist der Start bei 0.
+    pub evenings: Vec<Vec<Cents>>,
+}
+
+/// Der Verlauf des Geldstands Spiel für Spiel und Abend für Abend. Strafen und Stock stecken in den
+/// Ständen wie in `balance_history`; was vor dem ersten Spiel eines Abends bewegt wurde, zählt ab dessen
+/// erstem Spiel.
+pub fn overall_history(tables: &[&Table]) -> OverallHistory {
+    let mut names: Vec<String> = Vec::new();
+    for table in tables {
+        for name in &table.players {
+            if !names.contains(name) {
+                names.push(name.clone());
+            }
+        }
+    }
+    let index = |name: &String| names.iter().position(|n| n == name).unwrap_or(0);
+    let mut out = OverallHistory {
+        games: vec![vec![0; names.len()]],
+        evenings: vec![vec![0; names.len()]],
+        ..OverallHistory::default()
+    };
+    let mut total: Vec<Cents> = vec![0; names.len()];
+    for (evening, table) in tables.iter().enumerate() {
+        let history = balance_history(table);
+        let seats: Vec<usize> = table.players.iter().map(index).collect();
+        for (game, row) in history.iter().enumerate().skip(1) {
+            let mut step = total.clone();
+            for (seat, &value) in row.iter().enumerate() {
+                step[seats[seat]] += value;
+            }
+            out.games.push(step);
+            out.steps.push((evening, game - 1));
+        }
+        if let Some(last) = history.last() {
+            for (seat, &value) in last.iter().enumerate() {
+                total[seats[seat]] += value;
+            }
+        }
+        if history.len() > 1 {
+            out.evening_ends.push(out.games.len() - 1);
+            out.evenings.push(total.clone());
+        }
+    }
+    out.evening_ends.pop();
+    out.names = names;
+    out
 }

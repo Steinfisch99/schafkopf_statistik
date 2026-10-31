@@ -534,7 +534,13 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Statistik eines Spielers sind die Kästchen unter "Serien" antippbar: darunter erscheint "Spiel 12 · 21:07 Uhr: Sauspiel Eichel, ... · +1,20 €" (oder "ausgesetzt"). Nochmal tippen blendet es aus.
 - [ ] Die längste Siegesserie und die längste Verlustserie sind mit einem Rahmen markiert (bei Gleichstand die erste). Ausgesetzte Spiele dazwischen unterbrechen die Serie nicht.
 
-### 37. Darstellung
+### 37. Gesamtstatistik: Verlauf und Menü
+- [ ] Auf der Einrichtungsseite (neuer Abend) gibt es neben "Frühere Abende ansehen" den Knopf "Statistik über mehrere Abende". "← Zurück" und die Zurück-Taste führen von dort zur Einrichtung, vom Weg über die früheren Abende wie bisher zu dieser Liste.
+- [ ] In der Gesamtstatistik steht nach der Abendauswahl "Geldstand über alle gewählten Abende": die Linien aller Spieler Spiel für Spiel, die Abende hintereinander, mit senkrechten Trennlinien. Bedienung wie beim Diagramm eines Abends (Tippen zeigt Abend, Datum und Spiel, Ziehen, Zoom, Doppeltippen, "Letzte 20").
+- [ ] Darunter "Geldstand nach jedem Abend": ein Punkt je Abend auf der Zeitachse, Tippen zeigt Nummer, Datum und Zahl der Spiele.
+- [ ] Ab- und Zuwählen von Abenden ändert beide Diagramme. Die Namen unter den Diagrammen zeigen den Stand, sind aber keine Knöpfe.
+
+### 38. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.
