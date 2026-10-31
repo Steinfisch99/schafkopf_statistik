@@ -104,7 +104,13 @@ pub fn FlowSection(names: Vec<String>, flows: Vec<Vec<Cents>>, split: Signal<boo
 
 /// Das Sankey-Diagramm eines einzelnen Spielers mit den Beträgen in den Flüssen.
 #[component]
-pub fn PlayerFlow(names: Vec<String>, flows: Vec<Vec<Cents>>, player: usize) -> Element {
+pub fn PlayerFlow(
+    names: Vec<String>,
+    flows: Vec<Vec<Cents>>,
+    player: usize,
+    split: Signal<bool>,
+) -> Element {
+    let mut split = split;
     let touched = flows
         .get(player)
         .is_some_and(|row| row.iter().any(|&v| v > 0))
@@ -118,6 +124,13 @@ pub fn PlayerFlow(names: Vec<String>, flows: Vec<Vec<Cents>>, player: usize) -> 
     rsx! {
         h4 { "Geldflüsse" }
         p { class: "legend-note", "Links: von wem er Geld bekam, rechts: an wen er zahlte. Die Zahlen stehen in den Bändern." }
+        div { class: "chips range",
+            Chip {
+                label: "Sauspiel: Betrag auf beide Gewinner aufteilen".to_string(),
+                on: split(),
+                onclick: move |_| split.set(!split()),
+            }
+        }
         div { class: "chart sankey", dangerous_inner_html: "{svg}" }
     }
 }

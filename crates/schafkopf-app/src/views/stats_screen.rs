@@ -60,6 +60,7 @@ fn PlayerDetail(
     open: bool,
     names: Vec<String>,
     flows: Vec<Vec<Cents>>,
+    split: Signal<bool>,
     /// Die Zahlen aller Spieler des Abends für die Ranglisten beim Antippen.
     peers: Vec<PeerRow>,
 ) -> Element {
@@ -208,7 +209,7 @@ fn PlayerDetail(
                 undercharge_benefit: p.undercharge_benefit,
             }
 
-            PlayerFlow { names: names.clone(), flows: flows.clone(), player: p.seat }
+            PlayerFlow { names: names.clone(), flows: flows.clone(), player: p.seat, split }
 
             h4 { "Serien" }
             p { class: "legend-note", "Spiel für Spiel: + Sieg, − Niederlage, gestrichelt ausgesetzt. Die längsten Serien sind umrahmt. Tippe ein Kästchen an, um das Spiel zu sehen." }
@@ -726,6 +727,7 @@ pub fn StatsScreen(
                         results: results[p.seat].clone(),
                         names: t.players.clone(),
                         flows: flows.clone(),
+                        split,
                         open: focus == Some(p.seat),
                         peers: peers.clone(),
                         player: p,

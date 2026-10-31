@@ -38,6 +38,7 @@ fn OverallPlayerCard(
     peers: Vec<PeerRow>,
     names: Vec<String>,
     flows: Vec<Vec<Cents>>,
+    split: Signal<bool>,
 ) -> Element {
     let p = player;
     let flow_seat = names.iter().position(|n| *n == p.name);
@@ -124,7 +125,7 @@ fn OverallPlayerCard(
             }
 
             if let Some(seat) = flow_seat {
-                PlayerFlow { names: names.clone(), flows: flows.clone(), player: seat }
+                PlayerFlow { names: names.clone(), flows: flows.clone(), player: seat, split }
             }
 
             h4 { "Siege nach Rolle" }
@@ -236,7 +237,12 @@ fn OverallPlayerCard(
 
 /// Die Zahlen aller gewählten Abende zusammen, ohne die Wahl der Abende.
 #[component]
-fn OverallNumbers(stats: OverallStats, flow_names: Vec<String>, flows: Vec<Vec<Cents>>) -> Element {
+fn OverallNumbers(
+    stats: OverallStats,
+    flow_names: Vec<String>,
+    flows: Vec<Vec<Cents>>,
+    split: Signal<bool>,
+) -> Element {
     let games = stats.games;
     let mut ranked: Vec<OverallPlayer> = stats.players.clone();
     ranked.sort_by_key(|p| (std::cmp::Reverse(p.balance), p.name.clone()));
@@ -442,7 +448,7 @@ fn OverallNumbers(stats: OverallStats, flow_names: Vec<String>, flows: Vec<Vec<C
         section {
             h3 { "Spieler" }
             for p in ranked.iter() {
-                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games, peers: peers.clone(), names: flow_names.clone(), flows: flows.clone() }
+                OverallPlayerCard { key: "{p.name}", player: p.clone(), games_total: games, peers: peers.clone(), names: flow_names.clone(), flows: flows.clone(), split }
             }
         }
 
@@ -615,7 +621,7 @@ pub fn OverallScreen(
                 }
                 FlowSection { names: flow_names.clone(), flows: flows.clone(), split }
                 RecordsSection { rows: overall_records(&chosen, &stats), groups: lauf_groups(&stats.laufende_counts) }
-                OverallNumbers { stats, flow_names: flow_names.clone(), flows: flows.clone() }
+                OverallNumbers { stats, flow_names: flow_names.clone(), flows: flows.clone(), split }
             }
         }
     }
