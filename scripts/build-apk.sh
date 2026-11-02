@@ -55,6 +55,14 @@ if [ "$build" -eq 1 ]; then
   # Ohne --target baut dx für die Architektur des PCs, und das Handy lehnt die APK ab.
   (cd "$APP_DIR" && nix_cmd develop "$ROOT#android" --command \
     dx build --platform android --target "$TARGET_TRIPLE" ${release_flag[@]+"${release_flag[@]}"})
+
+  # dx schreibt bei jedem Build sein Platzhalter-Icon ins Gradle-Projekt (Dioxus 0.7 kennt kein eigenes Android-Icon).
+  # Darum das eigene (android/icon, erzeugt mit ../tools/android-icon.sh) darüberkopieren und Gradle noch einmal
+  # laufen lassen: Das übersetzt nur die Ressourcen neu und packt die APK mit derselben Rust-Bibliothek.
+  gradle_root="$ROOT/target/dx/schafkopf-app/$profile/android/app"
+  cp -r "$APP_DIR/android/icon/." "$gradle_root/app/src/main/res/"
+  echo "==> Setze das App-Icon ein"
+  (cd "$gradle_root" && nix_cmd develop "$ROOT#android" --command ./gradlew --quiet assembleDebug)
 fi
 
 apk="$(find_apk)"

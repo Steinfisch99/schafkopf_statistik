@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Erzeugt von tools/android-icon.sh, nicht von Hand ändern. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M36,31H58A4,4 0 0 1 62,35V67A4,4 0 0 1 58,71H36A4,4 0 0 1 32,67V35A4,4 0 0 1 36,31Z" android:fillColor="#b03a2e" android:strokeColor="#ffffff" android:strokeWidth="2" />
+    <path android:pathData="M38,35H56A2,2 0 0 1 58,37V65A2,2 0 0 1 56,67H38A2,2 0 0 1 36,65V37A2,2 0 0 1 38,35Z" android:strokeColor="#f3d9a4" android:strokeWidth="1.5" />
+    <path android:pathData="M50,37H72A4,4 0 0 1 76,41V73A4,4 0 0 1 72,77H50A4,4 0 0 1 46,73V41A4,4 0 0 1 50,37Z" android:fillColor="#ffffff" android:strokeColor="#14492a" android:strokeWidth="2" />
+    <path android:pathData="M61 66C61 66 52 60.5 52 54.5C52 51 54.5 49 57 49C59 49 60.5 50.5 61 52C61.5 50.5 63 49 65 49C67.5 49 70 51 70 54.5C70 60.5 61 66 61 66Z" android:fillColor="#d62828" />
+</vector>
