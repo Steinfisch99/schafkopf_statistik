@@ -86,6 +86,9 @@ if command -v unzip > /dev/null 2>&1; then
   fi
 fi
 
+# Updates klappen nur mit demselben Schlüssel wie die installierte App (sonst deinstallieren, Daten weg).
+nix_cmd develop "$ROOT#android" --command "$ROOT/../tools/android-signing.sh" "$apk"
+
 if [ "$send" -eq 0 ]; then
   exit 0
 fi
