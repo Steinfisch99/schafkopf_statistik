@@ -560,7 +560,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Im Geldstand-Diagramm lassen sich Namen antippen: Es bleiben nur die gewählten Linien, "Alle zeigen" holt alle zurück.
 - [ ] Spieler in der Verwaltung umbenennen: Die Meldung nennt die Zahl der Abende, alte Spiele zeigen den neuen Namen, die Gesamtstatistik hat nur einen Eintrag.
 - [ ] Gesamtstatistik: Tippen auf einen Namen unter dem Diagramm oder in der Rangliste öffnet seine Spielerkarte.
-### 42. Darstellung
+
+### 42. Web-Version auf dem iPhone (siehe `docs/web.md`)
+- [ ] Die Seite in Safari öffnen, "Teilen → Zum Home-Bildschirm": Es entsteht ein Icon "Schafkopf", die App startet im Vollbild ohne Adressleiste.
+- [ ] Abend einrichten, Spiele eintragen, App schließen und neu öffnen: Der Stand ist noch da.
+- [ ] Flugmodus an, App starten: Sie öffnet sich und funktioniert.
+- [ ] Sicherung: "Sicherung herunterladen" bietet die ZIP-Datei an, "In Dateien sichern" geht. Danach in der App "ZIP-Datei wählen" und die Sicherung einspielen.
+- [ ] Diagramm: Tippen, Ziehen, Zoomen mit zwei Fingern und Doppeltippen gehen, die Seite scrollt dabei nicht mit.
+- [ ] Tastatur verdeckt keine Eingabefelder, Zahlen und Uhrzeiten lassen sich eintippen.
+### 43. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

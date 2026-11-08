@@ -2,7 +2,6 @@
 //! zwei Finger zoomen, Doppeltippen oder "Alles" zeigt den ganzen Verlauf.
 
 use std::rc::Rc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
 use schafkopf_charts::{balance_chart_svg_filtered, format_euro, player_color, ChartView};
@@ -10,16 +9,11 @@ use schafkopf_core::{balance_history, Cents, Table};
 
 use super::common::Chip;
 use crate::gestures::{Gestures, Outcome};
+use crate::now_millis;
 use crate::summary::{detail, title};
 
 /// Bereichsknöpfe: so viele letzte Spiele. Angeboten werden nur die, die weniger als alle zeigen.
 const LAST_GAMES: [usize; 3] = [20, 10, 5];
-
-fn now_millis() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_millis() as u64)
-}
 
 /// Der Geldstand eines Abends, Spiel für Spiel.
 #[component]

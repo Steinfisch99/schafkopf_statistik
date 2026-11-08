@@ -108,7 +108,11 @@ pub fn BackupScreen(
     let back = back_target(Screen::Backup, table.read().is_some()).unwrap_or(Screen::Setup);
     let past_count = storage::list_past().len();
     let running = table.read().is_some();
-    let data_dir = storage::data_dir().display().to_string();
+    let data_dir = if cfg!(target_arch = "wasm32") {
+        "Speicher dieses Browsers".to_string()
+    } else {
+        storage::data_dir().display().to_string()
+    };
     let (players, rule_sets, tariffs) = library.read().counts();
 
     let create = move |_| {
@@ -232,13 +236,18 @@ pub fn BackupScreen(
         }));
     };
 
+    let web = cfg!(target_arch = "wasm32");
     let place = if cfg!(target_os = "android") {
         "im Ordner Downloads deines Handys"
+    } else if web {
+        "zum Herunterladen (auf dem iPhone: in Dateien sichern)"
     } else {
         "in den Ordner Downloads (sonst in den Datenordner der App)"
     };
     let storage_note = if cfg!(target_os = "android") {
         "Die App speichert alles im privaten Speicher der App. Du kommst mit dem Dateimanager nicht dran, und beim Deinstallieren der App oder einem neuen Handy ist es weg. Mach deshalb ab und zu eine Sicherung."
+    } else if web {
+        "Die Web-Version speichert alles im Speicher dieses Browsers auf diesem Gerät. Löschst du die Browserdaten, entfernst du die App vom Home-Bildschirm oder wechselst das Gerät, ist es weg. Mach deshalb ab und zu eine Sicherung."
     } else {
         "Das ist der Datenordner der App auf diesem Gerät."
     };
@@ -250,7 +259,9 @@ pub fn BackupScreen(
         section {
             h3 { "Wo liegen die Daten?" }
             p { class: "hint", "{storage_note}" }
-            p { class: "muted small", "Ordner: {data_dir}" }
+            if !web {
+                p { class: "muted small", "Ordner: {data_dir}" }
+            }
             p { class: "muted small",
                 "Jetzt vorhanden: {players} Spieler, {rule_sets} Regelwerke, {tariffs} Tarife, {past_count} frühere Abende"
                 if running { ", dazu der laufende Abend." } else { "." }
@@ -263,7 +274,7 @@ pub fn BackupScreen(
                 "Packt alles in eine ZIP-Datei {place}: den laufenden Abend, alle früheren Abende mit Spielen, Statistiken und Protokollen, dazu Spieler, Regelwerke und Tarife. Die CSV-Tabellen darin lassen sich auch direkt in Excel öffnen."
             }
             div { class: "actions",
-                button { class: "primary big", r#type: "button", onclick: create, "Sicherung in Downloads speichern" }
+                button { class: "primary big", r#type: "button", onclick: create, if web { "Sicherung herunterladen" } else { "Sicherung in Downloads speichern" } }
             }
         }
 

@@ -9,9 +9,13 @@ mod navigation;
 mod stats_text;
 mod storage;
 mod summary;
+mod vfs;
 mod views;
+#[cfg(target_arch = "wasm32")]
+mod web;
 
 use std::sync::atomic::{AtomicI32, Ordering};
+#[cfg(not(target_arch = "wasm32"))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::document::eval;
@@ -65,10 +69,21 @@ pub enum Screen {
     Backup,
 }
 
+/// Unix-Sekunden. Im Browser hat `SystemTime` keine Uhr, dort kommt die Zeit von JavaScript.
 pub fn now_secs() -> u64 {
+    now_millis() / 1000
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn now_millis() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
+        .map_or(0, |d| d.as_millis() as u64)
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn now_millis() -> u64 {
+    js_sys::Date::now() as u64
 }
 
 /// Abweichung der Ortszeit von UTC in Minuten, sobald die WebView sie genannt hat, sonst 0.
@@ -78,8 +93,18 @@ pub fn utc_offset_min() -> i32 {
     UTC_OFFSET_MIN.load(Ordering::Relaxed)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     dioxus::launch(App);
+}
+
+/// Im Browser müssen die gespeicherten Dateien aus IndexedDB geladen sein, bevor die App liest.
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    wasm_bindgen_futures::spawn_local(async {
+        vfs::init().await;
+        dioxus::launch(App);
+    });
 }
 
 #[component]

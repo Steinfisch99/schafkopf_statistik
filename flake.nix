@@ -89,6 +89,18 @@
               echo "Android NDK: $NDK_HOME"
             '';
           };
+
+          # Web-Version (für iOS im Browser) bauen: nix develop .#web
+          web = pkgs.mkShell {
+            packages = [
+              (pkgs.rust-bin.stable.latest.default.override { targets = [ "wasm32-unknown-unknown" ]; })
+              pkgs.dioxus-cli
+              pkgs.wasm-bindgen-cli
+              pkgs.binaryen
+              pkgs.pkg-config
+              pkgs.openssl
+            ];
+          };
         });
 
       formatter = forAllSystems (system: (pkgsFor system).nixpkgs-fmt);

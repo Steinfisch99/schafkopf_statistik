@@ -88,7 +88,11 @@ pub fn save_file(file_name: &str, mime: &str, data: &[u8]) -> Result<String, Str
         crate::android::save_to_downloads(file_name, mime, data)
             .map(|()| format!("Downloads/{file_name}"))
     }
-    #[cfg(not(target_os = "android"))]
+    #[cfg(target_arch = "wasm32")]
+    {
+        crate::web::download(file_name, mime, data).map(|()| format!("Download \"{file_name}\""))
+    }
+    #[cfg(not(any(target_os = "android", target_arch = "wasm32")))]
     {
         let _ = mime;
         let dir = std::env::var_os("HOME")
@@ -101,7 +105,7 @@ pub fn save_file(file_name: &str, mime: &str, data: &[u8]) -> Result<String, Str
 
 /// Schreibt die Datei in einen Ordner und legt ihn bei Bedarf an. Bestehende Dateien bleiben
 /// erhalten, der neue Name bekommt dann eine Nummer.
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_arch = "wasm32")))]
 fn save_in(
     dir: &std::path::Path,
     file_name: &str,

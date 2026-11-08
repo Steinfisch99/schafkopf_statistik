@@ -52,6 +52,7 @@ schafkopf/
 ├── crates/schafkopf-charts/ Diagramme als SVG-Text (reines Rust, keine UI)
 ├── crates/schafkopf-app/    Die App (Dioxus) für Android und Desktop
 ├── scripts/build-apk.sh     APK bauen, prüfen und mit wormhole-rs aufs Handy schicken
+├── scripts/build-web.sh     Web-Version (iPhone im Browser) bauen, siehe docs/web.md
 ├── docs/datenpunkte.md      Welche Daten erfasst und ausgewertet werden
 ├── docs/ui-entscheidung.md  Vergleich der UI-Technik für Android und Empfehlung
 └── docs/android-app.md      App auf dem Handy installieren und testen (Anleitung, Checkliste)
@@ -138,6 +139,7 @@ Entscheidungen:
 - [x] Serien: Kästchen antippen zeigt das Spiel mit Uhrzeit, längste Sieg- und Verlustserie sind umrahmt
 - [x] Rekorde (teuerstes Spiel je Spielart, meiste Laufende) und Verteilung der Laufenden bei Sauspielen und Solos, für Abend und Gesamtstatistik
 - [x] Höchster Gewinn bei den Rekorden, Uhrzeit in der Spieleliste, Linien im Verlauf per Namen wählen, Umbenennen von Spielern auch in alten Abenden, Spielerkarte in der Gesamtstatistik per Namen öffnen
+- [x] Web-Version für iPhone und Browser (`scripts/build-web.sh`, `docs/web.md`): läuft offline, speichert im Browser (IndexedDB), Sicherung als Download, Veröffentlichung über GitHub Pages
 - [x] Stock fair an alle aufteilen, Zusammenwerfen getrennt vom Einzahlen gezählt, Stock in Bewegtem Geld und in der CSV, Doppler-Tabelle mit Kuchen
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,

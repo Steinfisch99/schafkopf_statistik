@@ -70,6 +70,9 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - **Geldstand** (`Library::account`, `start_balances`, `Adjustment`): Startwert und Nachträge je Spieler in der Bibliothek, Anzeige oben auf der Einrichtungsseite (`views/account.rs`).
   Zuordnung über den Namen; Umbenennen nimmt Startwert/Nachträge und (seit 0.5.0) auch alle Abende mit (`storage::rename_player_everywhere`).
 - **Rekorde, Serien, Verlauf, Geldflüsse** (0.4.11 bis 0.4.14): `views/records.rs` (teuerstes Spiel je Spielart, Laufende-Verteilung für Sauspiele und Solos), `stats_text::strip_cells`/`longest_runs` (Serien antippbar und umrahmt), `overall_history` + `HistoryChart` in `views/balance_chart.rs` (Verlauf über alle Abende), `money_flows`/`overall_flows` (Kern, `flows.rs`) + `sankey_svg` + `views/flow.rs`. **Stock im Sankey:** anteilig von den Einzahlern an die Empfänger (Vorgabe: beliebig, solange auf beide Gewinner verteilt). `Screen::Overall { from_past }`: Knopf auch auf der Einrichtungsseite.
+- **Web-Version** (0.6.0, `docs/web.md`): `scripts/build-web.sh` baut dieselbe App für den Browser (iPhone: "Zum Home-Bildschirm"). Dateizugriffe laufen über `src/vfs.rs`
+  (nativ `std::fs`, im Browser Speicher plus IndexedDB), `src/web.rs` (Download), Zeit über `now_millis`. Android und Desktop bleiben unverändert: Web-Code steht hinter
+  `cfg(target_arch = "wasm32")`, die Web-Pakete unter `[target.'cfg(target_arch = "wasm32")'.dependencies]`, die Dateien in `web/`. Browser-Test mit Chromium und Puppeteer, auf einem echten iPhone noch nicht.
 
 ## Bauen und prüfen
 

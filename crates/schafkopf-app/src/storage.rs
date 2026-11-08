@@ -1,10 +1,11 @@
 //! Speichern der Tisch-Datei (JSON) und des Spieljournals (CSV).
 
-use std::fs::{self, OpenOptions};
-use std::io::{self, Write};
+use std::io;
 use std::path::{Path, PathBuf};
 
 use schafkopf_core::{Library, Table};
+
+use crate::vfs as fs;
 
 const JSON_FILE: &str = schafkopf_core::CURRENT_FILE;
 const CSV_FILE: &str = "schafkopf-spiele.csv";
@@ -151,11 +152,7 @@ fn save_in(dir: &Path, table: &Table, new_game: Option<usize>) -> io::Result<()>
             let row = table.csv_row(index).ok_or_else(|| {
                 io::Error::new(io::ErrorKind::InvalidInput, "Spiel nicht gefunden")
             })?;
-            let mut file = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(&csv_path)?;
-            writeln!(file, "{row}")?;
+            fs::append_line(&csv_path, &row)?;
         }
         _ => fs::write(&csv_path, table.to_csv())?,
     }
@@ -166,7 +163,7 @@ fn archive_in(dir: &Path, stamp: u64) -> io::Result<bool> {
     let mut moved = false;
     for file in [JSON_FILE, CSV_FILE, EVENTS_FILE] {
         let from = dir.join(file);
-        if from.exists() {
+        if fs::exists(&from) {
             let archive = dir.join(ARCHIVE_DIR);
             fs::create_dir_all(&archive)?;
             let (name, ext) = file.rsplit_once('.').unwrap_or((file, ""));
@@ -260,7 +257,7 @@ fn backup_files_in(dir: &Path, now_secs: u64) -> io::Result<Vec<(String, Vec<u8>
 
 fn import_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<bool> {
     let json_path = past_file(dir, "schafkopf-tisch", stamp, "json");
-    if json_path.exists() {
+    if fs::exists(&json_path) {
         return Ok(false);
     }
     fs::create_dir_all(dir.join(ARCHIVE_DIR))?;
