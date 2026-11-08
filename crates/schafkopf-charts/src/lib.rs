@@ -107,6 +107,18 @@ pub fn balance_chart_svg_marked(
     view: &ChartView,
     markers: &[usize],
 ) -> String {
+    balance_chart_svg_filtered(history, view, markers, &[])
+}
+
+/// Wie [`balance_chart_svg_marked`], aber ohne die Spieler, für die `hidden[sitzplatz]` wahr ist. Die
+/// Hochachse richtet sich nur nach den gezeigten Linien.
+pub fn balance_chart_svg_filtered(
+    history: &[Vec<Cents>],
+    view: &ChartView,
+    markers: &[usize],
+    hidden: &[bool],
+) -> String {
+    let is_hidden = |seat: usize| hidden.get(seat).copied().unwrap_or(false);
     let players = history.first().map_or(0, Vec::len);
     let games = history.len().saturating_sub(1);
     let view = view.adapted(games);
@@ -115,7 +127,11 @@ pub fn balance_chart_svg_marked(
     let first = start.floor() as usize;
     let last = (end.ceil() as usize).min(games).max(first);
     let visible = history.get(first..=last).unwrap_or(&[]);
-    let values = visible.iter().flatten().copied();
+    let values = visible
+        .iter()
+        .flat_map(|row| row.iter().enumerate())
+        .filter(|(seat, _)| !is_hidden(*seat))
+        .map(|(_, v)| *v);
     let (mut lo, mut hi) = (values.clone().min().unwrap_or(0), values.max().unwrap_or(0));
     // Mindestens ein Euro Spanne, damit ein leerer oder kleiner Verlauf nicht winzig skaliert wird.
     if hi - lo < 100 {
@@ -212,7 +228,7 @@ pub fn balance_chart_svg_marked(
     svg.push_str("<g clip-path=\"url(#plot)\">");
     #[allow(clippy::needless_range_loop)]
     // `seat` ist der Spieler, nicht nur ein Index in `history`
-    for seat in 0..players {
+    for seat in (0..players).filter(|&s| !is_hidden(s)) {
         let points: Vec<String> = (first..=last)
             .map(|g| format!("{:.1},{:.1}", x(g as f64), y(history[g][seat])))
             .collect();
@@ -231,6 +247,9 @@ pub fn balance_chart_svg_marked(
     // Ein Punkt je Spieler am markierten Spiel, sonst am letzten.
     if !history.is_empty() && (start..=end).contains(&(focus as f64)) {
         for (seat, &balance) in history[focus].iter().enumerate() {
+            if is_hidden(seat) {
+                continue;
+            }
             let _ = write!(
                 svg,
                 "<circle cx=\"{:.1}\" cy=\"{:.1}\" r=\"{}\" fill=\"{}\"/>",
@@ -310,6 +329,18 @@ mod tests {
             head[k..].split('"').next().unwrap().parse().unwrap()
         };
         assert!(cy(player_color(0)) < cy(player_color(1)));
+    }
+
+    #[test]
+    fn hidden_players_get_no_line_and_no_dot_and_do_not_stretch_the_axis() {
+        let history = vec![vec![0, 0, 0], vec![5_000, -40, 40], vec![9_000, -20, 60]];
+        let all = balance_chart_svg_filtered(&history, &ChartView::full(2), &[], &[]);
+        let some =
+            balance_chart_svg_filtered(&history, &ChartView::full(2), &[], &[true, false, false]);
+        assert_eq!(all.matches("<polyline").count(), 3);
+        assert_eq!(some.matches("<polyline").count(), 2);
+        assert_eq!(some.matches("<circle").count(), 2);
+        assert!(all.contains(">50,00<") && !some.contains(">50,00<"));
     }
 
     fn sample(games: usize) -> Vec<Vec<Cents>> {

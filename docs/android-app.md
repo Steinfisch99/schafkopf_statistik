@@ -538,7 +538,7 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] Auf der Einrichtungsseite (neuer Abend) gibt es neben "Frühere Abende ansehen" den Knopf "Statistik über mehrere Abende". "← Zurück" und die Zurück-Taste führen von dort zur Einrichtung, vom Weg über die früheren Abende wie bisher zu dieser Liste.
 - [ ] In der Gesamtstatistik steht nach der Abendauswahl "Geldstand über alle gewählten Abende": die Linien aller Spieler Spiel für Spiel, die Abende hintereinander, mit senkrechten Trennlinien. Bedienung wie beim Diagramm eines Abends (Tippen zeigt Abend, Datum und Spiel, Ziehen, Zoom, Doppeltippen, "Letzte 20").
 - [ ] Darunter "Geldstand nach jedem Abend": ein Punkt je Abend auf der Zeitachse, Tippen zeigt Nummer, Datum und Zahl der Spiele.
-- [ ] Ab- und Zuwählen von Abenden ändert beide Diagramme. Die Namen unter den Diagrammen zeigen den Stand, sind aber keine Knöpfe.
+- [ ] Ab- und Zuwählen von Abenden ändert beide Diagramme. Die Namen unter den Diagrammen zeigen den Stand und öffnen beim Antippen die Spielerkarte (seit 0.5.0).
 
 ### 38. Geldflüsse (Sankey)
 - [ ] In der Statistik eines Abends steht nach der Rangliste "Geldflüsse": links die Zahler, rechts die Empfänger, dazwischen Bänder in der Farbe des Zahlers. Die Höhe der Balken entspricht dem Betrag. Unter jedem Namen steht der Betrag, auch bei sehr schmalen Balken (jeder Knoten hat mindestens Platz für zwei Zeilen, dafür sind die Abstände größer).
@@ -552,7 +552,15 @@ Am Desktop mit einem Abend durchgeklickt, dessen letztes Spiel eine Bockrunde au
 - [ ] In der Gesamtstatistik gibt es über dem Verlauf den Schalter "Startwerte und Nachträge einrechnen" (an). Dann beginnen die Linien beim Startwert aus der Verwaltung, und jeder Nachtrag ist ein eigener Schritt (Tippen zeigt "Nachtrag für ...") zwischen den Abenden, je nach Zeitpunkt. Ohne Zeitpunkt zählt er nach dem letzten Abend. Aus: alles beginnt bei 0.
 - [ ] Spieler, die nur einen Startwert oder Nachträge haben und nie gespielt haben, erscheinen als eigene Linie.
 
-### 40. Darstellung
+
+### 41. Wünsche aus dem Spielbetrieb (0.5.0)
+- [ ] Rekorde (Abend und Gesamtstatistik): Zeile "Höchster Gewinn" mit Spielername und Betrag, darunter das Spiel.
+- [ ] Spieleliste: vor jedem Spiel steht die Uhrzeit ("21:07 Uhr · ...").
+- [ ] Abend nach Mitternacht beenden, auch mit der Uhrzeit der letzten Minute: keine Fehlermeldung "Ende vor dem letzten Eintrag".
+- [ ] Im Geldstand-Diagramm lassen sich Namen antippen: Es bleiben nur die gewählten Linien, "Alle zeigen" holt alle zurück.
+- [ ] Spieler in der Verwaltung umbenennen: Die Meldung nennt die Zahl der Abende, alte Spiele zeigen den neuen Namen, die Gesamtstatistik hat nur einen Eintrag.
+- [ ] Gesamtstatistik: Tippen auf einen Namen unter dem Diagramm oder in der Rangliste öffnet seine Spielerkarte.
+### 42. Darstellung
 - [ ] Alles ist mit dem Daumen gut zu treffen.
 - [ ] Hochformat und Querformat, Dunkelmodus und größere Systemschrift gehen.
 - [ ] Nichts verschwindet unter Statusleiste, Kamera-Aussparung oder Gestenleiste.

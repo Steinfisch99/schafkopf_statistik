@@ -273,6 +273,8 @@ pub struct OverallStats {
     pub most_expensive_by_kind: BTreeMap<GameKind, GameRef>,
     /// Das Spiel mit den meisten Laufenden.
     pub most_laufende: Option<GameRef>,
+    /// Der höchste Gewinn eines Spielers in einem Spiel, das die Spielerpartei gewann (Spiel, Sitzplatz am Abend).
+    pub biggest_win: Option<(GameRef, usize)>,
     /// Je Spielart: wie oft es wie viele Laufende gab (Schlüssel = Anzahl, 0 = kein Lauf).
     pub laufende_counts: BTreeMap<GameKind, BTreeMap<u8, LaufCount>>,
     pub players: Vec<OverallPlayer>,
@@ -332,6 +334,11 @@ pub fn overall_stats(tables: &[&Table]) -> OverallStats {
             if best.is_none_or(|r| value > r.value) {
                 out.most_expensive_by_kind
                     .insert(*kind, game_ref(game, value, laufende_of(game)));
+            }
+        }
+        if let Some((game, seat, win)) = stats.biggest_win {
+            if out.biggest_win.is_none_or(|(r, _)| win > r.value) {
+                out.biggest_win = Some((game_ref(game, win, laufende_of(game)), seat));
             }
         }
         if let Some((game, count)) = stats.most_laufende {

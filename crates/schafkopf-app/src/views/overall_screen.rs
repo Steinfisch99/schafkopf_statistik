@@ -3,6 +3,7 @@
 
 use std::collections::BTreeSet;
 
+use dioxus::document::eval;
 use dioxus::prelude::*;
 use schafkopf_charts::{format_euro, player_color};
 use schafkopf_core::{
@@ -27,6 +28,20 @@ use crate::stats_text::{
 };
 use crate::summary::{detail, evening_date, evening_times, games_text, signed_euro, title};
 use crate::{storage, Screen};
+
+/// Die Kennung der Spielerkarte im Dokument. Aus dem Namen gebildet, damit sie nach Sonderzeichen nicht kaputtgeht.
+fn player_dom_id(name: &str) -> String {
+    let hex: String = name.bytes().map(|b| format!("{b:02x}")).collect();
+    format!("overall-player-{hex}")
+}
+
+/// Klappt die Karte des Spielers auf und scrollt dorthin.
+fn show_player(name: &str) {
+    let _ = eval(&format!(
+        "const e = document.getElementById('{}'); if (e) {{ e.open = true; e.scrollIntoView({{ block: 'start' }}); }}",
+        player_dom_id(name)
+    ));
+}
 
 /// Der laufende Abend hat keinen Zeitstempel im Archiv, er zählt unter dieser Nummer.
 const CURRENT: u64 = 0;
@@ -73,7 +88,7 @@ fn OverallPlayerCard(
     let _ = games_total;
 
     rsx! {
-        details { class: "player-detail",
+        details { class: "player-detail", id: "{player_dom_id(&p.name)}",
             summary {
                 span { class: "name", "{p.name}" }
                 span { class: amount_class(p.balance), "{format_euro(p.balance)}" }
@@ -309,7 +324,15 @@ fn OverallNumbers(
                             td { "{place + 1}." }
                             td { class: "name-cell",
                                 span { class: "dot", style: "background:{player_color(place)}" }
-                                "{p.name}"
+                                button {
+                                    class: "link",
+                                    r#type: "button",
+                                    onclick: {
+                                        let name = p.name.clone();
+                                        move |_| show_player(&name)
+                                    },
+                                    "{p.name}"
+                                }
                             }
                             td { class: amount_class(p.balance), "{format_euro(p.balance)}" }
                             td { "{p.evenings}" }
@@ -603,7 +626,14 @@ pub fn OverallScreen(
                             unit: "Spiele".to_string(),
                             step: "Spiel".to_string(),
                             empty_text: String::new(),
-                            on_player: None,
+                            on_player: Some(EventHandler::new({
+                                let names = history.names.clone();
+                                move |seat: usize| {
+                                    if let Some(name) = names.get(seat) {
+                                        show_player(name);
+                                    }
+                                }
+                            })),
                         }
                         h3 { "Geldstand nach jedem Abend" }
                         HistoryChart {
@@ -615,7 +645,14 @@ pub fn OverallScreen(
                             unit: "Abende".to_string(),
                             step: "Abend".to_string(),
                             empty_text: String::new(),
-                            on_player: None,
+                            on_player: Some(EventHandler::new({
+                                let names = history.names.clone();
+                                move |seat: usize| {
+                                    if let Some(name) = names.get(seat) {
+                                        show_player(name);
+                                    }
+                                }
+                            })),
                         }
                     }
                 }

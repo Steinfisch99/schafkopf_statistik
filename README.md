@@ -137,6 +137,7 @@ Entscheidungen:
 - [x] Gesamtstatistik: Geldstand-Verlauf über alle Spiele und nach jedem Abend, Knopf "Statistik über mehrere Abende" auch auf der Einrichtungsseite
 - [x] Serien: Kästchen antippen zeigt das Spiel mit Uhrzeit, längste Sieg- und Verlustserie sind umrahmt
 - [x] Rekorde (teuerstes Spiel je Spielart, meiste Laufende) und Verteilung der Laufenden bei Sauspielen und Solos, für Abend und Gesamtstatistik
+- [x] Höchster Gewinn bei den Rekorden, Uhrzeit in der Spieleliste, Linien im Verlauf per Namen wählen, Umbenennen von Spielern auch in alten Abenden, Spielerkarte in der Gesamtstatistik per Namen öffnen
 - [x] Stock fair an alle aufteilen, Zusammenwerfen getrennt vom Einzahlen gezählt, Stock in Bewegtem Geld und in der CSV, Doppler-Tabelle mit Kuchen
 - [ ] JSON-Sicherung exportieren und wieder importieren
 - [x] Diagramm bedienbar: Tippen zeigt die Werte eines Spiels, Ziehen verschiebt, Zwei-Finger-Zoom,

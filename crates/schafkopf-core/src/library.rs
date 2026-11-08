@@ -478,7 +478,7 @@ impl Library {
         self.players.len() - before
     }
 
-    /// Benennt einen Spieler um. Schon gespielte Abende behalten den alten Namen.
+    /// Benennt einen Spieler um. Die gespielten Abende zieht die App separat nach (`storage::rename_player_everywhere`).
     pub fn rename_player(&mut self, old: &str, new: &str) -> Result<String> {
         let new = clean_name(new)?;
         Self::check_name(&self.players, |p| p.as_str(), &new, Some(old))?;

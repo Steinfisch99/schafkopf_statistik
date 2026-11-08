@@ -1,11 +1,13 @@
 //! Verwaltung der gespeicherten Regelwerke (welche Spielarten) und Tarife (was es kostet).
 
 use dioxus::prelude::*;
-use schafkopf_core::{BockAtRamsch, BockMode, BockStacking, GameKind, Library, NoGameRule, Tariff};
+use schafkopf_core::{
+    BockAtRamsch, BockMode, BockStacking, GameKind, Library, NoGameRule, Table, Tariff,
+};
 
 use super::common::{persist_library, Chip, ConfirmButton, Notice, TariffFields, TextField};
 use crate::draft::TariffDraft;
-use crate::Screen;
+use crate::{storage, Screen};
 
 /// Meldung nach dem Speichern oder Löschen: Erfolg oder der Grund des Fehlers.
 fn report(mut notice: Signal<Option<Notice>>, result: Result<String, String>) {
@@ -339,6 +341,7 @@ fn TariffEditor(
 /// Einen Spieler anlegen (`original` ist `None`) oder einen bestehenden umbenennen oder löschen.
 #[component]
 fn PlayerEditor(
+    table: Signal<Option<Table>>,
     library: Signal<Library>,
     notice: Signal<Option<Notice>>,
     original: Option<String>,
@@ -350,18 +353,38 @@ fn PlayerEditor(
     let save = {
         let original = original.clone();
         move |_| {
+            let mut saved_name = String::new();
             let result = change_library(library, |lib| {
                 let saved = match original.as_deref() {
                     None => lib.add_player(&name.read()),
                     Some(old) => lib.rename_player(old, &name.read()),
                 };
                 saved
-                    .map(|saved| format!("Spieler \"{saved}\" gespeichert"))
+                    .map(|saved| {
+                        saved_name = saved.clone();
+                        format!("Spieler \"{saved}\" gespeichert")
+                    })
                     .map_err(|e| e.to_string())
             });
             if result.is_ok() && original.is_none() {
                 name.set(String::new());
             }
+            // Umbenennen gilt auch für die gespielten Abende, sonst stünde dort der alte Name und die
+            // Gesamtstatistik hätte zwei Spieler.
+            let result = match (result, original.as_deref()) {
+                (Ok(text), Some(old)) if old != saved_name => {
+                    match storage::rename_player_everywhere(old, &saved_name) {
+                        Ok((evenings, current)) => {
+                            if let Some(current) = current {
+                                table.set(Some(current));
+                            }
+                            Ok(format!("{text}, in {evenings} Abenden umbenannt"))
+                        }
+                        Err(e) => Err(format!("Abende konnten nicht umbenannt werden: {e}")),
+                    }
+                }
+                (result, _) => result,
+            };
             report(notice, result);
         }
     };
@@ -401,6 +424,7 @@ fn PlayerEditor(
 
 #[component]
 pub fn LibraryScreen(
+    table: Signal<Option<Table>>,
     screen: Signal<Screen>,
     notice: Signal<Option<Notice>>,
     library: Signal<Library>,
@@ -436,9 +460,9 @@ pub fn LibraryScreen(
             h3 { "Spieler" }
             p { class: "hint", "Bei der Einrichtung eines Abends wählst du die Mitspieler aus dieser Liste. Ein Name, den du dort neu tippst, wird automatisch hier gemerkt." }
             for name in players {
-                PlayerEditor { key: "{name}", library, notice, original: Some(name.clone()) }
+                PlayerEditor { key: "{name}", table, library, notice, original: Some(name.clone()) }
             }
-            PlayerEditor { key: "neu", library, notice, original: None }
+            PlayerEditor { key: "neu", table, library, notice, original: None }
         }
 
         section {

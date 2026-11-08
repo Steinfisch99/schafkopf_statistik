@@ -4266,3 +4266,40 @@ fn the_flow_mode_chooses_between_whole_and_split_prices() {
         10
     );
 }
+
+#[test]
+fn biggest_win_is_the_highest_payout_in_a_game_the_declarer_side_won() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 2)).unwrap();
+    t.add_game(GameInput {
+        won: false,
+        laufende: 4,
+        ..GameInput::new(1, GameKind::Wenz, 3)
+    })
+    .unwrap();
+    t.add_game(GameInput::new(2, GameKind::Wenz, 0)).unwrap();
+    let s = table_stats(&t);
+    // Der verlorene Wenz ist teurer, zählt aber nicht. Der Gewinner des gewonnenen Wenz bekommt das Dreifache.
+    let (game, seat, win) = s.biggest_win.unwrap();
+    assert_eq!((game, seat), (2, 0));
+    assert_eq!(win, t.games()[2].payouts[0]);
+    assert!(win > 0);
+
+    let o = overall_stats(&[&t, &table()]);
+    let (r, seat) = o.biggest_win.unwrap();
+    assert_eq!((r.evening, r.game, seat, r.value), (0, 2, 0, win));
+    assert!(overall_stats(&[&table()]).biggest_win.is_none());
+}
+
+#[test]
+fn renaming_a_player_at_a_table_keeps_games_and_refuses_duplicates() {
+    let mut t = table();
+    t.add_game(sauspiel(0, 1, 2)).unwrap();
+    assert!(t.rename_player("Ben", "Bernd"));
+    assert_eq!(t.players[1], "Bernd");
+    assert_eq!(t.games()[0].input.declarer, 1);
+    assert!(!t.rename_player("Ben", "Bert"), "unbekannt");
+    assert!(!t.rename_player("Anna", "Cem"), "schon vergeben");
+    assert!(!t.rename_player("Anna", "Anna"));
+    assert_eq!(table_stats(&t).players[1].name, "Bernd");
+}

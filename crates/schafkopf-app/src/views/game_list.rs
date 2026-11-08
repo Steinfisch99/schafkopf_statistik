@@ -1,7 +1,7 @@
 //! Die Liste der Spiele eines Abends, das neueste zuerst.
 
 use dioxus::prelude::*;
-use schafkopf_core::{GameKind, Table};
+use schafkopf_core::{format_clock, GameKind, Table};
 
 use super::common::{ConfirmButton, Notice};
 use super::suit_icon::SuitIcon;
@@ -44,7 +44,12 @@ pub fn GameList(table: Signal<Option<Table>>, screen: Signal<Screen>, editable: 
                                 "{signed_euro(game.payouts[game.input.declarer])}"
                             }
                         }
-                        div { class: "muted", "{detail(t, game)}" }
+                        div { class: "muted",
+                            if let Some(at) = game.input.played_at {
+                                "{format_clock(at, t.utc_offset_min)} Uhr · "
+                            }
+                            "{detail(t, game)}"
+                        }
                         if editable {
                             button {
                                 class: "link edit",

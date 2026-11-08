@@ -51,6 +51,20 @@ fn record_row(
     })
 }
 
+/// Der höchste Gewinn eines Spielers in einem gewonnenen Spiel: der Name steht beim Wert.
+fn win_row(
+    table: &Table,
+    game: usize,
+    seat: usize,
+    win: Cents,
+    with_date: bool,
+) -> Option<RecordRow> {
+    let name = table.players.get(seat)?;
+    let mut row = record_row("Höchster Gewinn".into(), table, game, win, None, with_date)?;
+    row.value = format!("{name}: {}", format_euro(win));
+    Some(row)
+}
+
 /// Rekorde eines Abends.
 pub fn evening_records(table: &Table, stats: &TableStats) -> Vec<RecordRow> {
     let mut rows = Vec::new();
@@ -75,6 +89,9 @@ pub fn evening_records(table: &Table, stats: &TableStats) -> Vec<RecordRow> {
                 false,
             ));
         }
+    }
+    if let Some((game, seat, win)) = stats.biggest_win {
+        rows.extend(win_row(table, game, seat, win, false));
     }
     if let Some((game, n)) = stats.most_laufende {
         rows.extend(record_row(
@@ -108,6 +125,11 @@ pub fn overall_records(tables: &[&Table], stats: &OverallStats) -> Vec<RecordRow
     }
     if let Some(r) = &stats.most_laufende {
         add("Meiste Laufende".into(), r, true);
+    }
+    if let Some((r, seat)) = &stats.biggest_win {
+        if let Some(t) = tables.get(r.evening) {
+            rows.extend(win_row(t, r.game, *seat, r.value, true));
+        }
     }
     rows
 }

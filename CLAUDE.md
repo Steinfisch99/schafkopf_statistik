@@ -72,7 +72,7 @@ Daten liegen im Datenordner (Android: `/data/data/de.schafkopf.statistik/files`,
 - **Stock-Statistik:** `StockStats` (Tisch, Gesamt) und `PlayerStock` (je Spieler), Anzeige `StockSection` in `views/stats_screen.rs`.
 - **Stock aufteilen/Zusammenwerfen/Gegeben** (0.4.4): `StockMoveKind::Split`, `StockMove::is_reshuffle`, `Table::pass_dealers`; Details in `docs/datenpunkte.md`. Nur per Test geprüft, nicht angesehen: Knopf "Stock fair an alle aufteilen" und `DoublingTable`.
 - **Geldstand** (`Library::account`, `start_balances`, `Adjustment`): Startwert und Nachträge je Spieler in der Bibliothek, Anzeige oben auf der Einrichtungsseite (`views/account.rs`).
-  Zuordnung über den Namen; Umbenennen nimmt nur Startwert/Nachträge mit, nicht alte Abende.
+  Zuordnung über den Namen; Umbenennen nimmt Startwert/Nachträge und (seit 0.5.0) auch alle Abende mit (`storage::rename_player_everywhere`).
 - **Rekorde, Serien, Verlauf, Geldflüsse** (0.4.11 bis 0.4.14): `views/records.rs` (teuerstes Spiel je Spielart, Laufende-Verteilung für Sauspiele und Solos), `stats_text::strip_cells`/`longest_runs` (Serien antippbar und umrahmt), `overall_history` + `HistoryChart` in `views/balance_chart.rs` (Verlauf über alle Abende), `money_flows`/`overall_flows` (Kern, `flows.rs`) + `sankey_svg` + `views/flow.rs`. **Stock im Sankey:** anteilig von den Einzahlern an die Empfänger (Nutzer: beliebig, solange auf beide Gewinner verteilt). `Screen::Overall { from_past }`: Knopf auch auf der Einrichtungsseite.
 
 ## Bauen und prüfen in der VM

@@ -117,6 +117,12 @@ pub fn reopen_past(stamp: u64) -> io::Result<Option<Table>> {
     reopen_past_in(&data_dir(), stamp)
 }
 
+/// Benennt einen Spieler im laufenden Abend und in allen früheren Abenden um (samt der CSV-Dateien). Gibt
+/// zurück, in wie vielen Abenden er vorkam, und den laufenden Abend, falls er sich geändert hat.
+pub fn rename_player_everywhere(old: &str, new: &str) -> io::Result<(usize, Option<Table>)> {
+    rename_player_in(&data_dir(), old, new)
+}
+
 /// Verwirft den laufenden Abend, ohne ihn zu archivieren. Das ist für Abende ohne ein einziges
 /// Spiel gedacht, damit das Archiv nicht mit leeren Abenden zuwächst.
 pub fn discard_current() -> io::Result<()> {
@@ -271,6 +277,34 @@ fn import_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<bool> {
         table.events_csv(),
     )?;
     Ok(true)
+}
+
+fn rename_player_in(dir: &Path, old: &str, new: &str) -> io::Result<(usize, Option<Table>)> {
+    let mut count = 0;
+    let mut current = None;
+    if let Some(mut table) = load_from(dir) {
+        if table.rename_player(old, new) {
+            save_in(dir, &table, None)?;
+            count += 1;
+            current = Some(table);
+        }
+    }
+    for mut past in list_past_in(dir) {
+        if past.table.rename_player(old, new) {
+            let stamp = past.stamp;
+            save_past_in(dir, stamp, &past.table)?;
+            fs::write(
+                past_file(dir, "schafkopf-spiele", stamp, "csv"),
+                past.table.to_csv(),
+            )?;
+            fs::write(
+                past_file(dir, "schafkopf-ereignisse", stamp, "csv"),
+                past.table.events_csv(),
+            )?;
+            count += 1;
+        }
+    }
+    Ok((count, current))
 }
 
 fn save_past_in(dir: &Path, stamp: u64, table: &Table) -> io::Result<()> {
@@ -477,6 +511,23 @@ mod tests {
         save_past_in(&dir, 7, &table).unwrap();
         assert!(load_past_in(&dir, 7).unwrap().debug);
         assert_eq!(list_past_in(&dir).len(), 1);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn renaming_a_player_reaches_the_current_and_all_past_evenings() {
+        let dir = temp_dir("rename");
+        save_in(&dir, &table(), None).unwrap();
+        archive_in(&dir, 7).unwrap();
+        save_in(&dir, &table(), None).unwrap();
+        let (count, current) = rename_player_in(&dir, "A", "Anna").unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(current.unwrap().players[0], "Anna");
+        assert_eq!(load_from(&dir).unwrap().players[0], "Anna");
+        assert_eq!(list_past_in(&dir)[0].table.players[0], "Anna");
+        let csv = fs::read_to_string(past_file(&dir, "schafkopf-spiele", 7, "csv")).unwrap();
+        assert!(csv.contains("Anna"));
+        assert_eq!(rename_player_in(&dir, "Zed", "Z").unwrap().0, 0);
         fs::remove_dir_all(&dir).unwrap();
     }
 

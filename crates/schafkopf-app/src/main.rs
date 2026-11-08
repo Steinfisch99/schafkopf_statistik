@@ -169,7 +169,7 @@ fn App() -> Element {
                     Screen::Settings => rsx! { SettingsScreen { table, screen, notice, library } },
                     Screen::Seats => rsx! { SeatsScreen { table, screen, notice, library } },
                     Screen::Offence => rsx! { OffenceScreen { table, screen, notice } },
-                    Screen::Library { from_setup } => rsx! { LibraryScreen { screen, notice, library, from_setup } },
+                    Screen::Library { from_setup } => rsx! { LibraryScreen { table, screen, notice, library, from_setup } },
                     Screen::Export => rsx! { ExportScreen { table, screen, notice, back: Screen::Table } },
                     Screen::Stats { player } => rsx! { StatsScreen { table, screen, back: Screen::Table, focus: player } },
                     Screen::PastList => rsx! { PastList { screen, has_table } },

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dioxus::prelude::*;
-use schafkopf_charts::{balance_chart_svg_marked, format_euro, player_color, ChartView};
+use schafkopf_charts::{balance_chart_svg_filtered, format_euro, player_color, ChartView};
 use schafkopf_core::{balance_history, Cents, Table};
 
 use super::common::Chip;
@@ -72,10 +72,20 @@ pub fn HistoryChart(
     let mut gestures = use_signal(Gestures::default);
     let mut width = use_signal(|| 360.0_f64);
     let mut mounted = use_signal(|| None::<Rc<MountedData>>);
+    // Welche Spieler im Diagramm gezeigt werden sollen. Ist keiner gewählt, sind alle zu sehen.
+    let mut picked = use_signal(Vec::<bool>::new);
 
+    let names_len = names.len();
     let games = history.len().saturating_sub(1);
     let current = view.read().adapted(games);
-    let svg = balance_chart_svg_marked(&history, &current, &markers);
+    let hidden: Vec<bool> = {
+        let picked = picked.read();
+        let any = picked.iter().any(|&p| p);
+        (0..names.len())
+            .map(|s| any && !picked.get(s).copied().unwrap_or(false))
+            .collect()
+    };
+    let svg = balance_chart_svg_filtered(&history, &current, &markers, &hidden);
     let shown = current.selected.unwrap_or(games);
     let balances = history.get(shown).cloned().unwrap_or_default();
 
@@ -188,6 +198,35 @@ pub fn HistoryChart(
             p { class: "chart-info muted", "Tippen zeigt die Werte eines {step}s, Ziehen verschiebt, mit zwei Fingern zoomen." }
         }
 
+        }
+
+        if games > 0 && names.len() > 1 {
+            p { class: "legend-note", "Tippe auf Namen, um nur diese Linien zu zeigen." }
+            div { class: "chips",
+                for (seat, name) in names.iter().enumerate() {
+                    button {
+                        key: "{seat}",
+                        class: if picked.read().get(seat).copied().unwrap_or(false) { "chip on" } else { "chip" },
+                        r#type: "button",
+                        "aria-pressed": "{picked.read().get(seat).copied().unwrap_or(false)}",
+                        onclick: move |_| {
+                            let mut p = picked.write();
+                            p.resize(names_len, false);
+                            p[seat] = !p[seat];
+                        },
+                        span { class: "dot", style: "background:{player_color(seat)}" }
+                        "{name}"
+                    }
+                }
+                if picked.read().iter().any(|&p| p) {
+                    button {
+                        class: "chip",
+                        r#type: "button",
+                        onclick: move |_| picked.write().clear(),
+                        "Alle zeigen"
+                    }
+                }
+            }
         }
 
         p { class: "muted legend-title",

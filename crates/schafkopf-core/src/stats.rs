@@ -330,6 +330,9 @@ pub struct TableStats {
     /// Das Spiel mit den meisten Laufenden (Lauf oder Gegenlauf) als (Index, Anzahl).
     #[serde(default)]
     pub most_laufende: Option<(usize, u8)>,
+    /// Der höchste Gewinn eines Spielers in einem Spiel, das die Spielerpartei gewonnen hat, als (Index, Sitzplatz, Gewinn).
+    #[serde(default)]
+    pub biggest_win: Option<(usize, Seat, Cents)>,
     /// Je Spielart: wie oft es wie viele Laufende gab (Schlüssel = Anzahl).
     #[serde(default)]
     pub laufende_counts: BTreeMap<GameKind, BTreeMap<u8, LaufCount>>,
@@ -391,6 +394,7 @@ pub fn table_stats(table: &Table) -> TableStats {
         most_expensive: None,
         most_expensive_by_kind: BTreeMap::new(),
         most_laufende: None,
+        biggest_win: None,
         laufende_counts: BTreeMap::new(),
         by_kind: BTreeMap::new(),
         by_called_ace: BTreeMap::new(),
@@ -434,6 +438,13 @@ pub fn table_stats(table: &Table) -> TableStats {
             .or_insert((idx, game.value));
         if game.value > priciest.1 {
             *priciest = (idx, game.value);
+        }
+        if g.won {
+            if let Some((seat, &win)) = game.payouts.iter().enumerate().max_by_key(|(_, p)| **p) {
+                if win > 0 && stats.biggest_win.is_none_or(|(_, _, v)| win > v) {
+                    stats.biggest_win = Some((idx, seat, win));
+                }
+            }
         }
         let kind = stats.by_kind.entry(g.kind).or_default();
         kind.games += 1;

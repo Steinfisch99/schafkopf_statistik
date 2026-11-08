@@ -95,6 +95,11 @@ pub fn TableView(
                 "Die Uhrzeit des Endes bitte so eingeben: 23:15",
             )));
         };
+        // Die Eingabe hat keine Sekunden: Fällt sie in dieselbe Minute wie der letzte Eintrag, gilt dessen Zeit.
+        let end = match t.last_activity() {
+            Some(last) if end < last && last - end < 60 => last,
+            _ => end,
+        };
         if t.last_activity().is_some_and(|last| end < last) {
             drop(guard);
             return notice.set(Some(Notice::error(

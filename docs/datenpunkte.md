@@ -509,3 +509,12 @@ deshalb nach der Richtung des Preises:
 
 - "Abend beenden" nimmt eine Uhrzeit (`hh:mm`, Ortszeit) statt "jetzt": `latest_clock_before` nimmt die jüngste solche Zeit, die nicht in der Zukunft liegt (nach Mitternacht also der Vortag). Leer heißt jetzt. Das Ende darf nicht vor `Table::last_activity` liegen. Gespeichert wird es wie bisher in `Table.ended_at`.
 - Ein archivierter Abend lässt sich mit `storage::reopen_past` wieder zum laufenden machen (erst als laufender gespeichert, dann aus dem Archiv gelöscht). `ended_at` bleibt stehen und füllt das Feld für das Ende vor; wer dieselbe Uhrzeit lässt, behält den alten Zeitpunkt (auch Tage später). Nur möglich, wenn nicht gerade ein Abend mit Spielen läuft. Danach geht alles wie am laufenden Abend, auch Spiele bearbeiten.
+
+### Wünsche aus dem Spielbetrieb (0.5.0)
+
+- **Höchster Gewinn** (`TableStats.biggest_win`, `OverallStats.biggest_win`): der höchste Betrag, den ein Spieler in einem Spiel bekam, das die Spielerpartei **gewonnen** hat (mit Sitzplatz). Steht bei den Rekorden mit dem Namen. Alte Dateien laden weiter, der Wert wird immer neu gerechnet.
+- **Uhrzeit in der Spieleliste:** `GameInput.played_at` steht als "21:07 Uhr · " vor der Beschreibung, bei älteren Spielen ohne Uhrzeit fehlt sie.
+- **Ende des Abends:** Liegt die eingegebene Uhrzeit in derselben Minute wie der letzte Eintrag, gilt dessen Zeit (die Eingabe hat keine Sekunden). Vorher kam dann "Das Ende liegt vor dem letzten Eintrag".
+- **Verlaufsdiagramm:** Die Namen unter dem Diagramm wählen, welche Linien zu sehen sind (`balance_chart_svg_filtered`, Achse nur nach den gezeigten Linien). Keiner gewählt = alle. "Alle zeigen" hebt die Auswahl auf.
+- **Umbenennen:** `Table::rename_player` und `storage::rename_player_everywhere` ziehen den neuen Namen in den laufenden und alle früheren Abende nach (JSON und CSV). Ein Abend, an dem der neue Name schon vergeben ist, bleibt unverändert. Die Gesamtstatistik führt über den Namen zusammen, also geht der Betrag auf den neuen Namen über.
+- **Gesamtstatistik:** Namen unter den Verlaufsdiagrammen und in der Rangliste klappen die Spielerkarte auf und scrollen hin.

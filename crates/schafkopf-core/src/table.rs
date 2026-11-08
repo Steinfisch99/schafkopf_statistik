@@ -352,6 +352,22 @@ impl Table {
         &self.games
     }
 
+    /// Gibt dem Spieler `old` den Namen `new`, so wie er in der Bibliothek umbenannt wurde. Spiele, Ereignisse
+    /// und Vergehen verweisen auf Sitzplätze und ziehen deshalb mit. `false`, wenn es keinen Spieler `old` gibt
+    /// oder `new` an diesem Abend schon vergeben ist (zwei gleiche Namen an einem Tisch gäbe es sonst).
+    pub fn rename_player(&mut self, old: &str, new: &str) -> bool {
+        if old == new || self.players.iter().any(|p| p == new) {
+            return false;
+        }
+        match self.players.iter_mut().find(|p| p.as_str() == old) {
+            Some(entry) => {
+                *entry = new.to_owned();
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Anzahl der Spieler, die gerade am Tisch sitzen (2 bis 10).
     pub fn player_count(&self) -> usize {
         self.players.len() - self.absent.len()
