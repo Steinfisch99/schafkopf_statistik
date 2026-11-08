@@ -57,7 +57,7 @@ if [ "$build" -eq 1 ]; then
     dx build --platform android --target "$TARGET_TRIPLE" ${release_flag[@]+"${release_flag[@]}"})
 
   # dx schreibt bei jedem Build sein Platzhalter-Icon ins Gradle-Projekt (Dioxus 0.7 kennt kein eigenes Android-Icon).
-  # Darum das eigene (android/icon, erzeugt mit ../tools/android-icon.sh) darüberkopieren und Gradle noch einmal
+  # Darum das eigene (android/icon, erzeugt mit tools/android-icon.sh) darüberkopieren und Gradle noch einmal
   # laufen lassen: Das übersetzt nur die Ressourcen neu und packt die APK mit derselben Rust-Bibliothek.
   gradle_root="$ROOT/target/dx/schafkopf-app/$profile/android/app"
   cp -r "$APP_DIR/android/icon/." "$gradle_root/app/src/main/res/"
@@ -87,7 +87,7 @@ if command -v unzip > /dev/null 2>&1; then
 fi
 
 # Updates klappen nur mit demselben Schlüssel wie die installierte App (sonst deinstallieren, Daten weg).
-nix_cmd develop "$ROOT#android" --command "$ROOT/../tools/android-signing.sh" "$apk"
+nix_cmd develop "$ROOT#android" --command "$ROOT/tools/android-signing.sh" "$apk"
 
 if [ "$send" -eq 0 ]; then
   exit 0

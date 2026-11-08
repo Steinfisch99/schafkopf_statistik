@@ -32,7 +32,7 @@ sie im Nix-Speicher.
 Android-Umgebung öffnen und prüfen, ob das Handy erkannt wird:
 
 ```sh
-cd ~/git-repos/sandbox/schafkopf
+cd schafkopf
 nix develop .#android
 adb devices
 ```
@@ -51,7 +51,7 @@ dx serve --platform android
 Prüft nur die Oberfläche, nicht Android. Die WebView braucht unter Nix eventuell Nacharbeit.
 
 ```sh
-cd ~/git-repos/sandbox/schafkopf
+cd schafkopf
 nix develop .#desktop -c cargo run -p schafkopf-app --features desktop
 ```
 
@@ -69,7 +69,7 @@ deshalb ohne eigenes Zertifikat installieren. Er ist nur für den eigenen Gebrau
 prüfen, dass sie für das Handy gebaut ist, und mit `wormhole-rs` senden):
 
 ```sh
-cd ~/git-repos/sandbox/schafkopf
+cd schafkopf
 ./scripts/build-apk.sh
 ```
 
@@ -82,7 +82,7 @@ Die einzelnen Schritte, falls du sie von Hand machen willst:
 Auf dem Host bauen und die APK suchen:
 
 ```sh
-cd ~/git-repos/sandbox/schafkopf
+cd schafkopf
 nix develop .#android
 cd crates/schafkopf-app
 dx build --platform android --target aarch64-linux-android

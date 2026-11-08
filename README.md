@@ -175,30 +175,30 @@ kann man jederzeit zurückkehren.
 
 | Tag | Inhalt |
 | --- | --- |
-| `schafkopf-v0.1.0` | Erste Fassung, die auf dem Handy gut läuft: Abend einrichten mit Spielerliste, Regelwerken und benannten Tarifen, Eintragen mit Preisvorschau, Bearbeiten, Diagramm zum Bedienen, Statistik mit Grafiken, CSV-Export, Zurück-Taste. |
+| `v0.1.0` | Erste Fassung, die auf dem Handy gut läuft: Abend einrichten mit Spielerliste, Regelwerken und benannten Tarifen, Eintragen mit Preisvorschau, Bearbeiten, Diagramm zum Bedienen, Statistik mit Grafiken, CSV-Export, Zurück-Taste. |
 
-Befehle im Ordner `sandbox` (das Repo liegt eine Ebene über `schafkopf/`):
+Befehle im Ordner des Repositorys:
 
 ```sh
 git tag -n
-git diff schafkopf-v0.1.0 --stat
-git switch -c zurueck-auf-0.1 schafkopf-v0.1.0
-git worktree add ../sandbox-v0.1.0 schafkopf-v0.1.0
+git diff v0.1.0 --stat
+git switch -c zurueck-auf-0.1 v0.1.0
+git worktree add ../schafkopf-v0.1.0 v0.1.0
 ```
 
 - `git tag -n` listet die Tags mit ihrer Beschreibung.
-- `git diff schafkopf-v0.1.0 --stat` zeigt, was sich seitdem geändert hat.
-- `git switch -c zurueck-auf-0.1 schafkopf-v0.1.0` legt einen neuen Zweig auf diesem Stand an und wechselt
+- `git diff v0.1.0 --stat` zeigt, was sich seitdem geändert hat.
+- `git switch -c zurueck-auf-0.1 v0.1.0` legt einen neuen Zweig auf diesem Stand an und wechselt
   dorthin. Der Tag selbst bleibt dabei unverändert.
-- `git worktree add ../sandbox-v0.1.0 schafkopf-v0.1.0` legt den alten Stand in einen **zweiten Ordner**,
+- `git worktree add ../schafkopf-v0.1.0 v0.1.0` legt den alten Stand in einen **zweiten Ordner**,
   ohne den laufenden zu berühren. Dort lässt sich die alte Fassung bauen, zum Beispiel um die alte APK
   noch einmal aufs Handy zu schicken.
 
-Ein normales `git push` überträgt Tags nicht mit. Auf dem Host schickt man sie so zum Remote:
+Ein normales `git push` überträgt Tags nicht mit. So schickt man sie zum Remote:
 
 ```sh
-git push sync schafkopf-v0.1.0
-git push sync main --follow-tags
+git push origin v0.1.0
+git push origin main --follow-tags
 ```
 
 Der zweite Befehl überträgt außerdem alle Tags, die auf den gepushten Commits sitzen.
